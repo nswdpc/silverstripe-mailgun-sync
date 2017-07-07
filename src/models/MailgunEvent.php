@@ -1,6 +1,8 @@
 <?php
 use Mailgun\Mailgun;
 use Mailgun\Model\Event\Event;
+use DPCNSW\SilverstripeMailgunSync\Connector\Message as MessageConnector;
+
 /**
  * @author James Ellis
  * @note each record is an event linked to a submission
@@ -36,7 +38,7 @@ class MailgunEvent extends \DataObject {
 		'EventType' => 'Varchar(32)',// Mailgun event string see http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-types
 		'UTCEventDate' => 'Date',// based on timestamp returned, the UTC Y-m-d date
 		'Timestamp' => 'Decimal(16,6)',// The time when the event was generated in the system provided as Unix epoch seconds.
-		'Recipient' => 'Varchar(255)',
+		'Recipient' => 'Varchar(255)', // the Recipient value is used to re-send the message
 		'Reason' => 'Varchar(255)', // reason e.g old 
 		
 		// fields containing delivery status information
@@ -75,6 +77,18 @@ class MailgunEvent extends \DataObject {
 		'EventLookup' => [ 'type' => 'index', 'value' => '("SubmissionID","EventId","UTCEventDate")' ],
 	);
 	
+	public function canDelete($member = NULL) {
+		return FALSE;
+	}
+	
+	public function canEdit($member = NULL) {
+		return \Permission::check('ADMIN', 'any', $member);
+	}
+	
+	public function canView($member = NULL) {
+		return \Permission::check('ADMIN', 'any', $member);
+	}
+	
 	public function getCmsFields() {
 		$fields = parent::getCmsFields();
 		foreach($fields->dataFields() as $field) {
@@ -92,6 +106,7 @@ class MailgunEvent extends \DataObject {
 		$fields->dataFieldByName('StorageURL')->setRightTitle('Only applicable for 3 days after the event date');
 		
 		$fields->dataFieldByName('Timestamp')->setRightTitle( $this->UTCDateTime() );
+		
 		return $fields;
 	}
 	
@@ -99,10 +114,10 @@ class MailgunEvent extends \DataObject {
 		if(!$this->Timestamp) {
 			return "";
 		}
-		$dt = new DateTime();
+		$dt = new \DateTime();
 		$dt->setTimestamp($this->Timestamp);
-		$dt->setTimezone( new DateTimeZone('UTC') );
-		return $dt->format(DateTime::RFC2822);
+		$dt->setTimezone( new \DateTimeZone('UTC') );
+		return $dt->format(\DateTime::RFC2822);
 	}
 	
 	public static function FailureStatus() {
@@ -117,14 +132,18 @@ class MailgunEvent extends \DataObject {
 		return in_array($this->EventType, self::FailureStatus() );
 	}
 	
+	public function IsDelivered() {
+		return $this->EventType == self::DELIVERED;
+	}
+	
 	public function IsUserEvent() {
 		return in_array($this->EventType, self::UserActionStatus() );
 	}
 	
 	private static function CreateUTCDate($timestamp) {
-		$dt = new DateTime();
+		$dt = new \DateTime();
 		$dt->setTimestamp($timestamp);
-		$dt->setTimezone( new DateTimeZone('UTC') );
+		$dt->setTimezone( new \DateTimeZone('UTC') );
 		return $dt->format('Y-m-d');
 	}
 	
@@ -167,7 +186,13 @@ class MailgunEvent extends \DataObject {
 		
 		// 1. Attempt to get a submission record via user variables set
 		$variables = $event->getUserVariables();
-		$submission_id = $submission = NULL;
+		$submission_id = NULL;
+		if(!empty($variables['s'])) {
+			$submission_id = $variables['s'];// MailgunSubmission.ID
+		}
+		
+		$submission = NULL;
+		// Data comes back from 
 		if($submission_id) {
 			$submission = \MailgunSubmission::get()->filter('ID', $submission_id)->first();
 			if(!empty($submission->ID)) {
@@ -200,7 +225,41 @@ class MailgunEvent extends \DataObject {
 			// TODO could not create event- log it?
 		}
 		
+		\SS_Log::log("Stored Event #{$event_id} of type {$mailgun_event->EventType} for submission #{$submission_id}", \SS_Log::DEBUG);
+		
 		return $mailgun_event;
+	}
+	
+
+	public function getCMSActions() {
+		$actions = parent::getCMSActions();
+		if($this->IsFailure() || $this->IsDelivered()) {
+			$try_again = new \FormAction ('doTryAgain', 'Resubmit');
+			$try_again->addExtraClass('ss-ui-action-constructive');
+			$actions->push($try_again);
+		}
+		return $actions;
+	}
+
+	/**
+	 * Resubmit this event, returning a new MailgunSubmission record.
+	 * @note we resubmit via the stored MIME message based on the StorageURL stored in this record
+	 * @todo
+	 */
+	public function Resubmit() {
+		if(!$this->IsFailure() && !$this->IsDelivered()) {
+			throw new ValidationException("Can only resubmit an event if it is failed/delivered");
+		}
+		
+		$message = new MessageConnector();
+		$result = $message->resubmit($this);
+		if(!$result) {
+			throw new Exception("Could not resubmit this event");
+			return false;
+		}
+		
+		return true;
+		
 	}
 	
 }

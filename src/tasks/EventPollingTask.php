@@ -11,7 +11,7 @@ class EventPollingTask extends \BuildTask
 
 	public function run($request) {
 		$connector = new Connector\Event();
-		$begin = Connector\Base::DateTime('now -4 week');
+		$begin = Connector\Base::DateTime('now -1 day');
 		$event = NULL;//"failed OR rejected";
 		$response = $connector->pollEvents($begin, $event);
 	}

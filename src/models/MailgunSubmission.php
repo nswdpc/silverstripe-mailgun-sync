@@ -1,6 +1,4 @@
 <?php
-use Mailgun\Api\Message as Message;
-
 /**
  * @author James Ellis
  * @note provides a record to track submissions via Mailgun. When a submission is made, a record is saved to MailgunSubmission.
@@ -13,7 +11,7 @@ use Mailgun\Api\Message as Message;
  * 	We store the raw MIME of the message for up to 3 days
  * @todo provide ability to resubmit from here ?
  */
-class MailgunSubmission extends DataObject {
+class MailgunSubmission extends \DataObject {
 	
 	private static $singular_name = "Submission";
 	private static $plural_name = "Submissions";
@@ -27,7 +25,7 @@ class MailgunSubmission extends DataObject {
 	];
 	
 	private static $has_many = [
-		'Events' => 'MailgunEvents' // link this submission to multiple mailgun events
+		'Events' => 'MailgunEvent' // link this submission to multiple mailgun events
 	];
 
 	private static $indexes = [
@@ -37,29 +35,34 @@ class MailgunSubmission extends DataObject {
 	];
 	
 	private static $summary_fields = [
-		'SubmissionClassName' => 'Source',
-		'SubmissionID' => 'Source #',
-		'RecipientID' => 'Recipient #',
+		'ID' => '#',
+		'SubmissionDetails' => 'Source',
+		'RecipientID' => 'Recipient',// optional
 		'Domain' => 'Domain',
 	];
+	
+	public function SubmissionDetails() {
+		return $this->SubmissionClassName . " / " . $this->SubmissionID;
+	}
 	
 	/**
 	 * Retrieve the record that originated this submission e.g UserDefinedForm ID=89
 	 * @returns DataObject|false
 	 */
-	public function getSubmissionRecord() {
-		$record = DataObject::get($this->SubmissionClassName)->filter('ID', $this->SubmissionID)->first();
-		if(!empty($record->ID)) {
+	public function getSubmissionRecord($as_list = FALSE) {
+		$record = \DataObject::get($this->SubmissionClassName)->filter('ID', $this->SubmissionID);
+		if(!$as_list) {
+			return $record->first();
+		} else {
 			return $record;
 		}
-		return false;
 	}
 
 	/**
 	 * Determine via this Message's events whether or not a delivered status has been stored
 	 */
 	public function IsDelivered() {
-		$event = $this->Events()->filter('EventType', MailgunEvent::DELIVERED)->first();
+		$event = $this->Events()->filter('EventType', \MailgunEvent::DELIVERED)->first();
 		return !empty($event->EventId);
 	}
 
@@ -67,7 +70,7 @@ class MailgunSubmission extends DataObject {
 	 * Determine via this Message's events whether or not a accepted status has been stored
 	 */
 	public function IsAccepted() {
-		$event = $this->Events()->filter('EventType', MailgunEvent::ACCEPTED)->first();
+		$event = $this->Events()->filter('EventType', \MailgunEvent::ACCEPTED)->first();
 		return !empty($event->EventId);
 	}
 
@@ -75,7 +78,7 @@ class MailgunSubmission extends DataObject {
 	 * Determine via this Message's events whether or not the message is 'stored'. Note that storage is limited to 30 days for Paid accounts
 	 */
 	public function IsStored() {
-		$event = $this->Events()->filter('EventType', MailgunEvent::STORED)->first();
+		$event = $this->Events()->filter('EventType', \MailgunEvent::STORED)->first();
 		return !empty($event->EventId);
 	}
 
@@ -85,46 +88,47 @@ class MailgunSubmission extends DataObject {
 	 * Determine via this Message's events whether or not a delivered status has been lodged
 	 */
 	public function HasFailed() {
-		$event = $this->Events()->filter('EventType', MailgunEvent::FailureStatus());
+		$event = $this->Events()->filter('EventType', \MailgunEvent::FailureStatus());
 		return !empty($event->EventId);
 	}
 	
-	public function getCMSActions() {
-		$actions = parent::getCMSActions();
-
-		$try_again = new FormAction ('doTryAgain', 'Resubmit');
-		$try_again->addExtraClass('ss-ui-action-constructive');
-		$actions->push($try_again);
-
-		return $actions;
+	public function canDelete($member = NULL) {
+		return FALSE;
 	}
 	
-	/**
-	 * Resubmit this submission, returning a new MailgunSubmission record.
-	 * @note we resubmit via the stored MIME message based on the StorageURL stored in this record
-	 */
-	public function Resubmit() {
-		// first get the MIME message stored at Mailgun, via an HTTP GET
+	public function canEdit($member = NULL) {
+		return \Permission::check('ADMIN', 'any', $member);
+	}
+	
+	public function canView($member = NULL) {
+		return \Permission::check('ADMIN', 'any', $member);
+	}
+	
+	public function getCmsFields() {
+		$fields = parent::getCmsFields();
 		
-		// if the message no longer exists, we cannot submit via sendMime();
+		// no need to make these editable...
+		foreach($fields->dataFields() as $field) {
+			//$fields->makeFieldReadonly( $field );
+		}
 		
-		// create a new submission record
-		$submission = MailgunSubmission::create();
-		$submission->SubmissionClassName = $this->SubmissionClassName;
-		$submission->SubmissionID = $this->SubmissionID;
-		$submission->RecipientID = $this->RecipientID;
-		$submission->MessageId = NULL;
-		$submission->Domain = NULL;
-		$submission->StorageURL = NULL;// remove the StorageURL for this message
-		$submission->write();
+		// create a gridfield record representing the source of this submission
 		
-		// sendMime
-		// TODO parse out details of message for resubmit ?
-		// TODO need some recipients here?
-		// TODO update custom data ?
-		$message = new Message();
-		$message->sendMime();
+		$config = \GridFieldConfig_RecordEditor::create()
+								->removeComponentsByType('GridFieldAddNewButton')
+								//->removeComponentsByType('GridFieldEditButton')
+								->removeComponentsByType('GridFieldDeleteAction');
+										
+		$gridfield = \GridField::create(
+										'SourceRecord',
+										'Source Record',
+										$this->getSubmissionRecord(TRUE),
+										$config
+									);
 		
+		$fields->addFieldToTab('Root.Main', $gridfield);
+		
+		return $fields;
 	}
 	
 }

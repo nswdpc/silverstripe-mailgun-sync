@@ -1,0 +1,16 @@
+{
+	"name": "dpcnsw/silverstripe-mailgun-sync",
+	"description": "Synchronise messages sent by Mailgun and optionally resubmit them for delivery by Mailgun",
+	"type": "silverstripe-module",
+	"keywords": ["silverstripe", "mailgun","mime","email", "mail"],
+	"license": "BSD-3-Clause",
+	"authors": [
+		{
+			"name": "James Ellis",
+			"email": "james@dpc.nsw.gov.au"
+		}
+	],
+	"require": {
+		"kinglozzer/silverstripe-mailgunner": "3.0.0"
+	}
+}
