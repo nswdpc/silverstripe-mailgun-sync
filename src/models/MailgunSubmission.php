@@ -9,18 +9,19 @@
  * 	Free accounts - 2 days
  * 	Paid accounts (with a credit card on file) - 30 days
  * 	We store the raw MIME of the message for up to 3 days
- * @todo provide ability to resubmit from here ?
  */
 class MailgunSubmission extends \DataObject {
 	
 	private static $singular_name = "Submission";
 	private static $plural_name = "Submissions";
 	
+	private static $default_sort = "Created DESC";
+	
 	private static $db = [
 		'SubmissionClassName' => 'Varchar(255)',// ClassName of Submission source e.g UserDefinedForm
 		'SubmissionID' => 'Int', // ID of classname
-		'RecipientID' => 'Int', // Optional recipient ID value, use to track a submission to specific recipients e.g UserForm recipient
-		'MessageId' => 'Varchar(255)',// remote message id (optional - if we can get it out of Mailgunner
+		'Recipient' => 'Varchar(255)', // The specific recipient for this submission, optional
+		'MessageId' => 'Varchar(255)',// remote message id (optional - if we can get it out of Mailgunner)
 		'Domain' => 'Varchar(255)',// mailgun configured domain (optional) this message is linked to, set on send
 	];
 	
@@ -31,18 +32,24 @@ class MailgunSubmission extends \DataObject {
 	private static $indexes = [
 		'SubmissionID' => ['type' => 'index', 'value' => 'SubmissionID'],
 		'MessageDomain' => ['type' => 'index', 'value' => '("MessageId","Domain")'],
-		'MessageId' => ['type' => 'index', 'value' => '("MessageId","Domain")'],
+		'MessageId' => ['type' => 'index', 'value' => 'MessageId'],
 	];
 	
 	private static $summary_fields = [
 		'ID' => '#',
+		'Created.Nice' => 'Created',
+		'Events.Count' => 'Events',
 		'SubmissionDetails' => 'Source',
-		'RecipientID' => 'Recipient',// optional
+		'Recipient' => 'Recipient',// optional
 		'Domain' => 'Domain',
 	];
 	
+	public function getTitle() {
+		return $this->SubmissionDetails();
+	}
+	
 	public function SubmissionDetails() {
-		return $this->SubmissionClassName . " / " . $this->SubmissionID;
+		return $this->SubmissionClassName . " #" . $this->SubmissionID;
 	}
 	
 	/**
@@ -57,41 +64,65 @@ class MailgunSubmission extends \DataObject {
 			return $record;
 		}
 	}
-
+	
 	/**
-	 * Determine via this Message's events whether or not a delivered status has been stored
+	 * Returns the MailgunSubmission record linked to the DataObject passed
+	 * @returns \MailgunSubmission|false
+	 * @param $submission
+	 * @param $as_list
 	 */
-	public function IsDelivered() {
-		$event = $this->Events()->filter('EventType', \MailgunEvent::DELIVERED)->first();
-		return !empty($event->EventId);
+	public static function getMailgunSubmission(\DataObject $submission, $as_list = false) {
+		$list = MailgunSubmission::get()->filter( ['SubmissionClassName' => $submission->ClassName,  'SubmissionID' => $submission->ID ] );
+		if(!$as_list) {
+			return $list->first();
+		} else {
+			return $list;
+		}
 	}
 
 	/**
-	 * Determine via this Message's events whether or not a accepted status has been stored
+	 * The count of events with a Delivered status for this submission
 	 */
-	public function IsAccepted() {
-		$event = $this->Events()->filter('EventType', \MailgunEvent::ACCEPTED)->first();
-		return !empty($event->EventId);
+	public function DeliveredCount() {
+		$events = $this->Events()->filter('EventType', \MailgunEvent::DELIVERED);
+		return $events ? $events->count() : 0;
 	}
 
 	/**
-	 * Determine via this Message's events whether or not the message is 'stored'. Note that storage is limited to 30 days for Paid accounts
+	 * The count of events with an Accepted status for this submission
 	 */
-	public function IsStored() {
-		$event = $this->Events()->filter('EventType', \MailgunEvent::STORED)->first();
-		return !empty($event->EventId);
+	public function AcceptedCount() {
+		$events = $this->Events()->filter('EventType', \MailgunEvent::ACCEPTED);
+		return $events ? $events->count() : 0;
 	}
 
-	// TODO accepted + failed and accepted + delivered
+	/**
+	 * The count of events with a Stored status for this submission
+	 */
+	public function StoredCount() {
+		$events = $this->Events()->filter('EventType', \MailgunEvent::STORED);
+		return $events ? $events->count() : 0;
+	}
 
 	/**
-	 * Determine via this Message's events whether or not a delivered status has been lodged
+	 * The count of events with some type of failure status for this submission
 	 */
-	public function HasFailed() {
-		$event = $this->Events()->filter('EventType', \MailgunEvent::FailureStatus());
-		return !empty($event->EventId);
+	public function FailedCount() {
+		$events = $this->Events()->filter('EventType', \MailgunEvent::FAILED);
+		return $events ? $events->count() : 0;
 	}
 	
+	/**
+	 * The count of events with a Rejected status
+	 */
+	public function RejectedCount() {
+		$events = $this->Events()->filter('EventType', \MailgunEvent::REJECTED);
+		return $events ? $events->count() : 0;
+	}
+	
+	/**
+	 * These submissions can't be deleted
+	 */
 	public function canDelete($member = NULL) {
 		return FALSE;
 	}
@@ -108,26 +139,50 @@ class MailgunSubmission extends \DataObject {
 		$fields = parent::getCmsFields();
 		
 		// no need to make these editable...
-		foreach($fields->dataFields() as $field) {
-			//$fields->makeFieldReadonly( $field );
+		$fields->replaceField('SubmissionClassName', $fields->dataFieldByName('SubmissionClassName')->setTitle('Type')->performReadOnlyTransformation());
+		$fields->replaceField('SubmissionID', $fields->dataFieldByName('SubmissionID')->setTitle('ID')->performReadOnlyTransformation());
+		$fields->replaceField('Recipient', $fields->dataFieldByName('Recipient')->performReadOnlyTransformation());
+		$fields->replaceField('MessageId', $fields->dataFieldByName('MessageId')->setTitle('Mailgun Message Id')->performReadOnlyTransformation());
+		$fields->replaceField('Domain', $fields->dataFieldByName('Domain')->setTitle('Mailgun Message Domain')->performReadOnlyTransformation());
+		
+		// events GridField
+		$events = $fields->dataFieldByName('Events');
+		if($events && $events instanceof GridField) {
+			$events_config = $events->getConfig();
+			$events_config->removeComponentsByType('GridFieldAddNewButton');
+			$events_config->removeComponentsByType('GridFieldDeleteAction');
+			$events_config->removeComponentsByType('GridFieldAddExistingAutoCompleter');
 		}
 		
+		// stats
+		$fields->addFieldsToTab(
+			'Root.Main', [
+				HeaderField::create('SubmissionStatsHeader', 'Submission Stats', 4),
+				LiteralField::create('SubmissionStats', "<p>Accepted: " . $this->AcceptedCount()
+																											. " / Delivered: " . $this->DeliveredCount()
+																											. " / Failed: " . $this->FailedCount()
+																									. "</p>")
+			]
+		);
+		
 		// create a gridfield record representing the source of this submission
-		
-		$config = \GridFieldConfig_RecordEditor::create()
-								->removeComponentsByType('GridFieldAddNewButton')
-								//->removeComponentsByType('GridFieldEditButton')
-								->removeComponentsByType('GridFieldDeleteAction');
-										
-		$gridfield = \GridField::create(
-										'SourceRecord',
-										'Source Record',
-										$this->getSubmissionRecord(TRUE),
-										$config
-									);
-		
-		$fields->addFieldToTab('Root.Main', $gridfield);
-		
+		$list = $this->getSubmissionRecord(TRUE);
+		if($list && $list->count() > 0) {
+			$record = $list->first();
+			$config = \GridFieldConfig_RecordEditor::create()
+									->removeComponentsByType('GridFieldAddNewButton')
+									//->removeComponentsByType('GridFieldEditButton')
+									->removeComponentsByType('GridFieldDeleteAction');
+											
+			$gridfield = \GridField::create(
+											'SourceRecord',
+											$record->Title,
+											$list,
+											$config
+										);
+			
+			$fields->addFieldToTab('Root.Main', $gridfield);
+		}
 		return $fields;
 	}
 	

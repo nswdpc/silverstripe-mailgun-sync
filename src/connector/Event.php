@@ -9,11 +9,11 @@ class Event extends Base {
 	protected $results = array();
 	
 	/**
-	 * @param $event see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also a filter e.g "failed OR rejected"
-	 * @param $begin an RFC 2822 formatted date
+	 * @param string $begin an RFC 2822 formatted UTC datetime OR empty string for no begin datetime
+	 * @param string $event_filter see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also be a filter expression e.g "failed OR rejected"
+	 * @param boolean $resubmit whether to resubmit events if possible
 	 */
-	public function pollEvents($begin = NULL, $event = NULL) {
-		$client = $this->getClient( $this->getApiKey() );
+	public function pollEvents($begin = NULL, $event_filter = "", $resubmit = false, $extra_params = array()) {
 		
 		$api_key = $this->getApiKey();
 		$client = Mailgun::create( $api_key );
@@ -22,38 +22,59 @@ class Event extends Base {
 
 		$params = array(
 			'ascending'    => 'yes',
-			'limit'        =>  10,
+			'limit'        =>  25,
 		);
 		
 		if($begin) {
 			$params['begin'] = $begin;
 		}
 		
-		if($event) {
-			$params['event'] = $event;
+		if($event_filter) {
+			$params['event'] = $event_filter;
+		}
+		
+		// Push anything extra into the API request
+		if(!empty($extra_params) && is_array($extra_params)) {
+			$params = array_merge($params, $extra_params);
 		}
 
-		# Make the call to the client.
+		# Make the call via the client.
 		$response = $client->events()->get("{$domain}", $params);
 		
 		$items = $response->getItems();
-		if(!empty($items)) {
+		
+		$events = [];
+		if(empty($items)) {
+			return [];
+		} else {
 			$this->results = array_merge( $this->results, $items );
 			// recursively retrieve the events based on pagination
 			$this->getNextPage($client, $response);
 		}
 		
-		print "Events: " . count($this->results) . "\n";
+		\SS_Log::log("Events: " . count($this->results), \SS_Log::DEBUG);
 		
 		foreach($this->results as $event) {
 			// attempt to store the events
 			$mailgun_event = \MailgunEvent::storeEvent($event);
 			if(!empty($mailgun_event->ID)) {
-				print "Got event: " . $mailgun_event->ID . "\n";
+				$events[] = $mailgun_event->ID;
+				\SS_Log::log("Got MailgunEvent: {$mailgun_event->ID}", \SS_Log::DEBUG);
+				if($resubmit) {
+					\SS_Log::log("--------------- Start AutomatedResubmit #{$mailgun_event->ID}-------------------", \SS_Log::DEBUG);
+					try {
+						$mailgun_event->AutomatedResubmit();
+					} catch (\Exception $e) {
+						\SS_Log::log("AutomatedResubmit for event {$mailgun_event->ID} requested but failed with error: " . $e->getMessage(), \SS_Log::DEBUG);
+					}
+					\SS_Log::log("--------------- End   AutomatedResubmit #{$mailgun_event->ID}-------------------", \SS_Log::DEBUG);
+				}
 			} else {
-				print "Failed to create event\n";
+				\SS_Log::log("Failed to create/update MailgunEvent", \SS_Log::DEBUG);
 			}
 		}
+		
+		return $events;
 		
 	}
 	

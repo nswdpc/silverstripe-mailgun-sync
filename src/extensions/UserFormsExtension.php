@@ -2,7 +2,7 @@
 namespace DPCNSW\SilverstripeMailgunSync;
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
- * @note provides a way to manipulate the Email/Mailer prior to a Userforms submission. See {@link UserDefinedForm_Controller::process()}
+ * @note provides a way to manipulate the Email/Mailer prior to a UserDefinedForm submission. See {@link UserDefinedForm_Controller::process()}
  */
 class UserDefinedFormSubmissionExtension extends \Extension {
 	
@@ -33,22 +33,40 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 			return;
 		}
 		
-		// pick up our Mailer
-		$mailer = $email::mailer();
+		// determine the Recipient based on the configuration for this Form
+		$recipient_email_address = "";
+		$send_email_to_field = $recipient->SendEmailToField();
+		if ($send_email_to_field && is_string($send_email_to_field->Value)) {
+			$recipient_email_address = $send_email_to_field;
+		} else {
+			$recipient_email_address = $recipient->EmailAddress;
+		}
 		
 		// create the tracking record
 		$submission = \MailgunSubmission::create();
 		$submission->SubmissionClassName = "SubmittedForm";
-		$submission->SubmissionID = $submitted_form_id;
-		$submission->RecipientID = $recipient->ID;// track to each recipient
-		$id = $submission->write();
-		if(!$id) {
+		$submission->SubmissionID = $submitted_form_id;// submission record id
+		$submission->Recipient = $recipient_email_address;// track to each recipient
+		$submission_id = $submission->write();
+		if(!$submission_id) {
+			\SS_Log::log("updateEmail: cannot write a MailgunSubmission record", \SS_Log::NOTICE);
 			// can't write :(
 			return;
 		}
-		// on our Mailer, which extends mailgun, set some custom data
-		// when email->send() is called,  our Mailer will call addCustomData() in buildMessage()
-		$mailer->setSubmissionSource($submission->ID);
+		
+		// pick up our Mailer
+		$mailer = $email::mailer();
+		if ($mailer instanceof \CaptureMailer) {
+			// mailer is actually the outboundMailer
+			\SS_Log::log("updateEmail: mailer is CaptureMailer, using outboundMailer", \SS_Log::DEBUG);
+			$mailer = $mailer->outboundMailer;
+		}
+		if($mailer instanceof DPCNSW\SilverstripeMailgunSync\Mailer) {
+			// This will add custom v:s data to Mailgun message record, the value being the \MailgunSubmission.ID just written
+			// When email->send() is called,  our Mailer will call addCustomData() in buildMessage()
+			\SS_Log::log("updateEmail: setSubmissionSource {$submission_id}", \SS_Log::DEBUG);
+			$mailer->setSubmissionSource( $submission_id );
+		}
 		
 	}
 	

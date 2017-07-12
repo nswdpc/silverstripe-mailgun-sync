@@ -6,12 +6,17 @@ use Mailgun\Messages\MessageBuilder;
 class Mailer extends MailgunnerMailer {
 	
 	protected $submission_source = "";
+	protected $is_test_mode = false;
 	
 	/**
 	 * @param int $source_id a \MailgunSubmission.ID
 	 */
 	public function setSubmissionSource($source_id) {
 		$this->submission_source = $source_id;
+	}
+	
+	public function setIsTestMode($is) {
+		$this->is_test_mode = $is;
 	}
 	
 	protected function buildMessage(
@@ -41,6 +46,9 @@ class Mailer extends MailgunnerMailer {
 			\SS_Log::log("buildMessage: adding submission_source - {$this->submission_source}", \SS_Log::DEBUG);
 			$builder->addCustomData('s', $this->submission_source);
 		}
+		
+		// setting test mode on/off
+		$builder->setTestMode( $this->is_test_mode );
 		
 	}
 }

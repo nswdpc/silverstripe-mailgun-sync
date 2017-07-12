@@ -10,7 +10,6 @@ class ModelAdmin extends \ModelAdmin {
 	private static $managed_models = array(
 		'MailgunSubmission',
 		'MailgunEvent',
-		'TestMailgunFormSubmission',
 	);
 
 	public function init() {
@@ -20,11 +19,14 @@ class ModelAdmin extends \ModelAdmin {
 
 	public function getEditForm($id = null, $fields = null) {
 		$form = parent::getEditForm($id, $fields);
-		/*
+		
 		$grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
-		$grid->getConfig()->removeComponentsByType('GridFieldEditButton');
-		$grid->getConfig()->removeComponentsByType('GridFieldDeleteAction');
-		*/
+		$config = $grid->getConfig();
+		
+		$config->removeComponentsByType('GridFieldAddNewButton');
+		//$config->removeComponentsByType('GridFieldEditButton');
+		$config->removeComponentsByType('GridFieldPrintButton');
+		$config->removeComponentsByType('GridFieldDeleteAction');
 		
 		$config = $form->Fields()
 								->fieldByName($this->sanitiseClassName($this->modelClass))
@@ -48,48 +50,31 @@ class ModelAdmin_ItemRequest extends \GridFieldDetailForm_ItemRequest {
 		'edit',
 		'view',
 		'ItemEditForm',
-		'doTestSubmit',
 		'doTryAgain'
 	);
 
 	/**
+	 * Pushes CMS actions from managed models onto the button list
 	 * @todo when viewing events via a submission, but does not appear. How does save etc work on current record
 	 */
 	public function ItemEditForm() {
 		$form = parent::ItemEditForm();
-		if($this->record instanceof \MailgunEvent || $this->record instanceof \TestMailgunFormSubmission) {
-			$actions = $form->Actions();
-			if ($cms_actions = $this->record->getCMSActions()) {
-				foreach ($cms_actions as $action) {
-					$actions->push($action);
-				}
+		$actions = $form->Actions();
+		$cms_actions = $this->record->getCMSActions();
+		if($cms_actions) {
+			foreach ($cms_actions as $action) {
+				$actions->push($action);
 			}
 		}
 		return $form;
 	}
-	
-	/**
-	 * doTestSubmit - submits a TestMailgunFormSubmission to Mailgun
-	 */
-	public function doTestSubmit($data, $form) {
-		if($this->record instanceof \TestMailgunFormSubmission) {
-			// TODO save message first ?
-			$submission = $this->record->SubmitMessage();
-			if(!empty($submission->ID)) {
-				// resubmitting will return a new submission record
-				$form->sessionMessage('Submitted message', 'good');
-			} else {
-				// TODO: maybe some reasons here
-				$form->sessionMessage('Failed, could not submit.', 'bad');
-			}
-		}
-		return $this->edit( \Controller::curr()->getRequest() );
-	}
 
+	/**
+	 * Provide ability to resubmit a message via a \MailgunEvent record
+	 */
 	public function doTryAgain($data, $form) {
 		if($this->record instanceof \MailgunEvent) {
-			$submission = $this->record->Resubmit();
-			if(!empty($submission->ID)) {
+			if($submission = $this->record->Resubmit()) {
 				// resubmitting will return a new submission record
 				$form->sessionMessage('Resubmitted', 'good');
 			} else {
