@@ -1,6 +1,3 @@
 ---
 Name: mailgunsync
 ---
-File:
-    extensions:
-        - TestMailgunFormSubmissionAttachment
