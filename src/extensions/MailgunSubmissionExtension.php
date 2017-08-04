@@ -11,6 +11,7 @@ class MailgunSubmissionExtension extends \DataExtension {
 	public function updateSummaryFields(&$fields) {
 		$summary_fields = [
 			'MailgunFailed' => 'Mailgun Failed', // number of failures
+			'MailgunRejected' => 'Mailgun Rejected', // number of rejections
 			'MailgunDelivered' => 'Mailgun Delivered', // number of deliveries
 		];
 		$fields = array_merge($fields, $summary_fields);
@@ -29,6 +30,13 @@ class MailgunSubmissionExtension extends \DataExtension {
 	public function MailgunFailed() {
 		if($submission = $this->MailgunSubmission()) {
 			return $submission->FailedCount();
+		}
+		return "-";
+	}
+	
+	public function MailgunRejected() {
+		if($submission = $this->MailgunSubmission()) {
+			return $submission->RejectedCount();
 		}
 		return "-";
 	}
