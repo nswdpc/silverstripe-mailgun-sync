@@ -41,8 +41,6 @@ class ModelAdmin extends \ModelAdmin {
 
 /**
  * @note handle item requests for managed models
- * @todo if the message is more than 3 days old, it's pointless having a resubmit button here (but make 3 days configurable)
- * @todo what if certain records provide their own resubmit handling (maybe check for a  property) ?
  */
 class ModelAdmin_ItemRequest extends \GridFieldDetailForm_ItemRequest {
 
@@ -55,7 +53,7 @@ class ModelAdmin_ItemRequest extends \GridFieldDetailForm_ItemRequest {
 
 	/**
 	 * Pushes CMS actions from managed models onto the button list
-	 * @todo when viewing events via a submission, but does not appear. How does save etc work on current record
+	 * @TODO BUG when viewing events within a submission, this does not appear. How does save etc work on current record
 	 */
 	public function ItemEditForm() {
 		$form = parent::ItemEditForm();
