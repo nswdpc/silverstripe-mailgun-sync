@@ -1,5 +1,7 @@
 <?php
 namespace DPCNSW\SilverstripeMailgunSync;
+use DPCNSW\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
+
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
  * @note provides a way to manipulate the Email/Mailer prior to a UserDefinedForm submission. See {@link UserDefinedForm_Controller::process()}
@@ -7,12 +9,23 @@ namespace DPCNSW\SilverstripeMailgunSync;
 class UserDefinedFormSubmissionExtension extends \Extension {
 	
 	/**
-	 * Creates a submission just prior to submitting the email
-	 * @param $emailData array containing at least a key 'Fields' which is a {@link ArrayList}
+	 * Creates a submission just prior to submitting the email, called on a per UserDefinedForm_EmailRecipient basis
+	 * @param array $emailData containing at least a key 'Fields' which is a {@link ArrayList}
+	 * @param UserFormRecipientEmail $email
+	 * @param UserDefinedForm_EmailRecipient $recipient
 	 * @see {@link UserDefinedForm_Controller::process()}
 	 * @see {@link MailgunMailer::buildMessage()}
 	 */
 	public function updateEmail(\UserFormRecipientEmail $email, \UserDefinedForm_EmailRecipient $recipient, $emailData) {
+		
+		$tracking = Connector\Base::trackUserFormSubmissions();
+		if(!$tracking) {
+			/*
+			 * Tracking is turned off in config
+			 * Allows this module to be installed with userforms and have userform submission tracking turned off
+			 */
+			return;
+		}
 		
 		if(empty($emailData['Fields']) || !($emailData['Fields'] instanceof \ArrayList)) {
 			// no fields, can't actually find the SubmittedForm due to the way process() works
@@ -28,45 +41,41 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 			}
 		}
 		
-		if(!$submitted_form_id || !is_int($submitted_form_id)) {
+		if(!$submitted_form_id) {
 			// no point enabling any tracking here if no SubmittedForm.ID is found or it's not actually a valid SubmittedForm.ID
+			return;
+		}
+		
+		// get the SubmittedForm record
+		$submitted_form = \SubmittedForm::get()->filter('ID', $submitted_form_id)->first();
+		if(empty($submitted_form->ID)) {
+			// no point enabling any tracking here if no SubmittedForm record matching
 			return;
 		}
 		
 		// determine the Recipient based on the configuration for this Form
 		$recipient_email_address = "";
+		/*
+		// @todo one SubmittedForm record is created for all recipients - passing $recipient here will overwrite the MailgunSubmission::Recipient
 		$send_email_to_field = $recipient->SendEmailToField();
 		if ($send_email_to_field && is_string($send_email_to_field->Value)) {
 			$recipient_email_address = $send_email_to_field;
 		} else {
 			$recipient_email_address = $recipient->EmailAddress;
 		}
+		*/
 		
-		// create the tracking record
-		$submission = \MailgunSubmission::create();
-		$submission->SubmissionClassName = "SubmittedForm";
-		$submission->SubmissionID = $submitted_form_id;// submission record id
-		$submission->Recipient = $recipient_email_address;// track to each recipient
-		$submission_id = $submission->write();
-		if(!$submission_id) {
-			\SS_Log::log("updateEmail: cannot write a MailgunSubmission record", \SS_Log::NOTICE);
-			// can't write :(
-			return;
+		try {
+			// create the tracking record
+			$tags = ['userform'];
+			$sync = new MailgunSyncEmailExtension();
+			$sync->mailgunSyncEmail($email, $submitted_form, $recipient_email_address, $tags);
+			return true;
+		} catch (\Exception $e) {
+			\SS_Log::log("Error trying to setup sync record for Mailgun: " . $e->getMessage(), \SS_Log::NOTICE);
 		}
 		
-		// pick up our Mailer
-		$mailer = $email::mailer();
-		if ($mailer instanceof \CaptureMailer) {
-			// mailer is actually the outboundMailer
-			\SS_Log::log("updateEmail: mailer is CaptureMailer, using outboundMailer", \SS_Log::DEBUG);
-			$mailer = $mailer->outboundMailer;
-		}
-		if($mailer instanceof DPCNSW\SilverstripeMailgunSync\Mailer) {
-			// This will add custom v:s data to Mailgun message record, the value being the \MailgunSubmission.ID just written
-			// When email->send() is called,  our Mailer will call addCustomData() in buildMessage()
-			\SS_Log::log("updateEmail: setSubmissionSource {$submission_id}", \SS_Log::DEBUG);
-			$mailer->setSubmissionSource( $submission_id );
-		}
+		return false;
 		
 	}
 	
