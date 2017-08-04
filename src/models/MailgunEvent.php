@@ -1,6 +1,6 @@
 <?php
 use Mailgun\Mailgun;
-use Mailgun\Model\Event\Event;
+use Mailgun\Model\Event\Event as MailgunEventModel;
 use DPCNSW\SilverstripeMailgunSync\Connector\Message as MessageConnector;
 
 /**
@@ -18,6 +18,8 @@ class MailgunEvent extends \DataObject {
 	
 	private static $max_failures = 3;// maximum number of failures before an event cannot be resubmitted (e.g total permanent failure)
 	
+	private static $secure_folder_name = "SecureUploads";
+	
 	const ACCEPTED = 'accepted';
 	const REJECTED = 'rejected';
 	const DELIVERED = 'delivered';
@@ -28,7 +30,8 @@ class MailgunEvent extends \DataObject {
 	const COMPLAINED = 'complained';
 	const STORED = 'stored';
 	
-	// TODO store message size ?
+	const TAG_RESUBMIT = 'resubmit';
+	
 	private static $db = array(
 		/**
 		 * @note Mailgun says "Event id. It is guaranteed to be unique within a day.
@@ -41,7 +44,7 @@ class MailgunEvent extends \DataObject {
 		'EventType' => 'Varchar(32)',// Mailgun event string see http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-types
 		'UTCEventDate' => 'Date',// based on timestamp returned, the UTC Y-m-d date
 		'Timestamp' => 'Decimal(16,6)',// The time when the event was generated in the system provided as Unix epoch seconds.
-		'Recipient' => 'Varchar(255)', // the Recipient value is used to re-send the message
+		'Recipient' => 'Varchar(255)', // the Recipient value is used to re-send the message, an email address
 		'Reason' => 'Varchar(255)', // reason e.g old 
 		
 		// Whether this event was resubmitted
@@ -56,11 +59,14 @@ class MailgunEvent extends \DataObject {
 		'DeliveryStatusMxHost' => 'Varchar(255)',
 		
 		'StorageURL' => 'Text',// storage URL for message at Mailgun (NB: max 3 days for paid accounts, message may have been deleted by MG)
-		'DecodedStorageKey' => 'Text'  // JSON encoded storage key
+		'DecodedStorageKey' => 'Text',  // JSON encoded storage key
+		
+		'IsDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob
 	);
 	
 	private static $has_one = array(
-		'Submission' => 'MailgunSubmission'
+		'Submission' => 'MailgunSubmission',
+		'MimeMessage' => 'File', // the MIME of the message is stored if a failure extends beyond 2 days
 	);
 
 	private static $summary_fields = array(
@@ -84,6 +90,31 @@ class MailgunEvent extends \DataObject {
 		'UTCEventDate' => true,
 		'EventLookup' => [ 'type' => 'index', 'value' => '("SubmissionID","EventId","UTCEventDate")' ],
 	);
+	
+	/**
+	 * Returns the age of the event, in seconds
+	 */
+	public function Age() {
+		if($this->Timestamp == 0) {
+			return false;
+		}
+		$age = time() - $this->Timestamp;
+		return $age;
+	}
+	
+	/**
+	 * Returns the age of the submission linked to this event, in seconds
+	 */
+	public function MessageAge() {
+		$submission = $this->Submission();
+		if(empty($submission->ID)) {
+			return false;
+		}
+		$created = new DateTime($submission->Created);
+		$now = new DateTime();
+		$age = $now->format('U') - $created->format('U');
+		return $age;
+	}
 	
 	public function canDelete($member = NULL) {
 		return FALSE;
@@ -114,6 +145,11 @@ class MailgunEvent extends \DataObject {
 		$fields->dataFieldByName('StorageURL')->setRightTitle('Only applicable for 3 days after the event date');
 		
 		$fields->dataFieldByName('Timestamp')->setRightTitle( $this->UTCDateTime() );
+		
+		// no point showing this when not a failure
+		if(!$this->IsFailure() && !$this->IsRejected()) {
+			$field->removeByName('IsDelivered');
+		}
 		
 		return $fields;
 	}
@@ -158,6 +194,10 @@ class MailgunEvent extends \DataObject {
 		return $this->EventType == self::REJECTED;
 	}
 	
+	public function IsFailureOrRejected() {
+		return $this->IsFailure() || $this->IsRejected();
+	}
+	
 	public function IsDelivered() {
 		return $this->EventType == self::DELIVERED;
 	}
@@ -193,7 +233,7 @@ class MailgunEvent extends \DataObject {
 		return false;
 	}
 	
-	private function getMessageHeader(Event $event, $header) {
+	private function getMessageHeader(MailgunEventModel $event, $header) {
 		$message = $event->getMessage();
 		$value = isset($message['headers'][$header]) ? $message['headers'][$header] : '';
 		return $value;
@@ -220,10 +260,9 @@ class MailgunEvent extends \DataObject {
 	/**
 	 * Given a Mailgun\Model\Event\Event, store if possible, or return the event if already stored
 	 * @note get the custom data to determine a {@link MailgunSubmission} record if possible
-	 * @todo if the message is 2 days old, maybe store the MIME data ?
 	 * @param Mailgun\Model\Event\Event $event 
 	 */
-	public static function StoreEvent(Event $event) {
+	public static function StoreEvent(MailgunEventModel $event) {
 		
 		// 1. Attempt to get a submission record via user variables set
 		$variables = $event->getUserVariables();
@@ -255,11 +294,6 @@ class MailgunEvent extends \DataObject {
 		}
 		
 		$recipient = $event->getRecipient();
-		if(!$recipient) {
-			// use the to: recipient
-			// TODO: this could be risky as the To header could be 'name <email>'
-			// $recipient = $mailgun_event->getMessageHeader($event, 'to');
-		}
 		
 		$mailgun_event->SubmissionID = $submission_id;// if set
 		$mailgun_event->EventId = $event->getId();
@@ -268,14 +302,16 @@ class MailgunEvent extends \DataObject {
 		$mailgun_event->UTCEventDate = self::CreateUTCDate($timestamp);
 		$mailgun_event->Severity = $event->getSeverity();
 		$mailgun_event->EventType = $event->getEvent();
-		$mailgun_event->Recipient = $recipient;
+		$mailgun_event->Recipient = $recipient;// if the message is sent to Someone <someone@example.com>, the $recipient value will be someone@example.com
 		$mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
 		$mailgun_event->saveDeliveryStatus( $status );
 		$mailgun_event->StorageURL = isset($storage['url']) ? $storage['url'] : '';
 		$mailgun_event->DecodedStorageKey = (isset($storage['key']) ? base64_decode($storage['key']) : '');
 		$event_id = $mailgun_event->write();
 		if(!$event_id) {
-			// TODO could not create event- log it?
+			// could not create record
+			\SS_Log::log("Failed to create a \MailgunEvent within MailgunEvent::StoreEvent()", \SS_Log::ERR);
+			return false;
 		}
 		
 		if($create) {
@@ -285,10 +321,12 @@ class MailgunEvent extends \DataObject {
 		return $mailgun_event;
 	}
 	
-
+	/**
+	 * TODO allow for delivered events to be resubmitted ? Maybe only by ADMIN?
+	 */
 	public function getCMSActions() {
 		$actions = parent::getCMSActions();
-		if($this->IsFailure() || $this->IsDelivered()) {
+		if($this->IsFailureOrRejected() || $this->IsDelivered()) {
 			$try_again = new \FormAction ('doTryAgain', 'Resubmit');
 			$try_again->addExtraClass('ss-ui-action-constructive');
 			$actions->push($try_again);
@@ -298,14 +336,25 @@ class MailgunEvent extends \DataObject {
 	
 	/**
 	 * Retrieve the number of failures for a particular recipient for this event's linked submission
+	 * Failures are determined to be 'failed' or 'rejected' events
 	 */
 	public function GetRecipientFailures() {
 		$events = \MailgunEvent::get()
 								->filter('SubmissionID', $this->SubmissionID)
-								->filter('Recipient', $this->Recipient)
-								->filter('EventType', self::FAILED)
+								->filter('Recipient', $this->Recipient) // Recipient is an email address
+								->filterAny('EventType', [ self::FAILED, self::REJECTED ])
 								->count();
+		\SS_Log::log("GetRecipientFailures: {$events} failures for s:{$this->SubmissionID} r:{$this->Recipient}", \SS_Log::DEBUG);
 		return $events;
+	}
+	
+	public function MimeMessageContent() {
+		$content = "";
+		$file = $this->MimeMessage();
+		if(!empty($file->ID) && ($file instanceof File)) {
+			$content = file_get_contents( $file->getFullPath() );
+		}
+		return $content;
 	}
 	
 	/**
@@ -323,7 +372,7 @@ class MailgunEvent extends \DataObject {
 			return false;
 		}
 		
-		\SS_Log::log("{$current_failures} failures for submission #{$this->SubmissionID} / {$this->Recipient}", \SS_Log::DEBUG);
+		\SS_Log::log("{$current_failures}/{$max_failures} failures for submission #{$this->SubmissionID} / {$this->Recipient}", \SS_Log::DEBUG);
 		
 		return true;
 		
@@ -334,14 +383,14 @@ class MailgunEvent extends \DataObject {
 	 */
 	public function AutomatedResubmit() {
 		
-		if(!$this->IsFailure()) {
-			\SS_Log::log("Not Failed - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
+		if(!$this->IsFailureOrRejected()) {
+			\SS_Log::log("Not Failed/Rejected - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
 			return FALSE;
 		}
 		
-		// If this specific event has been resubmitted already, do not resubmit
+		// If this SPECIFIC event has been resubmitted already, do not resubmit
 		if($this->Resubmitted) {
-			\SS_Log::log("AutomatedResubmit - this event has already been resubmitted", \SS_Log::DEBUG);
+			\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", \SS_Log::DEBUG);
 			return FALSE;
 		}
 		
@@ -355,7 +404,9 @@ class MailgunEvent extends \DataObject {
 		if(!$result) {
 			throw new \Exception("Could not resubmit this event");
 		} else {
-			// mark as resubmitted, if this Event is ever AutomatedResubmit requested ... it won't go out, once is enough
+			// A single event can only be resubmitted once
+			// Resubmission may result in another failed event (and that can be resubmitted)
+			\SS_Log::log("AutomatedResubmit - mark as resubmitted", \SS_Log::DEBUG);
 			$this->Resubmitted = 1;
 			$this->write();
 		}
@@ -364,12 +415,13 @@ class MailgunEvent extends \DataObject {
 	}
 
 	/**
-	 * Resubmit this event, returning a new MailgunSubmission record.
+	 * Manually resubmit this event, returning a new MailgunSubmission record.
 	 * @note we resubmit via the stored MIME message based on the StorageURL stored in this record, which is valid for 3 days
+	 * @note if the event has a MimeMessage message attached, this will be used as the content of the message sent to Mailgun
 	 */
 	public function Resubmit() {
-		if(!$this->IsFailure() && !$this->IsDelivered()) {
-			throw new \ValidationException("Can only resubmit an event if it is failed/delivered");
+		if(!$this->IsFailure() && !$this->IsRejected() && !$this->IsDelivered()) {
+			throw new \ValidationException("Can only resubmit an event if it is failed/rejected/delivered");
 		}
 		
 		$message = new MessageConnector();
@@ -385,7 +437,7 @@ class MailgunEvent extends \DataObject {
 			return false;
 		}
 		
-		return true;
+		return $message_id;
 		
 	}
 	
