@@ -1,8 +1,9 @@
 {
 	"name": "dpcnsw/silverstripe-mailgun-sync",
-	"description": "Synchronise messages sent by Mailgun and optionally resubmit them for delivery by Mailgun",
+	"description": "Send messages by Mailgun and optionally synchronise events and resubmit failed messages to Mailgun.",
 	"type": "silverstripe-module",
-	"keywords": ["silverstripe", "mailgun","mime","email", "mail"],
+	"homepage" : "TODO",
+	"keywords": ["silverstripe", "mailgun","mime","email","mail"],
 	"license": "BSD-3-Clause",
 	"authors": [
 		{
@@ -10,7 +11,16 @@
 			"email": "james@dpc.nsw.gov.au"
 		}
 	],
+	"support" : {
+		"issues" : "TODO",
+	},
+	"extra" : {
+		"installer-name" : "mailgun-sync",
+	},
 	"require": {
-		"kinglozzer/silverstripe-mailgunner": "3.0.0"
+		"silverstripe/queuedjobs": "~2.0",
+	},
+	"require-dev": {
+		"dpcnsw/silverstripe-mailgun-sync" : "dev-master"
 	}
 }
