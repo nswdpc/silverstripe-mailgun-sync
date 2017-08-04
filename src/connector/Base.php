@@ -7,7 +7,14 @@ use Mailgun\Mailgun;
  */
 abstract class Base {
 	
-	private static $api_version = 'v3';
+	private static $api_key = '';
+	private static $api_domain = '';
+	private static $api_testmode = false;// when true ALL emails are sent with o:testmode = 'yes'
+	private static $sync_local_mime = false;// download messages when failed
+	private static $resubmit_failures = 2;// number of resubmit failures before the message is stored (when sync_local_mime is true)
+	private static $track_userform = false;// track userform submissions (userform module support)
+	
+	private static $workaround_testmode = false;// this works around an oddity where testmode is 'yes', the recipient is in the supression list but messages are 'delivered' in testmode
 	
 	/**
 	 * Returns an RFC2822 datetime in the format accepted by Mailgun
@@ -21,28 +28,62 @@ abstract class Base {
 		}
 	}
 	
-	protected function getClient($api_key) {
-		$client = new Mailgun( $api_key );
+	public function getClient($api_key = null) {
+		if(!$api_key) {
+			$api_key = $this->getApiKey();
+		}
+		$client = Mailgun::create( $api_key );
 		return $client;
 	}
 	
-	// TODO get key/domain from outside mailgunner ?
-	protected function getApiKey() {
-		$mailgunner_api_key = \Config::inst()->get('Kinglozzer\SilverStripeMailgunner\Mailer','api_key');
-		return $mailgunner_api_key;
+	public function getApiKey() {
+		$mailgun_api_key = \Config::inst()->get(__CLASS__,'api_key');
+		return $mailgun_api_key;
 	}
 
-	protected function getApiDomain() {
-		$mailgunner_api_domain = \Config::inst()->get('Kinglozzer\SilverStripeMailgunner\Mailer','api_domain');
-		return $mailgunner_api_domain;
+	public function getApiDomain() {
+		$mailgun_api_domain = \Config::inst()->get(__CLASS__,'api_domain');
+		return $mailgun_api_domain;
 	}
 	
 	/**
-	 * @todo use mailgunner config as an option
+	 * Does config state the module should track userform submissions?
+	 * {@link DPCNSW\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension::updateEmail()}
 	 */
-	protected function getApiVersion() {
-		$api_version = \Config::inst()->get('DPCNSW\SilverstripeMailgunSync\ApiClient','api_version');
-		return $api_version;
+	public static function trackUserFormSubmissions() {
+		return \Config::inst()->get(__CLASS__,'track_userform');
+	}
+	
+	/**
+	 * Returns whether or not syncing remote message to a local file is allowed in config
+	 */
+	final protected function syncLocalMime() {
+		return \Config::inst()->get(__CLASS__,'sync_local_mime');
+	}
+	
+	/**
+	 * Returns configured number of resubmit failures, before the MIME message is downloaded (if configured)
+	 */
+	final protected function resubmitFailures() {
+		return \Config::inst()->get(__CLASS__,'resubmit_failures');
+	}
+	
+	/**
+	 * Returns whether testmode workaround is on.
+	 * When true this worksaround a quirk in Mailgun where sending messages with testmode on to recipients in the supression list are 'delivered' (should be 'failed')
+	 */
+	final protected function workaroundTestMode() {
+		return \Config::inst()->get(__CLASS__,'workaround_testmode');
+	}
+	
+	/**
+	 * Prior to any send/sendMime action, check config and set testmode if config says so
+	 */
+	final protected function applyTestMode(&$parameters) {
+		$mailgun_testmode = \Config::inst()->get(__CLASS__,'api_testmode');
+		if($mailgun_testmode) {
+			$parameters['o:testmode'] = 'yes';
+		}
 	}
 	
 }

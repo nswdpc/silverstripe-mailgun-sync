@@ -5,7 +5,7 @@ namespace DPCNSW\SilverstripeMailgunSync;
  * This Job runs once per day and polls for events matching the given filter. It will attempt to resubmit the events if possible (based on config).
  * Mailgun stores messages for 3 days maximum, after that time there is a higher likelihood that the message will no longer exist at Mailgun
  */
-class FailedEventsJob extends AbstractQueuedJob {
+class FailedEventsJob extends \AbstractQueuedJob {
 	
 	// This is to run once every day.
 	private static $repeat_time = 86400;
@@ -16,7 +16,7 @@ class FailedEventsJob extends AbstractQueuedJob {
 	private static $time_of_day = '11:00:00';
 	
 	public function getJobType() {
-		return QueuedJob::QUEUED;
+		return \QueuedJob::QUEUED;
 	}
 	
 	public function getTitle() {
@@ -28,8 +28,8 @@ class FailedEventsJob extends AbstractQueuedJob {
 	 */
 	public static function getNextStartDateTime() {
 		$time = $this->config()->time_of_day;
-		$now = new DateTime();
-		$next = new DateTime();
+		$now = new \DateTime();
+		$next = new \DateTime();
 		$next->setTime( $time );
 		
 		// if we are currently after the next datetime, set it to tomorrow at the configured time
@@ -41,23 +41,30 @@ class FailedEventsJob extends AbstractQueuedJob {
 		return $next;
 		
 	}
-
+	
 	/**
-	 * @todo some specific Exceptions?
+	 * polls for 'failed' events in the last day and tries to resubmit them
 	 */
 	public function process() {
 		try {
 			// poll for events
 			$connector = new Connector\Event();
 			$begin = Connector\Base::DateTime('now -1 day');// events created within the last day
-			//$event_filter = "failed OR rejected";
-			$event_filter = "failed";
+			$event_filter = \MailgunEvent::FAILED . " OR " . \MailgunEvent::REJECTED;// query Mailgun for failed OR rejected events
 			$resubmit = true;
-			$events = $connector->pollEvents($begin, $event_filter, $resubmit);
-			
+			$extra_params = [];
+			// poll for failed events using these filters
+			\SS_Log::log("FailedEventsJob::process - polling", \SS_Log::DEBUG);
+			$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
+			\SS_Log::log("FailedEventsJob::processsing done - " . count($events) . " events polled", \SS_Log::DEBUG);
+			$this->isComplete = true;
+			return $events;
 		} catch (\Exception $e) {
 			// failed somewhere along the line
+			\SS_Log::log("Caught an Exception in FailedEventsJob::process() - " . $e->getMessage(), \SS_Log::NOTICE);
 		}
+		$this->isComplete = true;
+		return false;
 	}
 	
 	/**
@@ -65,13 +72,15 @@ class FailedEventsJob extends AbstractQueuedJob {
 	 */
 	public function onAfterComplete() {
 		$next = self::getNextStartDateTime();
+		\SS_Log::log("FailedEventsJob next:{$next}", \SS_Log::DEBUG);
+		exit;
 		$job = new FailedEventsJob(); 
 		$service = singleton('QueuedJobService');
 		$descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
 		if($descriptor_id) {
-			SS_Log::log("Queued new FailedEventsJob #{$descriptor_id}", SS_Log::DEBUG);
+			\SS_Log::log("Queued new FailedEventsJob #{$descriptor_id}", \SS_Log::DEBUG);
 		} else {
-			SS_Log::log("Failed to queue new FailedEventsJob!", SS_Log::WARN);
+			\SS_Log::log("Failed to queue new FailedEventsJob!", \SS_Log::WARN);
 		}
 	}
 	

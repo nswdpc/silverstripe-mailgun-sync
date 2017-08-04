@@ -1,3 +1,23 @@
 ---
 Name: mailgunsync
 ---
+# API config
+DPCNSW\SilverstripeMailgunSync\Connector\Base:
+  api_domain: ''
+  api_key: ''
+  api_testmode: false
+  sync_local_mime: false
+  track_userform: false
+  resubmit_failures : 2
+  workaround_testmode: false
+  testing_to_email: ''
+  testing_from_email: ''
+---
+Name: mailgunsyncuserform
+Only:
+  ModuleExists: userforms
+---
+# UserDefinedForm submission handling, if module exists
+UserDefinedForm_Controller:
+  extensions:
+    - DPCNSW\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension
