@@ -39,6 +39,8 @@ class MailgunSubmission extends \DataObject {
 		'ID' => '#',
 		'Created.Nice' => 'Created',
 		'Events.Count' => 'Events',
+		'DeliveredCount' => 'Delivered',
+		'FailedOrRejectedCount' => 'Failed/Rejected',
 		'SubmissionDetails' => 'Source',
 		'Recipient' => 'Recipient',// optional
 		'Domain' => 'Domain',
@@ -68,11 +70,11 @@ class MailgunSubmission extends \DataObject {
 	/**
 	 * Returns the MailgunSubmission record linked to the DataObject passed
 	 * @returns \MailgunSubmission|false
-	 * @param $submission
+	 * @param $submission_source
 	 * @param $as_list
 	 */
-	public static function getMailgunSubmission(\DataObject $submission, $as_list = false) {
-		$list = MailgunSubmission::get()->filter( ['SubmissionClassName' => $submission->ClassName,  'SubmissionID' => $submission->ID ] );
+	public static function getMailgunSubmission(\DataObject $submission_source, $as_list = false) {
+		$list = MailgunSubmission::get()->filter( ['SubmissionClassName' => $submission_source->ClassName,  'SubmissionID' => $submission_source->ID ] );
 		if(!$as_list) {
 			return $list->first();
 		} else {
@@ -121,6 +123,14 @@ class MailgunSubmission extends \DataObject {
 	}
 	
 	/**
+	 * The count of events that are Failed or Rejected
+	 */
+	public function FailedOrRejectedCount() {
+		$events = $this->Events()->filterAny('EventType', [ \MailgunEvent::FAILED, \MailgunEvent::REJECTED ]);
+		return $events ? $events->count() : 0;
+	}
+	
+	/**
 	 * These submissions can't be deleted
 	 */
 	public function canDelete($member = NULL) {
@@ -161,6 +171,7 @@ class MailgunSubmission extends \DataObject {
 				LiteralField::create('SubmissionStats', "<p>Accepted: " . $this->AcceptedCount()
 																											. " / Delivered: " . $this->DeliveredCount()
 																											. " / Failed: " . $this->FailedCount()
+																											. " / Rejected: " . $this->RejectedCount()
 																									. "</p>")
 			]
 		);
