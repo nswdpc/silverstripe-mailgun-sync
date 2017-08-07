@@ -15,7 +15,7 @@
 		"issues" : "https://github.com/nswdpc/silverstripe-mailgun-sync/issues"
 	},
 	"extra" : {
-		"installer-name" : "mailgun-sync",
+		"installer-name" : "mailgun-sync"
 	},
 	"require": {
 		"silverstripe/queuedjobs": "~2.0",
