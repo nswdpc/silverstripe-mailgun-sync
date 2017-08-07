@@ -1,5 +1,5 @@
 {
-	"name": "dpcnsw/silverstripe-mailgun-sync",
+	"name": "nswdpc/silverstripe-mailgun-sync",
 	"description": "Send messages via Mailgun, optionally synchronise events and resubmit failed messages to Mailgun.",
 	"type": "silverstripe-module",
 	"homepage" : "https://github.com/nswdpc/silverstripe-mailgun-sync",
@@ -20,6 +20,6 @@
 	"require": {
 		"silverstripe/queuedjobs": "~2.0",
 		"mailgun/mailgun-php": "^2.3",
-		"silverstripe/framework" : "^3.2"
+		"silverstripe/framework" : "~3.2"
 	}
 }
