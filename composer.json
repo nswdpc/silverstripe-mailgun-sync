@@ -1,8 +1,8 @@
 {
 	"name": "dpcnsw/silverstripe-mailgun-sync",
-	"description": "Send messages by Mailgun and optionally synchronise events and resubmit failed messages to Mailgun.",
+	"description": "Send messages via Mailgun, optionally synchronise events and resubmit failed messages to Mailgun.",
 	"type": "silverstripe-module",
-	"homepage" : "TODO",
+	"homepage" : "https://github.com/nswdpc/silverstripe-mailgun-sync",
 	"keywords": ["silverstripe", "mailgun","mime","email","mail"],
 	"license": "BSD-3-Clause",
 	"authors": [
@@ -12,15 +12,14 @@
 		}
 	],
 	"support" : {
-		"issues" : "TODO",
+		"issues" : "https://github.com/nswdpc/silverstripe-mailgun-sync/issues"
 	},
 	"extra" : {
 		"installer-name" : "mailgun-sync",
 	},
 	"require": {
 		"silverstripe/queuedjobs": "~2.0",
-	},
-	"require-dev": {
-		"dpcnsw/silverstripe-mailgun-sync" : "dev-master"
+		"mailgun/mailgun-php": "^2.3",
+		"silverstripe/framework" : "^3.2"
 	}
 }
