@@ -273,7 +273,7 @@ class MailgunEvent extends \DataObject {
 		}
 		
 		$submission = NULL;
-		// Data comes back from 
+		// Retrieve the local submission record based on event user variables
 		if($submission_id) {
 			$submission = \MailgunSubmission::get()->filter('ID', $submission_id)->first();
 			if(!empty($submission->ID)) {
@@ -286,8 +286,10 @@ class MailgunEvent extends \DataObject {
 		$storage = $event->getStorage();
 		$tags = $event->getTags();
 		
+		$mailgun_event_id = $event->getId();
+		
 		// find the event
-		$mailgun_event = self::GetByIdAndDate($event->getId(), $timestamp, $submission);
+		$mailgun_event = self::GetByIdAndDate($mailgun_event_id, $timestamp, $submission);
 		$create = FALSE;
 		if(!($mailgun_event instanceof \MailgunEvent)) {
 			$mailgun_event = \MailgunEvent::create();
@@ -297,7 +299,7 @@ class MailgunEvent extends \DataObject {
 		$recipient = $event->getRecipient();
 		
 		$mailgun_event->SubmissionID = $submission_id;// if set
-		$mailgun_event->EventId = $event->getId();
+		$mailgun_event->EventId = $mailgun_event_id;
 		$mailgun_event->MessageId = $mailgun_event->getMessageHeader($event, 'message-id');
 		$mailgun_event->Timestamp = $timestamp;
 		$mailgun_event->UTCEventDate = self::CreateUTCDate($timestamp);
@@ -386,13 +388,18 @@ class MailgunEvent extends \DataObject {
 		
 		if(!$this->IsFailureOrRejected()) {
 			\SS_Log::log("Not Failed/Rejected - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
-			return FALSE;
+			return false;
 		}
 		
 		// If this SPECIFIC event has been resubmitted already, do not resubmit
 		if($this->Resubmitted) {
 			\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", \SS_Log::DEBUG);
-			return FALSE;
+			return false;
+		}
+		
+		if($this->FailedThenDelivered == 1) {
+			\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} was marked failed then delivered, not resubmitting", \SS_Log::DEBUG);
+			return false;
 		}
 		
 		// Automated resubmits must check if a limit has been reached
