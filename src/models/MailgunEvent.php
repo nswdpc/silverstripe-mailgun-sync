@@ -49,6 +49,7 @@ class MailgunEvent extends \DataObject {
 		
 		// Whether this event was resubmitted
 		'Resubmitted' => 'Boolean',
+		'Resubmits' => 'Int',// # of times this specific event resubmitted
 		
 		// fields containing delivery status information
 		'DeliveryStatusMessage' => 'Text', // reason text e.g for failures 'mailbox full', 'spam' etc
@@ -156,7 +157,7 @@ class MailgunEvent extends \DataObject {
 		
 		// no point showing this when not a failure
 		if(!$this->IsFailure() && !$this->IsRejected()) {
-			$field->removeByName('FailedThenDelivered');
+			$fields->removeByName('FailedThenDelivered');
 		}
 		
 		// show a list of related events sharing the same MessageId
@@ -173,6 +174,7 @@ class MailgunEvent extends \DataObject {
 	
 	public function getSiblingEvents() {
 		$events = \MailgunEvent::get()->filter('MessageId', $this->MessageId)
+																		->exclude('ID',  $this->ID)
 																		->sort('Created DESC');
 		return $events;
 	}
@@ -385,11 +387,20 @@ class MailgunEvent extends \DataObject {
 	/**
 	 * An event can resubmit if the number of failed events 
 	 */
-	public function CanResubmit() {
+	private function CanResubmit() {
+		
 		$max_failures = $this->config()->max_failures;
 		if(!is_int($max_failures)) {
 			$max_failures = 3;// default to 3 if not configured
 		}
+		
+		
+		// the number of times this has specific event has been resubmitted
+		if($this->Resubmits >= $max_failures) {
+			return false;
+		}
+		
+		// the number of failures for this Recipient/Submission combo
 		$current_failures = $this->GetRecipientFailures();
 		if($current_failures >= $max_failures) {
 			// cannot resubmit
@@ -429,15 +440,18 @@ class MailgunEvent extends \DataObject {
 			throw new \Exception("Cannot resubmit: too many failures");
 		}
 		
-		$message = new MessageConnector();
-		$result = $message->resubmit($this);
-		if(!$result) {
-			throw new \Exception("Could not resubmit this event");
-		} else {
+		try {
+			$message = new MessageConnector();
+			$result = $message->resubmit($this);
 			// A single event can only be resubmitted once
 			// Resubmission may result in another failed event (and that can be resubmitted)
 			\SS_Log::log("AutomatedResubmit - mark as resubmitted", \SS_Log::DEBUG);
 			$this->Resubmitted = 1;
+			$this->write();
+		} catch (\Exception $e) {
+			// update number of resubmits
+			$this->Resubmits = ($this->Resubmits + 1);
+			\SS_Log::log("AutomatedResubmit - error resubmits={$this->Resubmits} - " . $e->getMessage(), \SS_Log::DEBUG);
 			$this->write();
 		}
 		

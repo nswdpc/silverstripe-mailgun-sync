@@ -117,10 +117,15 @@ class Message extends Base {
 		}
 		
 		// retrieve MIME content from event
-		$message = $this->getMime($event);
 		$message_mime_content = "";
-		if(!$use_local_file_contents && ($message instanceof ShowResponse)) {
-			$message_mime_content = $message->getBodyMime();
+		try {
+			$message = $this->getMime($event);
+			if(!$use_local_file_contents && ($message instanceof ShowResponse)) {
+				$message_mime_content = $message->getBodyMime();
+			}
+		} catch (\Exception $e) {
+			// Will throw a Mailgun 404 HTTPClientException like "The endpoint you tried to access does not exist. Check your URL"
+			\SS_Log::log("getMime: " . $e->getMessage(), \SS_Log::DEBUG);
 		}
 		
 		// No message content or $use_local_file_contents==true (Test)
@@ -131,8 +136,7 @@ class Message extends Base {
 		}
 		
 		if(!$message_mime_content) {
-			\SS_Log::log("No content found for message linked to MailgunEvent #{$event->ID}, cannot resubmit", \SS_Log::NOTICE);
-			return false;
+			throw new \Exception("No local or remote content found for message linked to MailgunEvent #{$event->ID}, cannot resubmit");
 		}
 		
 		try {
@@ -147,41 +151,37 @@ class Message extends Base {
 		
 		// send to this event's recipient
 		\SS_Log::log("Resend message to {$event->Recipient} using domain {$domain}",  \SS_Log::DEBUG);
-		try {
-			$params = [];
-			$params['o:tag'] = [ \MailgunEvent::TAG_RESUBMIT ];//tag - can poll for resubmitted events then
-			if($is_running_test) {
-				if($this->workaroundTestMode()) {
-					// ensure testmode is off when set, see method documentation for more
-					// only applicable when running tests
-					\SS_Log::log("Workaround testmode is ON - turning testmode off",  \SS_Log::DEBUG);
-					unset($params['o:testmode']);
-				} else {
-					// resubmit() during tests are done with testmode = 'yes'
-					\SS_Log::log("Workaround testmode is OFF - turning testmode on while running test",  \SS_Log::DEBUG);
-					$params['o:testmode'] = 'yes';// per http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
-				}
-			}
-			// apply testmode if Config is set - this will not override is_running_test application of testmode above
-			$this->applyTestMode($params);
-			$result = $client->messages()->sendMime($domain, [ $event->Recipient ], $message_mime_content, $params);
-			/*
-				object(Mailgun\Model\Message\SendResponse)[1740]
-				  private 'id' => string '<message-id.mailgun.org>' (length=92)
-				  private 'message' => string 'Queued. Thank you.' (length=18)
-			*/
-			if(!$result || empty($result->getId())) {
-				\SS_Log::log("Failed to resend message to {$event->Recipient} - unexpected response",  \SS_Log::DEBUG);
+		
+		$params = [];
+		$params['o:tag'] = [ \MailgunEvent::TAG_RESUBMIT ];//tag - can poll for resubmitted events then
+		if($is_running_test) {
+			if($this->workaroundTestMode()) {
+				// ensure testmode is off when set, see method documentation for more
+				// only applicable when running tests
+				\SS_Log::log("Workaround testmode is ON - turning testmode off",  \SS_Log::DEBUG);
+				unset($params['o:testmode']);
 			} else {
-				$message_id =  $result->getId();
-				$message_id = trim($message_id, "<>");
-				\SS_Log::log("Resent message to {$event->Recipient}. messageid={$message_id} message={$result->getMessage()}",  \SS_Log::DEBUG);
-				return $message_id;
+				// resubmit() during tests are done with testmode = 'yes'
+				\SS_Log::log("Workaround testmode is OFF - turning testmode on while running test",  \SS_Log::DEBUG);
+				$params['o:testmode'] = 'yes';// per http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
 			}
-		} catch (\Exception $e) {
-			\SS_Log::log("Failed to resend message linked to event #{$event->ID} with error" . $e->getMessage(),  \SS_Log::NOTICE);
 		}
-		return false;
+		// apply testmode if Config is set - this will not override is_running_test application of testmode above
+		$this->applyTestMode($params);
+		$result = $client->messages()->sendMime($domain, [ $event->Recipient ], $message_mime_content, $params);
+		/*
+			object(Mailgun\Model\Message\SendResponse)[1740]
+			  private 'id' => string '<message-id.mailgun.org>' (length=92)
+			  private 'message' => string 'Queued. Thank you.' (length=18)
+		*/
+		if(!$result || empty($result->getId())) {
+			throw new \Exception("Failed to resend message to {$event->Recipient} - unexpected response");
+		} else {
+			$message_id =  $result->getId();
+			$message_id = trim($message_id, "<>");
+			\SS_Log::log("Resent message to {$event->Recipient}. messageid={$message_id} message={$result->getMessage()}",  \SS_Log::DEBUG);
+			return $message_id;
+		}
 		
 	}
 	
