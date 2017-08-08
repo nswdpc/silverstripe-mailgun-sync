@@ -49,7 +49,7 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 	}
 	
 	/**
-	 * Checks for local 'failed' events marked IsDelivered=0 and queries Mailgun for a 'delivered' status
+	 * Checks for local 'failed' events marked FailedThenDelivered=0 and queries Mailgun for a 'delivered' status
 	 */
 	public function process() {
 		try {
@@ -65,13 +65,15 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 			$events = \MailgunEvent::get()->filterAny([
 				'EventType' => [ \MailgunEvent::FAILED, \MailgunEvent::REJECTED ],
 			])->filter([
-				'IsDelivered' => 0,
+				'FailedThenDelivered' => 0,
 				'UTCEventDate:GreaterThanOrEqual' => $start_formatted,
 			]);
 			if($this->test_event_ids) {
 				// filter only by these ids to test
 				$events = $events->filter('ID', $this->test_event_ids);
 			}
+			
+			$events = $events->limit(3);
 			
 			if($events) {
 				$count = 0;
@@ -95,6 +97,7 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 			
 		} catch (\Exception $e) {
 			// failed somewhere along the line
+			\SS_Log::log("DeliveryCheckJob exception: " .  $e->getMessage(), \SS_Log::NOTICE);
 		}
 		
 		$this->isComplete = true;

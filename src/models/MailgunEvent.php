@@ -61,7 +61,7 @@ class MailgunEvent extends \DataObject {
 		'StorageURL' => 'Text',// storage URL for message at Mailgun (NB: max 3 days for paid accounts, message may have been deleted by MG)
 		'DecodedStorageKey' => 'Text',  // JSON encoded storage key
 		
-		'IsDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob
+		'FailedThenDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob
 	);
 	
 	private static $has_one = array(
@@ -76,11 +76,12 @@ class MailgunEvent extends \DataObject {
 		'Severity' => 'Severity',
 		'Reason' => 'Reason',
 		'DeliveryStatusAttempts' => 'MG Attempts',
-		'DeliveryStatusSession' => 'Session (s)',
+		//'DeliveryStatusSession' => 'Session (s)',
 		'DeliveryStatusCode' => 'Code',
 		'Recipient' => 'Recipient',
 		'EventId' => 'Event Id',
-		'MessageId' => 'Msg Id',
+		'FailedThenDelivered' => 'Failed/delivered later',
+		//'MessageId' => 'Msg Id',
 		'LocalDateTime' => 'Date (SYD)',
 	);
 	
@@ -148,7 +149,7 @@ class MailgunEvent extends \DataObject {
 		
 		// no point showing this when not a failure
 		if(!$this->IsFailure() && !$this->IsRejected()) {
-			$field->removeByName('IsDelivered');
+			$field->removeByName('FailedThenDelivered');
 		}
 		
 		return $fields;

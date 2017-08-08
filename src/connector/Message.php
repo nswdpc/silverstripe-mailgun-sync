@@ -68,9 +68,10 @@ class Message extends Base {
 		$is_delivered = !empty($events);
 		if($is_delivered) {
 		
-			// mark this event as IsDelivered, DeliveryCheckJob then ignores it on the next run
-			$event->IsDelivered = 1;
+			// mark this event as FailedThenDelivered, DeliveryCheckJob then ignores it on the next run
+			$event->FailedThenDelivered = 1;
 			$event->write();
+			\SS_Log::log("isDelivered set MailgunEvent #{$event->ID}/{$event->EventType} to FailedThenDelivered=1", \SS_Log::DEBUG);
 		
 		 	if($cleanup) {
 				// delete any stored message if it exists, no need to store it
@@ -79,6 +80,8 @@ class Message extends Base {
 					$mime_body_message->delete();
 				}
 			}
+		} else {
+			\SS_Log::log("isDelivered no polled 'delivered' events for #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
 		}
 		
 		return $is_delivered;
