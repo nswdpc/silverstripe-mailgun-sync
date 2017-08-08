@@ -57,7 +57,9 @@ class FailedEventsJob extends \AbstractQueuedJob {
 			$begin = Connector\Base::DateTime('now -1 day');// events created within the last day
 			$event_filter = \MailgunEvent::FAILED . " OR " . \MailgunEvent::REJECTED;// query Mailgun for failed OR rejected events
 			$resubmit = true;
-			$extra_params = [];
+			$extra_params = [
+				'limit' => 25 // per page
+			];
 			// poll for failed events using these filters
 			\SS_Log::log("FailedEventsJob::process - polling", \SS_Log::DEBUG);
 			$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);

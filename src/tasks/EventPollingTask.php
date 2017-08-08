@@ -2,7 +2,7 @@
 namespace DPCNSW\SilverstripeMailgunSync;
 
 /**
- * Task polls for 'failed' OR 'rejected' events and attempts to resubmit them, this is for testing only
+ * Task polls for 'failed' OR 'rejected' events but does not resubmit them, this is for testing only
  */
 class EventPollingTask extends \BuildTask {
 	
@@ -22,11 +22,13 @@ class EventPollingTask extends \BuildTask {
 			$timeframe = 'now -1 day';
 			$begin = Connector\Base::DateTime($timeframe);
 			$event_filter = \MailgunEvent::FAILED . " OR " . \MailgunEvent::REJECTED;// query Mailgun for failed OR rejected events
-			
 			\SS_Log::log("pollEvents with filter '{$event_filter}'", \SS_Log::DEBUG);
+			$extra_params = [
+				'limit' => 100
+			];
 			
-			$resubmit = true;// true = attempt to resubmit
-			$events = $connector->pollEvents($begin, $event_filter, $resubmit);
+			$resubmit = false;// true = attempt to resubmit
+			$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 			
 			print "Polled " . count($events) . " events matching {$event_filter}/{$timeframe}\n";
 			exit;

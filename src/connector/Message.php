@@ -58,10 +58,11 @@ class Message extends Base {
 		$event_filter = \MailgunEvent::DELIVERED;
 		$resubmit = false;// no we don't want to resubmit
 		$extra_params = [
+			'limit' => 25,
 			'message-id' => $event->MessageId,
 			'recipient' => $event->Recipient,// match against the recipient of the event
 		];
-		\SS_Log::log("isDelivered polling", \SS_Log::DEBUG);
+		
 		// calling pollEvents will store  matching local \MailgunEvent record(s)
 		$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 		

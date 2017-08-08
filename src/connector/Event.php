@@ -22,7 +22,6 @@ class Event extends Base {
 
 		$params = array(
 			'ascending'    => 'yes',
-			'limit'        =>  25,
 		);
 		
 		if($begin) {
@@ -37,6 +36,10 @@ class Event extends Base {
 		if(!empty($extra_params) && is_array($extra_params)) {
 			$params = array_merge($params, $extra_params);
 		}
+		
+		if(!isset($params['limit'])) {
+			$params['limit'] = 300;//documented max
+		}
 
 		# Make the call via the client.
 		$response = $client->events()->get($domain, $params);
@@ -45,11 +48,11 @@ class Event extends Base {
 		
 		$events = [];
 		if(empty($items)) {
-			\SS_Log::log("pollEvents no results", \SS_Log::DEBUG);
 			return [];
 		} else {
 			$this->results = array_merge( $this->results, $items );
 			// recursively retrieve the events based on pagination
+			\SS_Log::log("pollEvents getting next page", \SS_Log::DEBUG);
 			$this->getNextPage($client, $response);
 		}
 		
@@ -109,6 +112,7 @@ class Event extends Base {
 		}
 		// add to results
 		$this->results = array_merge( $this->results, $items );
+		\SS_Log::log("pollEvents getNextPage again", \SS_Log::DEBUG);
 		return $this->getNextPage($client, $response);
 		
 	}
