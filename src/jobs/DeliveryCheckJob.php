@@ -107,7 +107,7 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 	/**
 	 * Create another job in 24hrs
 	 */
-	public function onAfterComplete() {
+	public function afterComplete() {
 		$next = self::getNextStartDateTime();
 		$job = new DeliveryCheckJob(); 
 		$service = singleton('QueuedJobService');

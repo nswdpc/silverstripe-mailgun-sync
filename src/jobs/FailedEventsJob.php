@@ -75,7 +75,7 @@ class FailedEventsJob extends \AbstractQueuedJob {
 	/**
 	 * Create another job in 24hrs
 	 */
-	public function onAfterComplete() {
+	public function afterComplete() {
 		$next = self::getNextStartDateTime();
 		\SS_Log::log("FailedEventsJob next:{$next}", \SS_Log::DEBUG);
 		exit;
