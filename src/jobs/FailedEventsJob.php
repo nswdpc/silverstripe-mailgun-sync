@@ -61,9 +61,9 @@ class FailedEventsJob extends \AbstractQueuedJob {
 				'limit' => 25 // per page
 			];
 			// poll for failed events using these filters
-			\SS_Log::log("FailedEventsJob::process - polling", \SS_Log::DEBUG);
+			\SS_Log::log("FailedEventsJob::process - polling from {$begin} onwards", \SS_Log::DEBUG);
 			$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
-			\SS_Log::log("FailedEventsJob::processsing done - " . count($events) . " events polled", \SS_Log::DEBUG);
+			\SS_Log::log("FailedEventsJob::processing done - " . count($events) . " events polled", \SS_Log::DEBUG);
 			$this->isComplete = true;
 			return $events;
 		} catch (\Exception $e) {
@@ -79,8 +79,6 @@ class FailedEventsJob extends \AbstractQueuedJob {
 	 */
 	public function afterComplete() {
 		$next = self::getNextStartDateTime();
-		\SS_Log::log("FailedEventsJob next:{$next}", \SS_Log::DEBUG);
-		exit;
 		$job = new FailedEventsJob(); 
 		$service = singleton('QueuedJobService');
 		$descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
