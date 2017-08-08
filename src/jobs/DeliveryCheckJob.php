@@ -12,9 +12,9 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 	private static $repeat_time = 86400;
 	
 	/**
-	 * Repeat at 1pm
+	 * Default repeat at 1pm
 	 */
-	private static $time_of_day = '13:00:00';
+	private static $time_of_day = ['hour' => 13, 'minute' => 0, 'second' => 0 ];
 	
 	public function getJobType() {
 		return \QueuedJob::QUEUED;
@@ -26,12 +26,17 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 	
 	/**
 	 * getNextStartDateTime - based on configured time for job and the current datetime, set the datetime for the next job
+	 * @returns DateTime
 	 */
 	public static function getNextStartDateTime() {
-		$time = $this->config()->time_of_day;
+		$time = \Config::inst()->get(__CLASS__, 'time_of_day');
 		$now = new \DateTime();
 		$next = new \DateTime();
-		$next->setTime( $time );
+		$next->setTime(
+						(isset($time['hour']) ? $time['hour'] : 0),
+						(isset($time['minute']) ? $time['minute'] : 0),
+						(isset($time['second']) ? $time['second'] : 0)
+		);
 		
 		// if we are currently after the next datetime, set it to tomorrow at the configured time
 		// else, we are before, use current day at $time
@@ -70,9 +75,10 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 			
 			if($events) {
 				$count = 0;
+				$total = count($events);
 				foreach($events as $event) {
 					try {
-						\SS_Log::log("DeliveryCheckJob check isDelivered for event #{$event->ID} ", \SS_Log::DEBUG);
+						\SS_Log::log("DeliveryCheckJob check isDelivered for event #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
 						// Check for delivered events, cleanup
 						$connector->isDelivered($event, true);
 						$count++;
@@ -81,7 +87,7 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 						\SS_Log::log("DeliveryCheckJob hit an issue on event #{$event->ID} - " . $e->getMessage(), \SS_Log::NOTICE);
 					}
 				}
-				\SS_Log::log("DeliveryCheckJob cleaned up {$count} events", \SS_Log::NOTICE);
+				\SS_Log::log("DeliveryCheckJob cleaned up {$count}/{$total} events", \SS_Log::DEBUG);
 			}
 			
 			$this->isComplete = true;

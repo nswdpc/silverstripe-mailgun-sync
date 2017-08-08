@@ -12,6 +12,23 @@ DPCNSW\SilverstripeMailgunSync\Connector\Base:
   workaround_testmode: false
   testing_to_email: ''
   testing_from_email: ''
+# Event config
+MailgunEvent:
+  secure_folder_name : 'SecureUploads'
+  max_failures : 3
+# Job config
+DPCNSW\SilverstripeMailgunSync\FailedEventsJob:
+  repeat_time : 86400
+  time_of_day :
+    hour : 11
+    minute : 0
+    second : 0
+DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob:
+  repeat_time : 86400
+  time_of_day :
+    hour : 13
+    minute : 0
+    second : 0
 ---
 Name: mailgunsyncuserform
 Only:

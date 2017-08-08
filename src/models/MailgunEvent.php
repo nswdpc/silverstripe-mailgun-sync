@@ -16,7 +16,7 @@ class MailgunEvent extends \DataObject {
 	private static $singular_name = "Event";
 	private static $plural_name = "Events";
 	
-	private static $max_failures = 3;// maximum number of failures before an event cannot be resubmitted (e.g total permanent failure)
+	private static $max_failures = 3;// maximum number of failures before an event cannot be auto-resubmitted (e.g total permanent failure)
 	
 	private static $secure_folder_name = "SecureUploads";
 	

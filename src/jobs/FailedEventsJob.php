@@ -11,9 +11,9 @@ class FailedEventsJob extends \AbstractQueuedJob {
 	private static $repeat_time = 86400;
 	
 	/**
-	 * Repeat at 11am
+	 * Default repeat at 11am
 	 */
-	private static $time_of_day = '11:00:00';
+	private static $time_of_day = ['hour' => 11, 'minute' => 0, 'second' => 0 ];
 	
 	public function getJobType() {
 		return \QueuedJob::QUEUED;
@@ -25,12 +25,17 @@ class FailedEventsJob extends \AbstractQueuedJob {
 	
 	/**
 	 * getNextStartDateTime - based on configured time for job and the current datetime, set the datetime for the next job
+	 * @returns DateTime
 	 */
 	public static function getNextStartDateTime() {
-		$time = $this->config()->time_of_day;
+		$time = \Config::inst()->get(__CLASS__, 'time_of_day');
 		$now = new \DateTime();
 		$next = new \DateTime();
-		$next->setTime( $time );
+		$next->setTime(
+						(isset($time['hour']) ? $time['hour'] : 0),
+						(isset($time['minute']) ? $time['minute'] : 0),
+						(isset($time['second']) ? $time['second'] : 0)
+		);
 		
 		// if we are currently after the next datetime, set it to tomorrow at the configured time
 		// else, we are before, use current day at $time
