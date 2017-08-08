@@ -93,6 +93,13 @@ class MailgunEvent extends \DataObject {
 	);
 	
 	/**
+	 * Allow for easy visual matching between this and the Mailgin App Logs screen
+	 */
+	public function getTitle() {
+		return "{$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}";
+	}
+	
+	/**
 	 * Returns the age of the event, in seconds
 	 */
 	public function Age() {
@@ -152,7 +159,22 @@ class MailgunEvent extends \DataObject {
 			$field->removeByName('FailedThenDelivered');
 		}
 		
+		// show a list of related events sharing the same MessageId
+		$siblings = $this->getSiblingEvents();
+		if($siblings && $siblings->count() > 0) {
+			$gridfield = GridField::create('SiblingEvents', 'Siblings', $siblings);
+			$literal_field = LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id. <code>'. htmlspecialchars($this->MessageId) . '</code> '
+																																		. '<br />It may show more than one recipient, depending on the original message recipients</p>');
+			$fields->addFieldsToTab('Root.RelatedEvents', [$literal_field, $gridfield ]);
+		}
+		
 		return $fields;
+	}
+	
+	public function getSiblingEvents() {
+		$events = \MailgunEvent::get()->filter('MessageId', $this->MessageId)
+																		->sort('Created DESC');
+		return $events;
 	}
 	
 	/**
