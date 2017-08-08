@@ -74,11 +74,12 @@ class Message extends Base {
 			\SS_Log::log("isDelivered set MailgunEvent #{$event->ID}/{$event->EventType} to FailedThenDelivered=1", \SS_Log::DEBUG);
 		
 		 	if($cleanup) {
-				// delete any stored message if it exists, no need to store it
-				$mime_body_message = $event->MimeMessage();// File
-				if(!empty($mime_body_message->ID) && ($mime_body_message instanceof \File)) {
-					$mime_body_message->delete();
-				}
+				try {
+					// Remove event folder and the downloaded message file (see Folder::onBeforeDelete()
+					$folder = $this->getFolder($event);
+					$folder->delete();
+					\SS_Log::log("isDelivered deleted folder for #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
+				} catch (\Exception $e) {}
 			}
 		} else {
 			\SS_Log::log("isDelivered no polled 'delivered' events for #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
@@ -240,17 +241,9 @@ class Message extends Base {
 		
 		// save contents to a file
 		\SS_Log::log("storeIfRequired - storing locally",  \SS_Log::DEBUG);
-		$secure_folder_name = $event->config()->secure_folder_name;
-		if(!$secure_folder_name) {
-			throw new \Exception("No secure_folder_name configured on class MailgunEvent");
-		}
-		$folder_path = $secure_folder_name . '/mailgun-sync/event/' . $event->ID;
-		$folder = \Folder::find_or_make($folder_path);
-		if(empty($folder->ID)) {
-			throw new \Exception("Failed to create folder {$folder_path}");
-		}
+		$folder = $this->getFolder();
 		$file = new \File();
-		$file->Name = "message.txt";// while we are dealing with a MIME encoded message here, File::validate will block extensions like .eml, .mime by default
+		$file->Name = $this->messageFileName();
 		$file->ParentID = $folder->ID;
 		$file_id = $file->write();
 		if(empty($file_id)) {
@@ -270,6 +263,33 @@ class Message extends Base {
 		
 		return $file;
 		
+	}
+	
+	/**
+	 * Get (and possibly create) a {@link Folder} for this event
+	 */
+	protected function getFolder(\MailgunEvent $event) {
+		$secure_folder_name = $event->config()->secure_folder_name;
+		if(!$secure_folder_name) {
+			throw new \Exception("No secure_folder_name configured on class MailgunEvent");
+		}
+		$folder_path = $secure_folder_name . '/mailgun-sync/event/' . $event->ID;
+		$folder = \Folder::find_or_make($folder_path);
+		if(empty($folder->ID)) {
+			throw new \Exception("Failed to create folder {$folder_path}");
+		}
+		return $folder;
+	}
+	
+	/**
+	 * Generate a non predictable filename for the downloaded message file
+	 * @note while we are dealing with a MIME encoded message here, File::validate will block extensions like .eml, .mime by default
+	 */
+	protected function messageFileName() {
+		$rand = mt_rand(0, 1000000000);
+		$time = microtime(true);
+		$filename = hash("md5", $time . $rand) . ".txt";
+		return $filename;
 	}
 	
 }
