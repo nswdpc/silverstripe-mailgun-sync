@@ -68,12 +68,14 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 				'FailedThenDelivered' => 0,
 				'UTCEventDate:GreaterThanOrEqual' => $start_formatted,
 			]);
+			$events = $events->where("(MessageId IS NOT NULL AND MessageId <> '')");// filter out events without a MessageId, can't query these at all
+			
 			if($this->test_event_ids) {
 				// filter only by these ids to test
 				$events = $events->filter('ID', $this->test_event_ids);
 			}
 			
-			$events = $events->limit(3);
+			$events = $events->sort('Created ASC');// oldest first
 			
 			if($events) {
 				$count = 0;
