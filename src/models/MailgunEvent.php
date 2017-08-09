@@ -32,6 +32,9 @@ class MailgunEvent extends \DataObject {
 	
 	const TAG_RESUBMIT = 'resubmit';
 	
+	const FAILURE_TEMPORARY = 'temporary';
+	const FAILURE_PERMANENT = 'permanent';
+	
 	private static $db = array(
 		/**
 		 * @note Mailgun says "Event id. It is guaranteed to be unique within a day.
@@ -150,6 +153,9 @@ class MailgunEvent extends \DataObject {
 		$fields->dataFieldByName('DeliveryStatusAttempts')->setTitle('Delivery attempts by Mailgun');
 		$fields->dataFieldByName('DeliveryStatusSession')->setTitle('Session time (seconds)');
 		$fields->dataFieldByName('DeliveryStatusMxHost')->setTitle('MX Host');
+		if($this->EventType == self::FAILED && $this->Severity == self::FAILURE_TEMPORARY) {
+			$fields->dataFieldByName('Severity')->setRightTitle('Temporary failures will be retried by Mailgun');
+		}
 		
 		$fields->dataFieldByName('UTCEventDate')->setTitle('Event Date (UTC)');
 		$fields->dataFieldByName('StorageURL')->setRightTitle('Only applicable for 3 days after the event date');
@@ -350,11 +356,13 @@ class MailgunEvent extends \DataObject {
 	}
 	
 	/**
-	 * TODO allow for delivered events to be resubmitted ? Maybe only by ADMIN?
+	 * Provide action buttons to allow a resubmit. Only failures marked 'permanent' can be resubmitted - temporary failures are retried by MG
+	 * TODO permission check for button and resubmit() access
 	 */
 	public function getCMSActions() {
 		$actions = parent::getCMSActions();
-		if($this->IsFailureOrRejected() || $this->IsDelivered()) {
+		$delivered = $this->IsDelivered();
+		if( ($this->IsFailureOrRejected() && $this->Severity == self::FAILURE_PERMANENT) || $delivered ) {
 			$try_again = new \FormAction ('doTryAgain', 'Resubmit');
 			$try_again->addExtraClass('ss-ui-action-constructive');
 			$actions->push($try_again);
@@ -387,15 +395,20 @@ class MailgunEvent extends \DataObject {
 	}
 	
 	/**
-	 * An event can resubmit if the number of failed events 
+	 * Check if the event can be resubmitted via an {@link self::AutomatedResubmit()}
 	 */
 	private function CanResubmit() {
+		
+		// is this a temporary failure ? Mailgun will try to resubmit itself
+		// if we resubmit it, MG may deliver the original on retry and the resubmit
+		if($this->Severity == self::FAILURE_TEMPORARY) {
+			return false;
+		}
 		
 		$max_failures = $this->config()->max_failures;
 		if(!is_int($max_failures)) {
 			$max_failures = 3;// default to 3 if not configured
 		}
-		
 		
 		// the number of times this has specific event has been resubmitted
 		if($this->Resubmits >= $max_failures) {
