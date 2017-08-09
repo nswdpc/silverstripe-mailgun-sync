@@ -242,7 +242,7 @@ class Message extends Base {
 		
 		// save contents to a file
 		\SS_Log::log("storeIfRequired - storing locally",  \SS_Log::DEBUG);
-		$folder = $this->getFolder();
+		$folder = $this->getFolder($event);
 		$file = new \File();
 		$file->Name = $this->messageFileName();
 		$file->ParentID = $folder->ID;
