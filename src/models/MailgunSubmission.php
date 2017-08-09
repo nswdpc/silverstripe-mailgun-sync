@@ -20,8 +20,8 @@ class MailgunSubmission extends \DataObject {
 	private static $db = [
 		'SubmissionClassName' => 'Varchar(255)',// ClassName of Submission source e.g UserDefinedForm
 		'SubmissionID' => 'Int', // ID of classname
-		'Recipient' => 'Varchar(255)', // The specific recipient for this submission, optional
-		'MessageId' => 'Varchar(255)',// remote message id (optional - if we can get it out of Mailgunner)
+		'Recipient' => 'Varchar(255)', // The specific recipient for this submission, optional and makes no sense when multiple recipients
+		'MessageId' => 'Varchar(255)',// remote message id (optional) - for submissions with multiple recipients, the most recent message-id returned
 		'Domain' => 'Varchar(255)',// mailgun configured domain (optional) this message is linked to, set on send
 	];
 	
@@ -30,7 +30,7 @@ class MailgunSubmission extends \DataObject {
 	];
 
 	private static $indexes = [
-		'SubmissionID' => ['type' => 'index', 'value' => 'SubmissionID'],
+		'Submission' => ['type' => 'index', 'value' => '("SubmissionID","SubmissionClassName")'],
 		'MessageDomain' => ['type' => 'index', 'value' => '("MessageId","Domain")'],
 		'MessageId' => ['type' => 'index', 'value' => 'MessageId'],
 	];
