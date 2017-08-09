@@ -93,9 +93,10 @@ class Mailer extends SilverstripeMailer {
 				
 				\SS_Log::log('Sending...', \SS_Log::DEBUG);
 				$response = $connector->send($parameters);
+				$message_id = "";
 				if($response && $response instanceof SendResponse) {
 					// save message.id to the submission
-					$this->saveResponse($response);
+					$message_id = $this->saveResponse($response);
 				}
 				
 			} catch (\Exception $e) {
@@ -106,6 +107,7 @@ class Mailer extends SilverstripeMailer {
 			}
 
 			// Return format matching {@link Mailer::sendPreparedMessage()}
+			// TODO would be nice to get message_id back to email->send()
 			return [$to, $subject, $content, $headers, ''];
 	}
 	
@@ -139,15 +141,14 @@ class Mailer extends SilverstripeMailer {
 			private 'message' => string 'Queued. Thank you.' (length=18)
 	*/
 	final protected function saveResponse($message) {
+		$message_id = $message->getId();
+		$message_id = trim($message_id, "<>");// < > surrounding characters seem to affect the message-id usage in event filters
 		if($this->hasSubmission()) {
-			$message_id = $message->getId();
-			$message_id = trim($message_id, "<>");// < > surrounding characters seem to affect the message-id usage in event filters
 			\SS_Log::log('Saving messageId: ' . $message_id  . " to submission {$this->submission->ID}", \SS_Log::DEBUG);
 			$this->submission->MessageId = $message_id;// for submissions with multiple recipients this will be the last message_id returned
 			$this->submission->write();
-			return true;
 		}
-		return false;
+		return $message_id;
 	}
 	
 	/**
