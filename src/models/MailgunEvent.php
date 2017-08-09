@@ -1,7 +1,7 @@
 <?php
 use Mailgun\Mailgun;
 use Mailgun\Model\Event\Event as MailgunEventModel;
-use DPCNSW\SilverstripeMailgunSync\Connector\Message as MessageConnector;
+use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
 
 /**
  * @author James Ellis
@@ -65,7 +65,7 @@ class MailgunEvent extends \DataObject {
 		'StorageURL' => 'Text',// storage URL for message at Mailgun (NB: max 3 days for paid accounts, message may have been deleted by MG)
 		'DecodedStorageKey' => 'Text',  // JSON encoded storage key
 		
-		'FailedThenDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob
+		'FailedThenDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob
 	);
 	
 	private static $has_one = array(

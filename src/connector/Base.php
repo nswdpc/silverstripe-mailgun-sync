@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync\Connector;
+namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
 /**
  * Base connector to the Mailgun API
@@ -48,7 +48,7 @@ abstract class Base {
 	
 	/**
 	 * Does config state the module should track userform submissions?
-	 * {@link DPCNSW\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension::updateEmail()}
+	 * {@link NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension::updateEmail()}
 	 */
 	public static function trackUserFormSubmissions() {
 		return \Config::inst()->get(__CLASS__,'track_userform');

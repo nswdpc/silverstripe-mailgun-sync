@@ -1,6 +1,6 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
-use DPCNSW\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
+namespace NSWDPC\SilverstripeMailgunSync;
+use NSWDPC\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
 
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>

@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync\Connector;
+namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
 
 /**

@@ -1,7 +1,7 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync\Connector;
+namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
-use DPCNSW\SilverstripeMailgunSync\Connector\Event as EventConnector;
+use NSWDPC\SilverstripeMailgunSync\Connector\Event as EventConnector;
 use Mailgun\Model\Message\ShowResponse;
 
 /**

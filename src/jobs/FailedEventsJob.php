@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
+namespace NSWDPC\SilverstripeMailgunSync;
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
  * This Job runs once per day and polls for events matching the given filter. It will attempt to resubmit the events if possible (based on config).

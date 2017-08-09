@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
+namespace NSWDPC\SilverstripeMailgunSync;
 use Mailgun\Model\Message\SendResponse;
 use Mailer as SilverstripeMailer;
 use Mailgun\Mailgun;
@@ -169,7 +169,7 @@ class Mailer extends SilverstripeMailer {
 		}
 		
 		$is_running_test = \SapphireTest::is_running_test();
-		$workaround_testmode = \Config::inst()->get('DPCNSW\SilverstripeMailgunSync\Connector\Base', 'workaround_testmode');
+		$workaround_testmode = \Config::inst()->get('NSWDPC\SilverstripeMailgunSync\Connector\Base', 'workaround_testmode');
 		if($is_running_test && $workaround_testmode) {
 			\SS_Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", \SS_Log::DEBUG);
 			unset($parameters['o:testmode']);

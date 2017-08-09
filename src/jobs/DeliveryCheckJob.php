@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
+namespace NSWDPC\SilverstripeMailgunSync;
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
  * This Job runs once per day and polls local 'failed' OR 'rejected' MailgunEvent records matching the date range

@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
+namespace NSWDPC\SilverstripeMailgunSync;
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
  * An extension that can be applied to relevant Dataobjects to show the Mailgun failed/delivered/submission status. Resubmission happens from {@link \MailgunEvent}

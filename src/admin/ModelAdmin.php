@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
+namespace NSWDPC\SilverstripeMailgunSync;
 
 /**
  * Admin for MailgunSync
@@ -33,7 +33,7 @@ class ModelAdmin extends \ModelAdmin {
 								->getConfig();
 		
 		$field = $config->getComponentByType('GridFieldDetailForm');
-		$field->setItemRequestClass('DPCNSW\SilverstripeMailgunSync\ModelAdmin_ItemRequest');
+		$field->setItemRequestClass('NSWDPC\SilverstripeMailgunSync\ModelAdmin_ItemRequest');
 		return $form;
 	}
 }

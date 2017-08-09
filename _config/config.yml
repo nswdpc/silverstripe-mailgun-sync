@@ -2,7 +2,7 @@
 Name: mailgunsync
 ---
 # API config
-DPCNSW\SilverstripeMailgunSync\Connector\Base:
+NSWDPC\SilverstripeMailgunSync\Connector\Base:
   api_domain: ''
   api_key: ''
   api_testmode: false
@@ -15,13 +15,13 @@ MailgunEvent:
   secure_folder_name : 'SecureUploads'
   max_failures : 3
 # Job config
-DPCNSW\SilverstripeMailgunSync\FailedEventsJob:
+NSWDPC\SilverstripeMailgunSync\FailedEventsJob:
   repeat_time : 86400
   time_of_day :
     hour : 11
     minute : 0
     second : 0
-DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob:
+NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob:
   repeat_time : 86400
   time_of_day :
     hour : 13
@@ -35,4 +35,4 @@ Only:
 # UserDefinedForm submission handling, if module exists
 UserDefinedForm_Controller:
   extensions:
-    - DPCNSW\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension
+    - NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension

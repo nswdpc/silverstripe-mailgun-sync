@@ -26,7 +26,7 @@ Add the following to your project's YML config.
 Name: local-mailgunsync-config
 ---
 # API config
-DPCNSW\SilverstripeMailgunSync\Connector\Base:
+NSWDPC\SilverstripeMailgunSync\Connector\Base:
   testing_to_email: ''
   testing_from_email: ''
   api_domain: 'configured.mailgun.domain'
@@ -35,11 +35,11 @@ DPCNSW\SilverstripeMailgunSync\Connector\Base:
 # Send messages via the MailgunSync Mailer
 Injector:
   Mailer:
-    class: 'DPCNSW\SilverstripeMailgunSync\Mailer'
+    class: 'NSWDPC\SilverstripeMailgunSync\Mailer'
 ```
 
 ## Sending
-Sending of messages occurs via ```DPCNSW\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.
+Sending of messages occurs via ```NSWDPC\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.
 
 The MailgunSync Mailer passes parameters to this and allows for:
 + the setting of a submission source (a ```MailgunSubmission``` record) which in turn sets data on the message
@@ -80,7 +80,7 @@ A FailedEventsJob exists to poll for events with a Mailgun 'failed' status. This
 A DeliveryCheckJob exists to poll local 'failed' events and determine if they have been delivered, based on the message-id and recipient of the failed event.
 
 ### Queued Jobs
-Run the ```DPCNSW\SilverstripeMailgunSync\QueueMailgunSyncJobs``` dev task (dev/tasks) to create both the ```DPCNSW\SilverstripeMailgunSync\DeliveryCheckJob``` and the ```DPCNSW\SilverstripeMailgunSync\FailedEventsJob```
+Run the ```NSWDPC\SilverstripeMailgunSync\QueueMailgunSyncJobs``` dev task (dev/tasks) to create both the ```NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob``` and the ```NSWDPC\SilverstripeMailgunSync\FailedEventsJob```
 Without these jobs running, synchronisation will not occur. Ensure you read the ```queuedjobs``` module documentation for information on processing queues automatically.
 
 

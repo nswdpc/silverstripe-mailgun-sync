@@ -1,5 +1,5 @@
 <?php
-namespace DPCNSW\SilverstripeMailgunSync;
+namespace NSWDPC\SilverstripeMailgunSync;
 
 /**
  * Task polls for 'failed' OR 'rejected' events but does not resubmit them, this is for testing only
