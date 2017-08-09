@@ -10,8 +10,6 @@ DPCNSW\SilverstripeMailgunSync\Connector\Base:
   track_userform: false
   resubmit_failures : 2
   workaround_testmode: false
-  testing_to_email: ''
-  testing_from_email: ''
 # Event config
 MailgunEvent:
   secure_folder_name : 'SecureUploads'
