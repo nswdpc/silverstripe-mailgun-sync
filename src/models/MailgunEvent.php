@@ -11,7 +11,7 @@ use DPCNSW\SilverstripeMailgunSync\Connector\Message as MessageConnector;
  */
 class MailgunEvent extends \DataObject {
 	
-	private static $default_sort = "SubmissionID DESC, Timestamp DESC";// try to sort by most recent message and event as default
+	private static $default_sort = "Timestamp DESC";// try to sort by most recent event first
 
 	private static $singular_name = "Event";
 	private static $plural_name = "Events";
