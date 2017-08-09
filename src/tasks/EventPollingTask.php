@@ -21,16 +21,25 @@ class EventPollingTask extends \BuildTask {
 			$connector = new Connector\Event();
 			$timeframe = 'now -1 day';
 			$begin = Connector\Base::DateTime($timeframe);
-			$event_filter = \MailgunEvent::FAILED . " OR " . \MailgunEvent::REJECTED;// query Mailgun for failed OR rejected events
+			$event_filter = "";//poll all events
 			\SS_Log::log("pollEvents with filter '{$event_filter}'", \SS_Log::DEBUG);
 			$extra_params = [
 				'limit' => 100
 			];
 			
-			$resubmit = false;// true = attempt to resubmit
+			$resubmit = false;// true = attempt to resubmit if 'failed' OR ' rejected' status
 			$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 			
-			print "Polled " . count($events) . " events matching {$event_filter}/{$timeframe}\n";
+			if(!empty($events)) {
+				print "Polled " . count($events) . " events matching {$event_filter}/{$begin}\n";
+				foreach($events as $event) {
+					print "Message: {$event->MessageId}\n";
+					print "\tEvent: {$event->ID} / {$event->EventType} / {$event->Recipient}\n";
+					print "\n";
+				}
+			} else {
+				print "No events found\n";
+			}
 			exit;
 			
 		} catch (\Exception $e) {
