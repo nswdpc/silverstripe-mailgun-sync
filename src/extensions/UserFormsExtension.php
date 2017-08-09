@@ -67,6 +67,7 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 		
 		try {
 			// create the tracking record
+			// SubmittedForm records can have multiple recipients, each \MailgunEvent tracks events per recipient
 			$tags = ['userform'];
 			$sync = new MailgunSyncEmailExtension();
 			$sync->mailgunSyncEmail($email, $submitted_form, $recipient_email_address, $tags);
