@@ -143,7 +143,7 @@ class Mailer extends SilverstripeMailer {
 			$message_id = $message->getId();
 			$message_id = trim($message_id, "<>");// < > surrounding characters seem to affect the message-id usage in event filters
 			\SS_Log::log('Saving messageId: ' . $message_id  . " to submission {$this->submission->ID}", \SS_Log::DEBUG);
-			$this->submission->MessageId = $message_id;
+			$this->submission->MessageId = $message_id;// for submissions with multiple recipients this will be the last message_id returned
 			$this->submission->write();
 			return true;
 		}
