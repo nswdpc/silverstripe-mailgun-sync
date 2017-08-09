@@ -56,7 +56,7 @@ class MailgunEvent extends \DataObject {
 		'DeliveryStatusDescription' => 'Text', // verbose reason for delivery status
 		'DeliveryStatusCode' => 'Int', // smtp reason e.g 550
 		'DeliveryStatusAttempts' => 'Int',
-		'DeliveryStatusSession' => 'Int',
+		'DeliveryStatusSession' => 'Decimal(24,16)',// number of seconds, this can be a big number to high precision
 		'DeliveryStatusMxHost' => 'Varchar(255)',
 		
 		'StorageURL' => 'Text',// storage URL for message at Mailgun (NB: max 3 days for paid accounts, message may have been deleted by MG)
@@ -73,6 +73,7 @@ class MailgunEvent extends \DataObject {
 	private static $summary_fields = array(
 		'ID' => '#',
 		'Resubmitted.Nice' => 'Resubmitted',
+		'Resubmits' => 'Resubmits',
 		'EventType' => 'Event',
 		'Severity' => 'Severity',
 		'Reason' => 'Reason',
@@ -164,8 +165,8 @@ class MailgunEvent extends \DataObject {
 		$siblings = $this->getSiblingEvents();
 		if($siblings && $siblings->count() > 0) {
 			$gridfield = GridField::create('SiblingEvents', 'Siblings', $siblings);
-			$literal_field = LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id. <code>'. htmlspecialchars($this->MessageId) . '</code> '
-																																		. '<br />It may show more than one recipient, depending on the original message recipients</p>');
+			$literal_field = LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id. '
+																																		. '<code>'. htmlspecialchars($this->MessageId) . '</code></p>');
 			$fields->addFieldsToTab('Root.RelatedEvents', [$literal_field, $gridfield ]);
 		}
 		
@@ -362,16 +363,17 @@ class MailgunEvent extends \DataObject {
 	}
 	
 	/**
-	 * Retrieve the number of failures for a particular recipient for this event's linked submission
+	 * Retrieve the number of failures for a particular recipient/message for this event's linked submission
 	 * Failures are determined to be 'failed' or 'rejected' events
 	 */
 	public function GetRecipientFailures() {
 		$events = \MailgunEvent::get()
 								->filter('SubmissionID', $this->SubmissionID)
+								->filter('MessageId', $this->MessageId) // Failures for this specific message
 								->filter('Recipient', $this->Recipient) // Recipient is an email address
 								->filterAny('EventType', [ self::FAILED, self::REJECTED ])
 								->count();
-		\SS_Log::log("GetRecipientFailures: {$events} failures for s:{$this->SubmissionID} r:{$this->Recipient}", \SS_Log::DEBUG);
+		\SS_Log::log("GetRecipientFailures: {$events} failures for s:{$this->SubmissionID} r:{$this->Recipient} m:{$this->MessageId}", \SS_Log::DEBUG);
 		return $events;
 	}
 	
@@ -404,7 +406,7 @@ class MailgunEvent extends \DataObject {
 		$current_failures = $this->GetRecipientFailures();
 		if($current_failures >= $max_failures) {
 			// cannot resubmit
-			\SS_Log::log("Too many event failures ({$current_failures}) for submission #{$this->SubmissionID} / {$this->Recipient}", \SS_Log::NOTICE);
+			\SS_Log::log("Too many recipient/msg failures : {$current_failures}", \SS_Log::NOTICE);
 			return false;
 		}
 		
@@ -447,6 +449,7 @@ class MailgunEvent extends \DataObject {
 			// Resubmission may result in another failed event (and that can be resubmitted)
 			\SS_Log::log("AutomatedResubmit - mark as resubmitted", \SS_Log::DEBUG);
 			$this->Resubmitted = 1;
+			$this->Resubmits = ($this->Resubmits + 1);
 			$this->write();
 		} catch (\Exception $e) {
 			// update number of resubmits
