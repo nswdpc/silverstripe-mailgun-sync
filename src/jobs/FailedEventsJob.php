@@ -54,7 +54,7 @@ class FailedEventsJob extends \AbstractQueuedJob {
 		try {
 			// poll for events
 			$connector = new Connector\Event();
-			$begin = Connector\Base::DateTime('now -1 day');// events created within the last day
+			$begin = Connector\Base::DateTime('now -25 hours');// allow for an overlap
 			$event_filter = \MailgunEvent::FAILED . " OR " . \MailgunEvent::REJECTED;// query Mailgun for failed OR rejected events
 			$resubmit = true;
 			$extra_params = [
