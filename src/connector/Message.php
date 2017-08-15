@@ -41,10 +41,6 @@ class Message extends Base {
 	 */
 	public function isDelivered(\MailgunEvent $event, $cleanup = true) {
 		
-		if(empty($event->SubmissionID)) {
-			throw new \Exception("Tried to query a message based on MailgunEvent #{$event->ID} with no linked MailgunSubmission");
-		}
-		
 		// Query will be for this MessageId and a delivered status
 		if(empty($event->MessageId)) {
 			throw new \Exception("Tried to query a message based on MailgunEvent #{$event->ID} with no linked MessageId");

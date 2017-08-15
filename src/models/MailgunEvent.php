@@ -94,7 +94,7 @@ class MailgunEvent extends \DataObject {
 		'EventType' => true,
 		'EventId' => true,
 		'UTCEventDate' => true,
-		'EventLookup' => [ 'type' => 'index', 'value' => '("SubmissionID","EventId","UTCEventDate")' ],
+		'EventLookup' => [ 'type' => 'index', 'value' => '("EventId","UTCEventDate")' ],
 	);
 	
 	/**
@@ -250,11 +250,12 @@ class MailgunEvent extends \DataObject {
 	}
 	
 	/**
+	 * Retrieve a \MailgunEvent by it's eventId and timestamp. If a submission is provided e.g via user variable, filter on that as well
 	 * @note see note above about Event Id / Date - "Event id. It is guaranteed to be unique within a day."
 	 */
-	private static function GetByIdAndDate($id, $timestamp, $submission = NULL) {
+	private static function GetByIdAndDate($event_id, $timestamp, \MailgunSubmission $submission = NULL) {
 		$utcdate = self::CreateUTCDate($timestamp);
-		$event = \MailgunEvent::get()->filter('EventId', $id)->filter('UTCEventDate', $utcdate);
+		$event = \MailgunEvent::get()->filter('EventId', $event_id)->filter('UTCEventDate', $utcdate);
 		if(!empty($submission->ID)) {
 			$event->filter('SubmissionID', $submission->ID);
 		}
@@ -376,12 +377,10 @@ class MailgunEvent extends \DataObject {
 	 */
 	public function GetRecipientFailures() {
 		$events = \MailgunEvent::get()
-								->filter('SubmissionID', $this->SubmissionID)
 								->filter('MessageId', $this->MessageId) // Failures for this specific message
 								->filter('Recipient', $this->Recipient) // Recipient is an email address
 								->filterAny('EventType', [ self::FAILED, self::REJECTED ])
 								->count();
-		\SS_Log::log("GetRecipientFailures: {$events} failures for s:{$this->SubmissionID} r:{$this->Recipient} m:{$this->MessageId}", \SS_Log::DEBUG);
 		return $events;
 	}
 	
@@ -422,8 +421,6 @@ class MailgunEvent extends \DataObject {
 			\SS_Log::log("Too many recipient/msg failures : {$current_failures}", \SS_Log::NOTICE);
 			return false;
 		}
-		
-		\SS_Log::log("{$current_failures}/{$max_failures} failures for submission #{$this->SubmissionID} / {$this->Recipient}", \SS_Log::DEBUG);
 		
 		return true;
 		
