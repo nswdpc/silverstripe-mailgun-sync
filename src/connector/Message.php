@@ -87,13 +87,14 @@ class Message extends Base {
 	
 	/**
 	 * Resubmits a message via sendMime() - note that headers are kept intact including Cc and To but the message is only ever sent to the $event->Recipient
-	 * @param $event containing a StorageURL
-	 * @param $use_local_file_contents
+	 * @param MailgunEvent $event containing a StorageURL
+	 * @param boolean $redeliver when true attempt to redeliver, even if the event has been delivered previously
+	 * @param boolean $use_local_file_contents
 	 * @note as of 10th July 2017, this feature was implemented by Mailgun from the Logs View in the Mailgun Admin.
 	 * @note as MG only stores logs for 30 days
 	 * @todo test that the MIME encoded contents being sent - the recipient in that matches the recipient from the Event?
 	 */
-	public function resubmit(\MailgunEvent $event, $use_local_file_contents = false) {
+	public function resubmit(\MailgunEvent $event, $redeliver = false, $use_local_file_contents = false) {
 		
 		if(empty($event->Recipient)) {
 			throw new \Exception("Event #{$event->ID} has no recipient, cannot resubmit");
@@ -107,7 +108,7 @@ class Message extends Base {
 		if(!$is_running_test) {
 			$use_local_file_contents = false;
 			\SS_Log::log("SapphireTest is not running", \SS_Log::DEBUG);
-			if($is = $this->isDelivered($event)) {
+			if(!$redeliver && $this->isDelivered($event)) {
 				throw new \Exception("Mailgun has already delivered this message");
 			}
 		}

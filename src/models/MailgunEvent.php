@@ -95,6 +95,7 @@ class MailgunEvent extends \DataObject {
 		'EventId' => true,
 		'UTCEventDate' => true,
 		'EventLookup' => [ 'type' => 'index', 'value' => '("EventId","UTCEventDate")' ],
+		'Recipient' => true,
 	);
 	
 	/**
@@ -484,7 +485,7 @@ class MailgunEvent extends \DataObject {
 		$message = new MessageConnector();
 		$message_id = false;
 		try {
-			$message_id = $message->resubmit($this);
+			$message_id = $message->resubmit($this, true);
 		} catch (\Exception $e) {
 			throw new \ValidationException($e->getMessage());
 		}
