@@ -175,11 +175,16 @@ class Message extends Base {
 			throw new \Exception("Failed to resend message to {$event->Recipient} - unexpected response");
 		} else {
 			$message_id =  $result->getId();
-			$message_id = trim($message_id, "<>");
+			$message_id = self::cleanMessageId($message_id, "<>");
 			\SS_Log::log("Resent message to {$event->Recipient}. messageid={$message_id} message={$result->getMessage()}",  \SS_Log::DEBUG);
 			return $message_id;
 		}
 		
+	}
+	
+	public static function cleanMessageId($message_id) {
+		$message_id = trim($message_id, "<>");
+		return $message_id;
 	}
 	
 	/**

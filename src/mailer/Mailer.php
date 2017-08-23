@@ -1,6 +1,7 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync;
 use Mailgun\Model\Message\SendResponse;
+use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
 use Mailer as SilverstripeMailer;
 use Mailgun\Mailgun;
 
@@ -142,7 +143,7 @@ class Mailer extends SilverstripeMailer {
 	*/
 	final protected function saveResponse($message) {
 		$message_id = $message->getId();
-		$message_id = trim($message_id, "<>");// < > surrounding characters seem to affect the message-id usage in event filters
+		$message_id = MessageConnector::cleanMessageId($message_id);
 		if($this->hasSubmission()) {
 			\SS_Log::log('Saving messageId: ' . $message_id  . " to submission {$this->submission->ID}", \SS_Log::DEBUG);
 			$this->submission->MessageId = $message_id;// for submissions with multiple recipients this will be the last message_id returned

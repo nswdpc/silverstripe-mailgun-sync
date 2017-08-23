@@ -42,7 +42,7 @@ class MailgunEvent extends \DataObject {
 		 *											When requests with overlapping time ranges are made."
 		 */
 		'EventId' => 'Varchar(255)',
-		'MessageId' => 'Text',// remote message id for event
+		'MessageId' => 'Varchar(255)',// remote message id for event
 		'Severity' => 'Varchar(16)',// permanent or temporary, for failures
 		'EventType' => 'Varchar(32)',// Mailgun event string see http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-types
 		'UTCEventDate' => 'Date',// based on timestamp returned, the UTC Y-m-d date
@@ -78,14 +78,11 @@ class MailgunEvent extends \DataObject {
 		'Resubmitted.Nice' => 'Resubmitted',
 		'Resubmits' => 'Resubmits',
 		'EventType' => 'Event',
-		'Severity' => 'Severity',
-		'Reason' => 'Reason',
 		'DeliveryStatusAttempts' => 'MG Attempts',
-		//'DeliveryStatusSession' => 'Session (s)',
 		'DeliveryStatusCode' => 'Code',
 		'Recipient' => 'Recipient',
-		'EventId' => 'Event Id',
-		'FailedThenDelivered' => 'Failed/delivered later',
+		'MessageId' => 'Msg Id',
+		'FailedThenDeliveredNice' => 'Failed/delivered later',
 		//'MessageId' => 'Msg Id',
 		'LocalDateTime' => 'Date (SYD)',
 	);
@@ -94,15 +91,22 @@ class MailgunEvent extends \DataObject {
 		'EventType' => true,
 		'EventId' => true,
 		'UTCEventDate' => true,
-		'EventLookup' => [ 'type' => 'index', 'value' => '("EventId","UTCEventDate")' ],
+		'EventLookup' => [ 'type' => 'index', 'value' => '("MessageId","Timestamp","Recipient","EventType")' ],
 		'Recipient' => true,
 	);
+	
+	public function FailedThenDeliveredNice() {
+		if( $this->IsFailure() || $this->IsRejected() ) {
+			return $this->FailedThenDelivered == 1 ? "yes" : "no";
+		}
+		return "";
+	}
 	
 	/**
 	 * Allow for easy visual matching between this and the Mailgin App Logs screen
 	 */
 	public function getTitle() {
-		return "{$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}";
+		return "#{$this->ID} - {$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}";
 	}
 	
 	/**
@@ -181,9 +185,7 @@ class MailgunEvent extends \DataObject {
 	}
 	
 	public function getSiblingEvents() {
-		$events = \MailgunEvent::get()->filter('MessageId', $this->MessageId)
-																		->exclude('ID',  $this->ID)
-																		->sort('Created DESC');
+		$events = \MailgunEvent::get()->filter('MessageId', $this->MessageId)->sort('Timestamp ASC');
 		return $events;
 	}
 	
@@ -250,6 +252,13 @@ class MailgunEvent extends \DataObject {
 		return $dt->format('Y-m-d');
 	}
 	
+	private static function CreateUTCDateTime($timestamp) {
+		$dt = new \DateTime();
+		$dt->setTimestamp($timestamp);
+		$dt->setTimezone( new \DateTimeZone('UTC') );
+		return $dt->format('Y-m-d H:i:s');
+	}
+	
 	/**
 	 * Retrieve a \MailgunEvent by it's eventId and timestamp. If a submission is provided e.g via user variable, filter on that as well
 	 * @note see note above about Event Id / Date - "Event id. It is guaranteed to be unique within a day."
@@ -261,6 +270,21 @@ class MailgunEvent extends \DataObject {
 			$event->filter('SubmissionID', $submission->ID);
 		}
 		$event = $event->first();
+		if(!empty($event->ID)) {
+			return $event;
+		}
+		return false;
+	}
+	
+	/**
+	 * GetByMessageDetails - retrieve an event based on the message/timestamp/recipient/event type
+	 */
+	private static function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type) {
+		if(!$message_id || !$timestamp || !$recipient || !$event_type) {
+			\SS_Log::log("Tried to get a current event but one or more of message_id, timestamp, recipient or event_type was missing", \SS_Log::ERR);
+			return false;
+		}
+		$event = \MailgunEvent::get()->filter( ['MessageId' => $message_id, 'Timestamp' => $timestamp, 'Recipient' => $recipient, 'EventType' => $event_type ] )->first();
 		if(!empty($event->ID)) {
 			return $event;
 		}
@@ -296,7 +320,7 @@ class MailgunEvent extends \DataObject {
 	 * @note get the custom data to determine a {@link MailgunSubmission} record if possible
 	 * @param Mailgun\Model\Event\Event $event 
 	 */
-	public static function StoreEvent(MailgunEventModel $event) {
+	public static function StoreEvent(MailgunEventModel $event, $mailgun_message_id = "") {
 		
 		// 1. Attempt to get a submission record via user variables set
 		$variables = $event->getUserVariables();
@@ -318,26 +342,41 @@ class MailgunEvent extends \DataObject {
 		$status = $event->getDeliveryStatus();
 		$storage = $event->getStorage();
 		$tags = $event->getTags();
+		$recipient = $event->getRecipient();
+		$event_type = $event->getEvent();
+		$mailgun_event_id = $event->getId();// may be empty  e.g Webhook requests do not send an event id
 		
-		$mailgun_event_id = $event->getId();
-		
-		// find the event
-		$mailgun_event = self::GetByIdAndDate($mailgun_event_id, $timestamp, $submission);
-		$create = FALSE;
-		if(!($mailgun_event instanceof \MailgunEvent)) {
-			$mailgun_event = \MailgunEvent::create();
-			$create = TRUE;
+		// get message id from headers if not provided
+		if(!$mailgun_message_id) {
+			$message = $event->getMessage();
+			if(!empty($message['headers']['message-id'])) {
+				$mailgun_message_id = $message['headers']['message-id'];
+			}
 		}
 		
-		$recipient = $event->getRecipient();
+		$mailgun_message_id = MessageConnector::cleanMessageId($mailgun_message_id);
+		
+		if(!$mailgun_message_id) {
+			\SS_Log::log("Tried to create/find a  MailgunEvent but no message_id was provided or found", \SS_Log::ERR);
+			return false;
+		}
+		
+		$create = false;
+		$mailgun_event = self::GetByMessageDetails($mailgun_message_id, $timestamp, $recipient, $event_type);
+		$ident_date = self::CreateUTCDateTime($timestamp);
+		$ident = "{$mailgun_message_id} {$ident_date} {$recipient} {$event_type}";
+		if(empty($mailgun_event->ID)) {
+			$mailgun_event = \MailgunEvent::create();
+			$create = true;
+		}
 		
 		$mailgun_event->SubmissionID = $submission_id;// if set
-		$mailgun_event->EventId = $mailgun_event_id;
-		$mailgun_event->MessageId = $mailgun_event->getMessageHeader($event, 'message-id');
+		$mailgun_event->EventId = $mailgun_event_id;// webhooks do not provide a mailgun event id
+		$mailgun_event->MessageId = $mailgun_message_id;
 		$mailgun_event->Timestamp = $timestamp;
 		$mailgun_event->UTCEventDate = self::CreateUTCDate($timestamp);
 		$mailgun_event->Severity = $event->getSeverity();
-		$mailgun_event->EventType = $event->getEvent();
+		$mailgun_event->EventType = $event_type;
 		$mailgun_event->Recipient = $recipient;// if the message is sent to Someone <someone@example.com>, the $recipient value will be someone@example.com
 		$mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
 		$mailgun_event->saveDeliveryStatus( $status );
