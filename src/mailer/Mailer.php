@@ -17,6 +17,7 @@ class Mailer extends SilverstripeMailer {
 	protected $submission;// \MailgunSubmission
 	protected $is_test_mode = false;// when true, Mailgun receives messages (accepted event) but does not send them to the remote. 'delivered' events are recorded.
 	protected $tags = [];//Note 4000 limit: http://mailgun-documentation.readthedocs.io/en/latest/user_manual.html#tagging
+	protected $sender = "";// for setting the sender header
 
 	/**
 	 * {@inheritdoc}
@@ -45,6 +46,12 @@ class Mailer extends SilverstripeMailer {
 	
 	public function setTags($tags) {
 		$this->tags = $tags;
+	}
+	
+	/**
+	 */
+	public function setSender($email, $name = "") {
+		$this->sender = ($name ? $name . " <{$email}>" : $email);
 	}
 	
 	
@@ -157,6 +164,7 @@ class Mailer extends SilverstripeMailer {
 	 * TODO support all o:options in Mailgun API
 	 */
 	protected function addCustomParameters(&$parameters, $headers) {
+		
 		// When a submission source is present, set custom data
 		if($this->hasSubmission()) {
 			\SS_Log::log("addCustomParameters: adding submission - {$this->submission->ID}", \SS_Log::DEBUG);
@@ -180,6 +188,17 @@ class Mailer extends SilverstripeMailer {
 		// tags can be filtered on when polling for events
 		if(!empty($this->tags) && is_array($this->tags)) {
 			$parameters['o:tag'] = array_values($this->tags);
+		}
+		
+		// add all headers
+		if(is_array($headers)) {
+			foreach($headers as $header => $header_value) {
+				$parameters['h:' . $header] = $header_value;
+			}
+		}
+		
+		if($this->sender) {
+			$parameters['h:Sender'] = $this->sender;
 		}
 	}
 }

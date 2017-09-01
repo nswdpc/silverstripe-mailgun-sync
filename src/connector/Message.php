@@ -31,8 +31,19 @@ class Message extends Base {
 	public function send($parameters) {
 		$client = $this->getClient();
 		$domain = $this->getApiDomain();
+		// If configured and not already specified, set the Sender hader
+		if($this->alwaysSetSender() && !empty($parameters['from']) && empty($parameters['h:Sender'])) {
+			$parameters['h:Sender'] = $parameters['from'];
+			$parameters['h:X-Auto-SetSender'] = '1';
+		}
+		
+		// unset Silverstripe headers from the message, as they leak information
+		unset($parameters['h:X-SilverStripeMessageID']);
+		unset($parameters['h:X-SilverStripeSite']);
+		
 		// apply Mailgun testmode if Config is set
 		$this->applyTestMode($parameters);
+		
 		return $client->messages()->send($domain, $parameters);
 	}
 	
@@ -236,7 +247,7 @@ class Message extends Base {
 		if(!$force) {
 			$failures = $event->GetRecipientFailures();//number of failures for this submission/recipient
 			$min_resubmit_failures = $this->resubmitFailures();
-			if($failures < $min_resubmit_failures) {
+			if($failures < $min_resubmit_failures) { // e.g if resubmit_failures is 2 then the 3rd failure will download the MIME content
 				\SS_Log::log("storeIfRequired - not enough failures - {$failures}",  \SS_Log::DEBUG);
 				return;
 			}

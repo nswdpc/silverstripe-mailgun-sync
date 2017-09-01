@@ -65,6 +65,12 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 		}
 		*/
 		
+		// Set options on the Mailer
+		$mailer = $email::mailer();
+		if ($recipient->EmailFrom) {
+			$mailer->setSender($recipient->EmailFrom);// sets the 'Sender' header
+		}
+		
 		try {
 			// create the tracking record
 			// SubmittedForm records can have multiple recipients, each \MailgunEvent tracks events per recipient

@@ -77,6 +77,13 @@ abstract class Base {
 	}
 	
 	/**
+	 * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\SilverstripeMailgunSync\Mailer::setSender()} to set the Sender header as required
+	 */
+	final protected function alwaysSetSender() {
+		return \Config::inst()->get(__CLASS__,'always_set_sender');
+	}
+	
+	/**
 	 * Prior to any send/sendMime action, check config and set testmode if config says so
 	 */
 	final protected function applyTestMode(&$parameters) {
