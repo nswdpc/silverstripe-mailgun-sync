@@ -9,6 +9,7 @@ NSWDPC\SilverstripeMailgunSync\Connector\Base:
   sync_local_mime: false
   track_userform: false
   resubmit_failures : 2
+  always_set_sender : true
   workaround_testmode: false
 # Event config
 MailgunEvent:
