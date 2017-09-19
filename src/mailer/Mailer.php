@@ -75,6 +75,11 @@ class Mailer extends SilverstripeMailer {
 				$parameters = [];
 				// add in o: and v: params
 				$this->addCustomParameters($parameters, $headers);
+				
+				// ensure text/plain part is set
+				if(!$plainContent) {
+					$plainContent = \Convert::xml2raw($content);
+				}
 			
 				// these generic headers override anything passed in as a header
 				$parameters = array_merge($parameters, [
@@ -88,9 +93,11 @@ class Mailer extends SilverstripeMailer {
 				// if Cc and Bcc have been provided
 				if(isset($headers['Cc'])) {
 					$parameters['cc'] = $headers['Cc'];
+					unset($parameters['h:Cc']);//avoid double Cc header
 				}
 				if(isset($headers['Bcc'])) {
 					$parameters['bcc'] = $headers['Bcc'];
+					unset($parameters['h:Bcc']);//avoid sending double Bcc header
 				}
 				
 				// Provide Mailgun the Attachments. Keys are 'fileContent' (the bytes) and filename (the file name)
