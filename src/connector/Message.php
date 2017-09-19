@@ -37,9 +37,10 @@ class Message extends Base {
 			$parameters['h:X-Auto-SetSender'] = '1';
 		}
 		
-		// unset Silverstripe headers from the message, as they leak information
+		// unset Silverstripe/PHP headers from the message, as they leak information
 		unset($parameters['h:X-SilverStripeMessageID']);
 		unset($parameters['h:X-SilverStripeSite']);
+		unset($parameters['h:X-PHP-Originating-Script']);
 		
 		// apply Mailgun testmode if Config is set
 		$this->applyTestMode($parameters);
