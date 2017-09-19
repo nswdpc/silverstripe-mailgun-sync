@@ -27,16 +27,33 @@ Name: local-mailgunsync-config
 ---
 # API config
 NSWDPC\SilverstripeMailgunSync\Connector\Base:
-  testing_to_email: ''
-  testing_from_email: ''
   api_domain: 'configured.mailgun.domain'
   api_key: 'key-xxxx'
+  # this setting triggers o:test='yes' in messages
+  api_testmode: true|false
+  sync_local_mime: true|false
+  resubmit_failures: 2
+  # whether to track userform submissions
   track_userform: true|false
+  # You will probably want this as true
+  always_set_sender: true
 # Send messages via the MailgunSync Mailer
 Injector:
   Mailer:
     class: 'NSWDPC\SilverstripeMailgunSync\Mailer'
 ```
+
+### api_testmode
+When true, messages will send with the o:testmode parameter set to 'yes'
+### sync_local_mime
+When true, failed messages have their contents downloaded for later resubmission after 'resubmit_failures' attempts
+When false, failed messages are not downloaded.
+
+If you are downloading messages, the [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets) module should be used to restrict file access.
+### track_userform
+You may have the [User Forms](https://github.com/silverstripe/silverstripe-userforms) module installed but not want to track submissions. Set this option to false if so.
+### always_set_sender
+When true, sets the Sender header to match the From header unless the Sender header is already set. This can remove "on behalf of" and "sent by" messages showing in email clients.
 
 ## Sending
 Sending of messages occurs via ```NSWDPC\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.
@@ -47,6 +64,17 @@ The MailgunSync Mailer passes parameters to this and allows for:
 + adding of tags to a message
 
 In addition, the MailgunSync Mailer allows setting of Mailgun's testmode on the message.
+
+## MailgunEvent configuration
+The default configuration is as-follows:
+```
+MailgunEvent:
+  # when sync_local_mime is true, messages are downloaded here. You can change this to another folder managed by Secure Assets module
+  secure_folder_name : 'SecureUploads'
+  # maximum number of failures before an event cannot be auto-resubmitted
+  max_failures : 3
+```
+Both values can be set in your project config.
 
 ## Extensions
 The module provides the following extensions
@@ -72,12 +100,12 @@ In the above extend() call, $dataobject can be a submission record or the curren
 ## Failure Checking
 Mailgun events are given a single [Event Type](http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-types).
 
-While it's possible to synchronise Mailgun events of all types using this module, the default intent is to only synchronise events with a 'failed' or 'rejected' status. If you have a high volume of messages going through Mailgun, it may or may not be a good idea to synchronise all events locally. The DeliveryCheckJob will save MailgunEvent objects with an EventType of 'delivered' but only for previously failed events.
+While it's possible to synchronise Mailgun events of all types using this module, the default intent is to only synchronise events with a 'failed' or 'rejected' status. If you have a high volume of messages going through Mailgun, it may or may not be a good idea to synchronise all events locally. The DeliveryCheckJob will save MailgunEvent records with an EventType of 'delivered' but only for previously failed events.
 
 A FailedEventsJob exists to poll for events with a Mailgun 'failed' status. This job is run once per day, retrieves matching events and then attempts to resubmit them.
 
 ## Delivery Checking
-A DeliveryCheckJob exists to poll local 'failed' events and determine if they have been delivered, based on the message-id and recipient of the failed event.
+A DeliveryCheckJob exists to poll local 'failed' events and determine if they have been delivered, based on the message-id and recipient of the failed event. It will save 'delivered' events for failed events that were subsequently delivered.
 
 ### Queued Jobs
 Run the ```NSWDPC\SilverstripeMailgunSync\QueueMailgunSyncJobs``` dev task (dev/tasks) to create both the ```NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob``` and the ```NSWDPC\SilverstripeMailgunSync\FailedEventsJob```
@@ -90,17 +118,18 @@ After 3 days, this is no longer possible and as such automated resubmissions wil
 
 Resubmissions may result in another failed event being registered (a good example is a recipient mailbox being over quota for more than a day). In this case, another resubmit attempt will occur on the next FailedEventsJob run.
 
-To avoid duplicate deliveries, prior to resubmission a check is made to determine if the message has been delivered by another method, for example via the Mailgun Admin control panel or another API client.
+To avoid duplicate deliveries, prior to resubmission a check is made to determine if a 'delivered' event exists for the relevant message-id, for example via the Mailgun Admin control panel or another API client.
 
 #### Manual Resubmission
 Events can be manually resubmitted via the Mailgun Model Admin screen. Events can only be manually resubmitted after the 3 day storage limit period if the event in question has a locally stored MimeMessage file.
-The MimeMessage file is automatically created after 2 days of failures and removed when a message is determined to be delivered.
+The MimeMessage file is automatically created after ```resubmit_failures``` days of failures and removed when a message is determined to be delivered.
 
 Since July 2017 you can also resend messages from the Mailgun website Admin Logs screen, via the cog icon.
 
 ## Dependencies:
 See composer.json
 + [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs)
++ [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets)
 
 ## Tests
 The dpcnsw/silverstripe-mailgun-sync-test module provides tests and a TestMailgunFormSubmission DataObject.
