@@ -20,6 +20,7 @@
 	"require": {
 		"silverstripe/queuedjobs": "~2.0",
 		"mailgun/mailgun-php": "^2.3",
-		"silverstripe/framework" : "~3.2"
+		"silverstripe/framework" : "~3.2",
+		"silverstripe/secureassets": "~1.1",
 	}
 }
