@@ -237,7 +237,7 @@ class Message extends Base {
 		// Does the $event already have a MimeMessage file ? yes -> return
 		// No point storing it again
 		$file = $event->MimeMessage();
-		if(($file instanceof \File) && $file->exists() && $file->getAbsoluteSize() > 0) {
+		if(($file instanceof \MailgunMimeFile) && $file->exists() && $file->getAbsoluteSize() > 0) {
 			// no-op
 			\SS_Log::log("storeIfRequired - event already has a MimeMessage file",  \SS_Log::DEBUG);
 			return;
@@ -256,7 +256,7 @@ class Message extends Base {
 		// save contents to a file
 		\SS_Log::log("storeIfRequired - storing locally",  \SS_Log::DEBUG);
 		$folder = $this->getFolder($event);
-		$file = new \File();
+		$file = new \MailgunMimeFile();
 		$file->Name = $this->messageFileName();
 		$file->ParentID = $folder->ID;
 		$file_id = $file->write();
@@ -287,7 +287,18 @@ class Message extends Base {
 		if(!$secure_folder_name) {
 			throw new \Exception("No secure_folder_name configured on class MailgunEvent");
 		}
-		$folder_path = $secure_folder_name . '/mailgun-sync/event/' . $event->ID;
+		// containing folder
+		$container_folder_path = $secure_folder_name . '/mailgun-sync';
+		$container_folder = \Folder::find_or_make($container_folder_path);
+		// set folder view permissions
+		if($container_folder->hasExtension('SecureFileExtension')) {
+			$admin_group = Group::get()->filter('Code','ADMIN')->first();
+			$container_folder->CanViewType = 'OnlyTheseUsers';
+			$container_folder->ViewerGroups()->add($admin_group);
+			$container_folder->write();
+		}
+		// path per event
+		$folder_path = $container_folder_path . '/event/' . $event->ID;
 		$folder = \Folder::find_or_make($folder_path);
 		if(empty($folder->ID)) {
 			throw new \Exception("Failed to create folder {$folder_path}");

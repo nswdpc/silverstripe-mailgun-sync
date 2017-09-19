@@ -9,7 +9,7 @@ use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
  * @note refer to http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-structure for information about the uniqueness of Event Ids
  * @see https://mailgun.uservoice.com/forums/156243-general/suggestions/5511691-add-a-unique-id-to-every-event-api-entry
  */
-class MailgunEvent extends \DataObject {
+class MailgunEvent extends \DataObject implements \PermissionProvider {
 	
 	private static $default_sort = "Timestamp DESC";// try to sort by most recent event first
 
@@ -70,7 +70,7 @@ class MailgunEvent extends \DataObject {
 	
 	private static $has_one = array(
 		'Submission' => 'MailgunSubmission',
-		'MimeMessage' => 'File', // the MIME of the message is stored if a failure extends beyond 2 days
+		'MimeMessage' => 'MailgunMimeFile', // An {@link \File} - the MIME content of the message is stored if a failure extends beyond the configured retries
 	);
 
 	private static $summary_fields = array(
@@ -94,6 +94,48 @@ class MailgunEvent extends \DataObject {
 		'EventLookup' => [ 'type' => 'index', 'value' => '("MessageId","Timestamp","Recipient","EventType")' ],
 		'Recipient' => true,
 	);
+	
+	/**
+	 * @return array
+	 */
+	public function providePermissions() {
+		return array(
+			'MAILGUNEVENT_RESUBMIT' => array(
+				'name' => 'Resubmit a Mailgun Event',
+				'category' => 'Mailgun',
+			)
+		);
+	}
+	
+	public function requireDefaultRecords() {
+		parent::requireDefaultRecords();
+		$this->createGroupsAndPermissions();
+	}
+	
+	final private function createGroupsAndPermissions() {
+		
+		$manager_code = 'MAILGUN_MANAGERS';
+		$manager_group = \Group::get()->filter('Code', $manager_code)->first();
+		if(empty($manager_group->ID)) {
+			$manager_group = \Group::create();
+			$manager_group->Code = $manager_code;
+		}
+		$manager_group->Title = "Mailgun Managers";
+		$manager_group_id = $manager_group->write();
+		if($manager_group_id) {
+			// grant MAILGUNEVENT_RESUBMIT to this group
+			\Permission::grant($manager_group_id, 'MAILGUNEVENT_RESUBMIT');
+		}
+		
+		// ensure admins have this permission as well
+		$admin_group = Group::get()->filter('Code','ADMIN')->first();
+		if(!empty($admin_group->ID)) {
+			\Permission::grant($admin_group->ID, 'MAILGUNEVENT_RESUBMIT');
+		}
+		
+		return;
+		
+	}
 	
 	public function FailedThenDeliveredNice() {
 		if( $this->IsFailure() || $this->IsRejected() ) {
@@ -402,11 +444,13 @@ class MailgunEvent extends \DataObject {
 	 */
 	public function getCMSActions() {
 		$actions = parent::getCMSActions();
-		$delivered = $this->IsDelivered();
-		if( ($this->IsFailureOrRejected() && $this->Severity == self::FAILURE_PERMANENT) || $delivered ) {
-			$try_again = new \FormAction ('doTryAgain', 'Resubmit');
-			$try_again->addExtraClass('ss-ui-action-constructive');
-			$actions->push($try_again);
+		if (\Permission::check('MAILGUNEVENT_RESUBMIT')) {
+			$delivered = $this->IsDelivered();
+			if( ($this->IsFailureOrRejected() && $this->Severity == self::FAILURE_PERMANENT) || $delivered ) {
+				$try_again = new \FormAction ('doTryAgain', 'Resubmit');
+				$try_again->addExtraClass('ss-ui-action-constructive');
+				$actions->push($try_again);
+			}
 		}
 		return $actions;
 	}
@@ -517,6 +561,11 @@ class MailgunEvent extends \DataObject {
 	 * @note if the event has a MimeMessage message attached, this will be used as the content of the message sent to Mailgun
 	 */
 	public function Resubmit() {
+		
+		if (!\Permission::check('MAILGUNEVENT_RESUBMIT')) {
+			throw new \ValidationException("Access denied");
+		}
+		
 		if(!$this->IsFailure() && !$this->IsRejected() && !$this->IsDelivered()) {
 			throw new \ValidationException("Can only resubmit an event if it is failed/rejected/delivered");
 		}
@@ -525,9 +574,13 @@ class MailgunEvent extends \DataObject {
 		$message_id = false;
 		try {
 			$message_id = $message->resubmit($this, true);
+			$this->Resubmitted = 1;
 		} catch (\Exception $e) {
 			throw new \ValidationException($e->getMessage());
 		}
+		
+		$this->Resubmits = ($this->Resubmits + 1);
+		$this->write();
 		
 		if(!$message_id) {
 			throw new \ValidationException("Sorry, could not resubmit this event. More information may be available in system logs.");
