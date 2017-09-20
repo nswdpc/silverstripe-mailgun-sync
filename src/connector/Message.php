@@ -3,6 +3,7 @@ namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
 use NSWDPC\SilverstripeMailgunSync\Connector\Event as EventConnector;
 use Mailgun\Model\Message\ShowResponse;
+use NSWDPC\SilverstripeMailgunSync\SendJob as MailgunSyncSendJob;
 
 /**
  * Bottles up common message related requeste to Mailgun via the mailgun-php API client
@@ -27,6 +28,7 @@ class Message extends Base {
 	 * Send a message with parameters
 	 * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
 	 * @returns SendResponse
+	 * @todo QueuedJob for large emails with optional config off/on
 	 */
 	public function send($parameters) {
 		$client = $this->getClient();
@@ -45,7 +47,33 @@ class Message extends Base {
 		// apply Mailgun testmode if Config is set
 		$this->applyTestMode($parameters);
 		
-		return $client->messages()->send($domain, $parameters);
+		$send_via_job = $this->sendViaJob();
+		\SS_Log::log("send_via_job={$send_via_job}", \SS_Log::DEBUG);
+		
+		switch( $send_via_job ) {
+			case 'yes':
+				return $this->queueAndSend($domain, $parameters);
+				break;
+			case 'when-attachments':
+				if(!empty($parameters['attachment'])) {
+					return $this->queueAndSend($domain, $parameters);
+					break;
+				}
+				// fallback to direct
+			case 'no':
+			default:
+				return $client->messages()->send($domain, $parameters);
+				break;
+		}
+	}
+	
+	/**
+	 * Send via the queued job instead
+	 */
+	private function queueAndSend($domain, $parameters) {
+		$start = new \DateTime('now +1 minute');
+		$job  = new MailgunSyncSendJob($domain, $parameters);
+		return singleton('QueuedJobService')->queueJob($job, $start->format('Y-m-d H:i:s'));
 	}
 	
 	/**

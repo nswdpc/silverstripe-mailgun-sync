@@ -62,6 +62,13 @@ abstract class Base {
 	}
 	
 	/**
+	 * Whether to send via a queued job or 
+	 */
+	final protected function sendViaJob() {
+		return \Config::inst()->get(__CLASS__,'send_via_job');
+	}
+	
+	/**
 	 * Returns configured number of resubmit failures, before the MIME message is downloaded (if configured)
 	 */
 	final protected function resubmitFailures() {

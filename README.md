@@ -7,8 +7,18 @@ This module provides functionality to both send emails via the Mailgun API and t
 In Paid mode, Mailgun stores messages for 3 days and events for 30 days. After this time, messages and events respectively will most likely no longer be accessible.
 
 ## Installing
+The module is not in Packagist, add:
 ```
-$ composer require dpcnsw/silverstripe-mailgun-sync
+"repositories": [
+  {
+    "type" : "vcs",
+    "url": "https://github.com/nswdpc/silverstripe-mailgun-sync.git"
+  }
+]
+```
+to your composer.json, then run:
+```
+$ composer require nswdpc/silverstripe-mailgun-sync
 ```
 
 ## Configuration
@@ -20,7 +30,7 @@ You will need:
 
 Configuration of Mailgun is beyond the scope of this document. The best starting point is [Verifying a Domain](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain).
 
-Add the following to your project's YML config.
+Add the following to your project's YML config:
 ```
 ---
 Name: local-mailgunsync-config
@@ -35,14 +45,16 @@ NSWDPC\SilverstripeMailgunSync\Connector\Base:
   resubmit_failures: 2
   # whether to track userform submissions
   track_userform: true|false
-  # You will probably want this as true
+  # You will probably want this as true, when false some clients will show 'Sent on behalf of' text
   always_set_sender: true
+  # Whether to send via a job
+  send_via_job: 'when-attachments'
 # Send messages via the MailgunSync Mailer
 Injector:
   Mailer:
     class: 'NSWDPC\SilverstripeMailgunSync\Mailer'
 ```
-
+More detailed configuration information is as follows:
 ### api_testmode
 When true, messages will send with the o:testmode parameter set to 'yes'
 ### sync_local_mime
@@ -54,6 +66,13 @@ If you are downloading messages, the [Secure Assets](https://github.com/silverst
 You may have the [User Forms](https://github.com/silverstripe/silverstripe-userforms) module installed but not want to track submissions. Set this option to false if so.
 ### always_set_sender
 When true, sets the Sender header to match the From header unless the Sender header is already set. This can remove "on behalf of" and "sent by" messages showing in email clients.
+### send_via_job
+The message will be sent via a Queued Job depending on this setting and the message in question
++ 'yes' = All messages
++ 'no' = Do not send via the job
++ 'when-attachments' = Only when attachments are present
+
+With a value of 'when-attachments' set, message delivery attempts without attachments will not use the queued job.
 
 ## Sending
 Sending of messages occurs via ```NSWDPC\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.
@@ -107,10 +126,17 @@ A FailedEventsJob exists to poll for events with a Mailgun 'failed' status. This
 ## Delivery Checking
 A DeliveryCheckJob exists to poll local 'failed' events and determine if they have been delivered, based on the message-id and recipient of the failed event. It will save 'delivered' events for failed events that were subsequently delivered.
 
-### Queued Jobs
+## Queued Jobs
 Run the ```NSWDPC\SilverstripeMailgunSync\QueueMailgunSyncJobs``` dev task (dev/tasks) to create both the ```NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob``` and the ```NSWDPC\SilverstripeMailgunSync\FailedEventsJob```
 Without these jobs running, synchronisation will not occur. Ensure you read the ```queuedjobs``` module documentation for information on processing queues automatically.
 
+### SendJob
+This is a queued job that can be used to send emails depending on the ```send_via_job``` config value -
++ all the time
++ only when attachments are present, or
++ never (in which case messages will never send via a Queued Job)
+
+Relevant messages are handed off to the queued job, which is configured to send after one minute. Once delivered, the message parameters are cleared to reduce space used by large messages.
 
 ### Resubmission
 Automated resubmission occurs for events of 'failed' status within the Mailgun 3 day storage limit, currently via a QueuedJob. This is done by downloading the MIME encoded representation of the message from Mailgun and resubmitting it via the Mailgun API to the recipient specified in the event.
@@ -118,18 +144,21 @@ After 3 days, this is no longer possible and as such automated resubmissions wil
 
 Resubmissions may result in another failed event being registered (a good example is a recipient mailbox being over quota for more than a day). In this case, another resubmit attempt will occur on the next FailedEventsJob run.
 
-To avoid duplicate deliveries, prior to resubmission a check is made to determine if a 'delivered' event exists for the relevant message-id, for example via the Mailgun Admin control panel or another API client.
+To avoid duplicate deliveries, prior to resubmission a check is made to determine if a 'delivered' event exists for the relevant message-id/recipient, for example via the Mailgun Admin control panel or another API client.
 
 #### Manual Resubmission
 Events can be manually resubmitted via the Mailgun Model Admin screen. Events can only be manually resubmitted after the 3 day storage limit period if the event in question has a locally stored MimeMessage file.
 The MimeMessage file is automatically created after ```resubmit_failures``` days of failures and removed when a message is determined to be delivered.
 
+You can manually resubmit both failed and delivered events.
+
 Since July 2017 you can also resend messages from the Mailgun website Admin Logs screen, via the cog icon.
 
-## Dependencies:
-See composer.json
+## Module Dependencies:
 + [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs)
 + [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets)
+
+See composer.json for current framework/cms and Mailgun PHP API client dependencies.
 
 ## Tests
 The dpcnsw/silverstripe-mailgun-sync-test module provides tests and a TestMailgunFormSubmission DataObject.
@@ -140,6 +169,5 @@ The testing module applies testmode by default with the exception of failure tes
 
 > If you are running tests and do not use a sandbox domain, it's likely that emails from other processes in your website will be delivered to their recipients.
 
-
 ## Roadmap
-+ Webhooks - Mailgun provides webhooks to provide event updates via HTTP POST to a controller on a website. Once implemented, this will make the queued jobs redundant.
++ Webhooks - Mailgun provides webhooks to provide event updates via HTTP POST to a controller on a website.

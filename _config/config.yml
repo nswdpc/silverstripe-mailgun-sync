@@ -11,6 +11,8 @@ NSWDPC\SilverstripeMailgunSync\Connector\Base:
   resubmit_failures : 2
   always_set_sender : true
   workaround_testmode: false
+  # yes|no|when-attachments
+  send_via_job : 'when-attachments'
 # Event config
 MailgunEvent:
   secure_folder_name : 'SecureUploads'
