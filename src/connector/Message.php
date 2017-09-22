@@ -321,7 +321,10 @@ class Message extends Base {
 		$container_folder = \Folder::find_or_make($container_folder_path);
 		// set folder view permissions
 		if($container_folder->hasExtension('SecureFileExtension')) {
-			$admin_group = Group::get()->filter('Code','ADMIN')->first();
+			$admin_group = \Group::get()->filter('Code','administrators')->first();
+			if(empty($admin_group)) {
+				throw new \Exception("No administrators group is present");
+			}
 			$container_folder->CanViewType = 'OnlyTheseUsers';
 			$container_folder->ViewerGroups()->add($admin_group);
 			$container_folder->write();
