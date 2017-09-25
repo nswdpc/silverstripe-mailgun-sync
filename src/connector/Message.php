@@ -128,13 +128,13 @@ class Message extends Base {
 	/**
 	 * Resubmits a message via sendMime() - note that headers are kept intact including Cc and To but the message is only ever sent to the $event->Recipient
 	 * @param MailgunEvent $event containing a StorageURL
-	 * @param boolean $redeliver when true attempt to redeliver, even if the event has been delivered previously
-	 * @param boolean $use_local_file_contents
-	 * @note as of 10th July 2017, this feature was implemented by Mailgun from the Logs View in the Mailgun Admin.
+	 * @param boolean $allow_redeliver - allow redeliver, even if the event has been delivered previously (manual resubmit)
+	 * @param boolean $use_local_file_contents used for tests to specify usage of a downloaded local file
+	 * @note as of 10th July 2017, an authorised Mailgun user can resubmit from the Mailgun control panel via the cog icon in Logs View
 	 * @note as MG only stores logs for 30 days
 	 * @todo test that the MIME encoded contents being sent - the recipient in that matches the recipient from the Event?
 	 */
-	public function resubmit(\MailgunEvent $event, $redeliver = false, $use_local_file_contents = false) {
+	public function resubmit(\MailgunEvent $event, $allow_redeliver = false, $use_local_file_contents = false) {
 		
 		if(empty($event->Recipient)) {
 			throw new \Exception("Event #{$event->ID} has no recipient, cannot resubmit");
@@ -143,13 +143,14 @@ class Message extends Base {
 		/**
 		 * Determine if the message has been delivered... for instance resent from Mailgun Admin
 		 * in which case, we don't want to resubmit
+		 * TODO tests should be able to access this?
 		 */
 		$is_running_test = \SapphireTest::is_running_test();
 		if(!$is_running_test) {
 			$use_local_file_contents = false;
 			\SS_Log::log("SapphireTest is not running", \SS_Log::DEBUG);
-			if(!$redeliver && $this->isDelivered($event)) {
-				throw new \Exception("Mailgun has already delivered this message");
+			if(!$allow_redeliver && $this->isDelivered($event)) {
+				throw new \Exception("Mailgun has already delivered this message (allow_redeliver is off)");
 			}
 		}
 		
@@ -192,9 +193,11 @@ class Message extends Base {
 		$params = [];
 		$params['o:tag'] = [ \MailgunEvent::TAG_RESUBMIT ];//tag - can poll for resubmitted events then
 		if($is_running_test) {
+			// Specific handling during tests to ensure testmode is correctly set, as required
 			if($this->workaroundTestMode()) {
 				// ensure testmode is off when set, see method documentation for more
 				// only applicable when running tests
+				// this works around an issue where events that will fail are marked as "test delivered" in Mailgun
 				\SS_Log::log("Workaround testmode is ON - turning testmode off",  \SS_Log::DEBUG);
 				unset($params['o:testmode']);
 			} else {
@@ -228,7 +231,8 @@ class Message extends Base {
 	}
 	
 	/**
-	 * This method is provided for tests to access storeIfRequired, provide an event
+	 * This method is provided for tests to access storeIfRequired and store the downloaded event message contents
+	 * @param \MailgunEvent $event
 	 * @returns mixed array|false
 	 */
 	public function storeTestMessage(\MailgunEvent $event)  {
@@ -251,10 +255,9 @@ class Message extends Base {
 	/**
 	 * Given an Event, store its contents if it is > 2 days old and if config allows
 	 * @todo encryption of downloaded message ?
-	 * @todo ensure local file and CDN Content testing?
-	 * @param $event
-	 * @param $contents
-	 * @param $force
+	 * @param \MailgunEvent $event
+	 * @param string $contents
+	 * @param boolean $force
 	 */
 	private function storeIfRequired(\MailgunEvent $event, $contents, $force = false) {
 		// Is local storage configured and on ?

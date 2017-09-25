@@ -66,7 +66,9 @@ class Event extends Base {
 			if(!empty($mailgun_event->ID)) {
 				$events[] = $mailgun_event;
 				\SS_Log::log("Got MailgunEvent: {$mailgun_event->ID}", \SS_Log::DEBUG);
-				if($resubmit) {
+				if(!$resubmit) {
+					\SS_Log::log("Not resubmitting", \SS_Log::DEBUG);
+				} else {
 					\SS_Log::log("--------------- Start AutomatedResubmit Event #{$mailgun_event->ID}-------------------", \SS_Log::DEBUG);
 					try {
 						$mailgun_event->AutomatedResubmit();

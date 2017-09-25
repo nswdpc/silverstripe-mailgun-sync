@@ -538,6 +538,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		
 		try {
 			$message = new MessageConnector();
+			// Resubmit this event
 			$result = $message->resubmit($this);
 			// A single event can only be resubmitted once
 			// Resubmission may result in another failed event (and that can be resubmitted)
@@ -573,6 +574,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		$message = new MessageConnector();
 		$message_id = false;
 		try {
+			// Manual resubmits can redeliver a message even if delivered
 			$message_id = $message->resubmit($this, true);
 			$this->Resubmitted = 1;
 		} catch (\Exception $e) {
