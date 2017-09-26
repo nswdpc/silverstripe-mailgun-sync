@@ -16,6 +16,14 @@ class ModelAdmin extends \ModelAdmin {
 		parent::init();
 		$this->showImportForm = false;
 	}
+	
+	/**
+	 * Provide an alternative access check to handle older SS 50chr Permission code limits
+	 */
+	public function alternateAccessCheck() {
+		$member = \Member::currentUser();
+		return \Permission::check('MAILGUNEVENT_VIEW', 'any', $member) || \Permission::check('MAILGUNSUBMISSION_VIEW', 'any', $member);
+	}
 
 	public function getEditForm($id = null, $fields = null) {
 		$form = parent::getEditForm($id, $fields);
@@ -36,8 +44,25 @@ class ModelAdmin extends \ModelAdmin {
 		$field->setItemRequestClass('NSWDPC\SilverstripeMailgunSync\ModelAdmin_ItemRequest');
 		return $form;
 	}
+	
+	/**
+	 * Returns managed models based on permissions of current user
+	 */
+	public function getManagedModels() {
+		$models = $this->stat('managed_models');
+		// Normalize models to have their model class in array key
+		foreach($models as $k => $v) {
+			unset($models[$k]);
+			$sng = singleton($v);
+			$view = $sng->CanView();
+			if($view) {
+				$models[$v] = array('title' => $sng->i18n_singular_name());
+			}
+		}
+		return $models;
+	}
+	
 }
-
 
 /**
  * @note handle item requests for managed models

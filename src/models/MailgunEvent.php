@@ -103,6 +103,10 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 			'MAILGUNEVENT_RESUBMIT' => array(
 				'name' => 'Resubmit a Mailgun Event',
 				'category' => 'Mailgun',
+			),
+			'MAILGUNEVENT_VIEW' => array(
+				'name' => 'View Mailgun events',
+				'category' => 'Mailgun',
 			)
 		);
 	}
@@ -123,8 +127,8 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		$manager_group->Title = "Mailgun Managers";
 		$manager_group_id = $manager_group->write();
 		if($manager_group_id) {
-			// grant MAILGUNEVENT_RESUBMIT to this group
 			\Permission::grant($manager_group_id, 'MAILGUNEVENT_RESUBMIT');
+			//\Permission::grant($manager_group_id, 'CMS_ACCESS_NSWDPC\SilverstripeMailgunSync\ModelAdmin');
 		}
 		
 		// ensure admins have this permission as well
@@ -170,26 +174,34 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		if(empty($submission->ID)) {
 			return false;
 		}
-		$created = new DateTime($submission->Created);
-		$now = new DateTime();
+		$created = new \DateTime($submission->Created);
+		$now = new \DateTime();
 		$age = $now->format('U') - $created->format('U');
 		return $age;
 	}
 	
 	public function canDelete($member = NULL) {
-		return FALSE;
+		return false;
 	}
 	
 	public function canEdit($member = NULL) {
-		return \Permission::check('ADMIN', 'any', $member);
+		if(!$member) $member = \Member::currentUser();
+		return \Permission::check('MAILGUNEVENT_VIEW', 'any', $member);
 	}
 	
+	/**
+	 * Allow viewing by members with this permission
+	 */
 	public function canView($member = NULL) {
-		return \Permission::check('ADMIN', 'any', $member);
+		if(!$member) $member = \Member::currentUser();
+		return \Permission::check('MAILGUNEVENT_VIEW', 'any', $member);
 	}
 	
 	public function getCmsFields() {
 		$fields = parent::getCmsFields();
+		
+		$fields->removeByName(['SubmissionID','DecodedStorageKey','MimeMessage']);
+		
 		foreach($fields->dataFields() as $field) {
 			$fields->makeFieldReadonly( $field );
 		}
@@ -214,11 +226,24 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 			$fields->removeByName('FailedThenDelivered');
 		}
 		
+		$mime_message = $this->MimeMessage();
+		if(!empty($mime_message->ID) && $mime_message->canView()) {
+			$fields->addFieldsToTab(
+				'Root.File',
+				[
+					ReadonlyField::create('MimeMessageName', 'Name', $mime_message->Name),
+					ReadonlyField::create('MimeMessageSize', 'Size', $mime_message->getSize())
+				]
+			);
+		}
+		
 		// show a list of related events sharing the same MessageId
 		$siblings = $this->getSiblingEvents();
 		if($siblings && $siblings->count() > 0) {
-			$gridfield = GridField::create('SiblingEvents', 'Siblings', $siblings);
-			$literal_field = LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id. '
+			$config = \GridFieldConfig_RecordEditor::create();
+			$config->removeComponentsByType('GridFieldEditButton');
+			$gridfield = \GridField::create('SiblingEventsGridField', 'Siblings', $siblings, $config);
+			$literal_field = \LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id '
 																																		. '<code>'. htmlspecialchars($this->MessageId) . '</code></p>');
 			$fields->addFieldsToTab('Root.RelatedEvents', [$literal_field, $gridfield ]);
 		}
@@ -471,7 +496,8 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	public function MimeMessageContent() {
 		$content = "";
 		$file = $this->MimeMessage();
-		if(!empty($file->ID) && ($file instanceof File)) {
+		// does the file exist, of the correct type and does the current member have permissions?
+		if(!empty($file->ID) && ($file instanceof MailgunMimeFile) && $file->CanView()) {
 			$content = file_get_contents( $file->getFullPath() );
 		}
 		return $content;

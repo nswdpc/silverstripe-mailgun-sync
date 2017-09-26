@@ -10,7 +10,7 @@
  * 	Paid accounts (with a credit card on file) - 30 days
  * 	We store the raw MIME of the message for up to 3 days
  */
-class MailgunSubmission extends \DataObject {
+class MailgunSubmission extends \DataObject implements \PermissionProvider {
 	
 	private static $singular_name = "Submission";
 	private static $plural_name = "Submissions";
@@ -45,6 +45,22 @@ class MailgunSubmission extends \DataObject {
 		'Recipient' => 'Recipient',// optional
 		'Domain' => 'Domain',
 	];
+	
+	/**
+	 * @return array
+	 */
+	public function providePermissions() {
+		return array(
+			'MAILGUNSUBMISSION_VIEW' => array(
+				'name' => 'View Mailgun submissions',
+				'category' => 'Mailgun',
+			)
+		);
+	}
+	
+	public function requireDefaultRecords() {
+		parent::requireDefaultRecords();
+	}
 	
 	public function getTitle() {
 		return $this->SubmissionDetails();
@@ -134,15 +150,20 @@ class MailgunSubmission extends \DataObject {
 	 * These submissions can't be deleted
 	 */
 	public function canDelete($member = NULL) {
-		return FALSE;
+		return false;
 	}
 	
 	public function canEdit($member = NULL) {
-		return \Permission::check('ADMIN', 'any', $member);
+		if(!$member) $member = Member::currentUser();
+		return \Permission::check('MAILGUNSUBMISSION_VIEW', 'any', $member);
 	}
 	
+	/**
+	 * Allow viewing by members with this permission
+	 */
 	public function canView($member = NULL) {
-		return \Permission::check('ADMIN', 'any', $member);
+		if(!$member) $member = Member::currentUser();
+		return \Permission::check('MAILGUNSUBMISSION_VIEW', 'any', $member);
 	}
 	
 	public function getCmsFields() {
@@ -161,6 +182,7 @@ class MailgunSubmission extends \DataObject {
 			$events_config = $events->getConfig();
 			$events_config->removeComponentsByType('GridFieldAddNewButton');
 			$events_config->removeComponentsByType('GridFieldDeleteAction');
+			$events_config->removeComponentsByType('GridFieldEditButton');
 			$events_config->removeComponentsByType('GridFieldAddExistingAutoCompleter');
 		}
 		
@@ -182,7 +204,7 @@ class MailgunSubmission extends \DataObject {
 			$record = $list->first();
 			$config = \GridFieldConfig_RecordEditor::create()
 									->removeComponentsByType('GridFieldAddNewButton')
-									//->removeComponentsByType('GridFieldEditButton')
+									->removeComponentsByType('GridFieldEditButton')
 									->removeComponentsByType('GridFieldDeleteAction');
 											
 			$gridfield = \GridField::create(
