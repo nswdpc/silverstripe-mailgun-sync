@@ -61,6 +61,27 @@ class Event extends Base {
 		\SS_Log::log("Events: " . count($this->results), \SS_Log::DEBUG);
 		
 		foreach($this->results as $event) {
+			
+			// Ignore certain event types
+			// List of possible flags
+			/*
+				[is-routed] =>
+				[is-authenticated] => 1
+				[is-callback] => 1
+				[is-system-test] =>
+				[is-test-mode] =>
+				
+				// other possibles:
+				is-batch
+				is-big
+				is-delayed-bounce
+			*/
+			$flags = $event->getFlags();
+			// ignore any callback notifications from webhooks
+			if(isset($flags['is-callback']) && $flags['is-callback'] == 1) {
+				continue;
+			}
+			
 			// attempt to store the events
 			$mailgun_event = \MailgunEvent::storeEvent($event);
 			if(!empty($mailgun_event->ID)) {
