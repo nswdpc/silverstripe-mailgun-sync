@@ -276,6 +276,7 @@ class Message extends Base {
 		}
 		
 		// failures
+		$failures = $min_resubmit_failures = 0;
 		if(!$force) {
 			$failures = $event->GetRecipientFailures();//number of failures for this submission/recipient
 			$min_resubmit_failures = $this->resubmitFailures();
@@ -286,7 +287,7 @@ class Message extends Base {
 		}
 		
 		// save contents to a file
-		\SS_Log::log("storeIfRequired - storing locally",  \SS_Log::DEBUG);
+		\SS_Log::log("storeIfRequired - storing locally. failures={$failures} min_resubmit_failures={$min_resubmit_failures}",  \SS_Log::DEBUG);
 		$folder = $this->getFolder($event);
 		$file = new \MailgunMimeFile();
 		$file->Name = $this->messageFileName();
