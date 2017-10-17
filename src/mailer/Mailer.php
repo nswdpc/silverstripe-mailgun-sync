@@ -106,7 +106,7 @@ class Mailer extends SilverstripeMailer {
 					$parameters['attachment'] = $attachments;
 				}
 				
-				\SS_Log::log('Sending...', \SS_Log::DEBUG);
+				//\SS_Log::log('Sending...', \SS_Log::DEBUG);
 				$response = $connector->send($parameters);
 				$message_id = "";
 				if($response && $response instanceof SendResponse) {
@@ -159,7 +159,7 @@ class Mailer extends SilverstripeMailer {
 		$message_id = $message->getId();
 		$message_id = MessageConnector::cleanMessageId($message_id);
 		if($this->hasSubmission()) {
-			\SS_Log::log('Saving messageId: ' . $message_id  . " to submission {$this->submission->ID}", \SS_Log::DEBUG);
+			//\SS_Log::log('Saving messageId: ' . $message_id  . " to submission {$this->submission->ID}", \SS_Log::DEBUG);
 			$this->submission->MessageId = $message_id;// for submissions with multiple recipients this will be the last message_id returned
 			$this->submission->write();
 		}
@@ -174,20 +174,20 @@ class Mailer extends SilverstripeMailer {
 		
 		// When a submission source is present, set custom data
 		if($this->hasSubmission()) {
-			\SS_Log::log("addCustomParameters: adding submission - {$this->submission->ID}", \SS_Log::DEBUG);
+			//\SS_Log::log("addCustomParameters: adding submission - {$this->submission->ID}", \SS_Log::DEBUG);
 			$parameters['v:s'] = $this->submission->ID;// adds to X-Mailgun-Variables header e.g {"s": "77"}
 		}
 		
 		// setting test mode on/off
 		if($this->is_test_mode) {
-			\SS_Log::log("addCustomParameters: is test mode", \SS_Log::DEBUG);
+			\SS_Log::log("addCustomParameters: is test mode", \SS_Log::NOTICE);
 			$parameters['o:testmode'] = 'yes';//Adds X-Mailgun-Drop-Message header
 		}
 		
 		$is_running_test = \SapphireTest::is_running_test();
 		$workaround_testmode = \Config::inst()->get('NSWDPC\SilverstripeMailgunSync\Connector\Base', 'workaround_testmode');
 		if($is_running_test && $workaround_testmode) {
-			\SS_Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", \SS_Log::DEBUG);
+			//\SS_Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", \SS_Log::DEBUG);
 			unset($parameters['o:testmode']);
 		}
 		

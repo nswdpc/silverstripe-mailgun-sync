@@ -22,7 +22,7 @@ class EventPollingTask extends \BuildTask {
 			$timeframe = 'now -1 day';
 			$begin = Connector\Base::DateTime($timeframe);
 			$event_filter = "";//poll all events
-			\SS_Log::log("pollEvents with filter '{$event_filter}'", \SS_Log::DEBUG);
+			//\SS_Log::log("pollEvents with filter '{$event_filter}'", \SS_Log::DEBUG);
 			$extra_params = [
 				'limit' => 100
 			];

@@ -1,7 +1,5 @@
 # Mailgun Sync Module for Silverstripe
 
-This module is in BETA and may change. Do not use in production.
-
 This module provides functionality to both send emails via the Mailgun API and to periodically check for failures and attempt resubmission.
 
 In Paid mode, Mailgun stores messages for 3 days and events for 30 days. After this time, messages and events respectively will most likely no longer be accessible.

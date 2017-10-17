@@ -37,10 +37,10 @@ class SendJob extends \AbstractQueuedJob {
 	 */
 	public function process() {
 		
-		\SS_Log::log("SendJob::process", \SS_Log::DEBUG);
+		//\SS_Log::log("SendJob::process", \SS_Log::DEBUG);
 		
 		if($this->isComplete) {
-			\SS_Log::log("SendJob::process already complete", \SS_Log::DEBUG);
+			//\SS_Log::log("SendJob::process already complete", \SS_Log::DEBUG);
 			return;
 		}
 		
@@ -57,12 +57,16 @@ class SendJob extends \AbstractQueuedJob {
 		if(!$domain || empty($parameters)) {
 			$msg = "MailgunSync\SendJob is missing either the domain or parameters properties";
 			$this->messages[] = $msg;
-			\SS_Log::log("SendJob::process failed:{$msg}", \SS_Log::DEBUG);
+			//\SS_Log::log("SendJob::process failed:{$msg}", \SS_Log::DEBUG);
 			throw new \Exception($msg);
 		}
 		
 		$msg = "Unknown error";
 		try {
+			
+			//\SS_Log::log("SendJob::process using domain {$domain}", \SS_Log::DEBUG);
+			//\SS_Log::log("SendJob::process to '{$parameters['to']}', from '{$parameters['from']}', subject '{$parameters['subject']}'", \SS_Log::DEBUG);
+			
 			$response = $client->messages()->send($domain, $parameters);
 			
 			$message_id = "";
@@ -71,7 +75,7 @@ class SendJob extends \AbstractQueuedJob {
 				$this->parameters = [];//remove all params
 				$msg = "SendJob::process got message: {$message_id}";
 				$this->messages[] = $msg;
-				\SS_Log::log($msg, \SS_Log::DEBUG);
+				//\SS_Log::log($msg, \SS_Log::DEBUG);
 				// job finished and not marked broken
 				$this->isComplete = true;
 				return;
@@ -85,7 +89,7 @@ class SendJob extends \AbstractQueuedJob {
 		}
 		
 		$this->messages[] = $msg;
-		\SS_Log::log("SendJob::process failed:{$msg}", \SS_Log::DEBUG);
+		//\SS_Log::log("SendJob::process failed:{$msg}", \SS_Log::DEBUG);
 		throw new \Exception($msg);
 		
 	}

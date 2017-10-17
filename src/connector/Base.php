@@ -96,6 +96,7 @@ abstract class Base {
 	final protected function applyTestMode(&$parameters) {
 		$mailgun_testmode = \Config::inst()->get(__CLASS__,'api_testmode');
 		if($mailgun_testmode) {
+			\SS_Log::log("applyTestMode - yes", \SS_Log::NOTICE);
 			$parameters['o:testmode'] = 'yes';
 		}
 	}

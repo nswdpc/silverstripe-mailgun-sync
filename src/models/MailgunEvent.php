@@ -456,9 +456,11 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 			return false;
 		}
 		
+		/*
 		if($create) {
-			\SS_Log::log("Stored Event #{$event_id} of type '{$mailgun_event->EventType}' for submission #{$submission_id}", \SS_Log::DEBUG);
+			//\SS_Log::log("Stored Event #{$event_id} of type '{$mailgun_event->EventType}' for submission #{$submission_id}", \SS_Log::DEBUG);
 		}
+		*/
 		
 		return $mailgun_event;
 	}
@@ -542,18 +544,18 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	public function AutomatedResubmit() {
 		
 		if(!$this->IsFailureOrRejected()) {
-			\SS_Log::log("Not Failed/Rejected - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
+			//\SS_Log::log("Not Failed/Rejected - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
 			return false;
 		}
 		
 		// If this SPECIFIC event has been resubmitted already, do not resubmit
 		if($this->Resubmitted) {
-			\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", \SS_Log::DEBUG);
+			//\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", \SS_Log::DEBUG);
 			return false;
 		}
 		
 		if($this->FailedThenDelivered == 1) {
-			\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} was marked failed then delivered, not resubmitting", \SS_Log::DEBUG);
+			//\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} was marked failed then delivered, not resubmitting", \SS_Log::DEBUG);
 			return false;
 		}
 		
@@ -568,14 +570,14 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 			$result = $message->resubmit($this);
 			// A single event can only be resubmitted once
 			// Resubmission may result in another failed event (and that can be resubmitted)
-			\SS_Log::log("AutomatedResubmit - mark as resubmitted", \SS_Log::DEBUG);
+			//\SS_Log::log("AutomatedResubmit - mark as resubmitted", \SS_Log::DEBUG);
 			$this->Resubmitted = 1;
 			$this->Resubmits = ($this->Resubmits + 1);
 			$this->write();
 		} catch (\Exception $e) {
 			// update number of resubmits
 			$this->Resubmits = ($this->Resubmits + 1);
-			\SS_Log::log("AutomatedResubmit - error resubmits={$this->Resubmits} - " . $e->getMessage(), \SS_Log::DEBUG);
+			//\SS_Log::log("AutomatedResubmit - error resubmits={$this->Resubmits} - " . $e->getMessage(), \SS_Log::DEBUG);
 			$this->write();
 		}
 		
