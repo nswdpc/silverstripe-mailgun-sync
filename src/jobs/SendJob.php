@@ -17,7 +17,7 @@ class SendJob extends \AbstractQueuedJob {
 	}
 	
 	public function getTitle() {
-		return 'Email via Mailgun To:' . $this->parameters['to'] . ' Subject: ' . $this->parameters['subject'];
+		return 'Email via Mailgun To: ' . $this->parameters['to'] . ' Subject: ' . $this->parameters['subject'];
 	}
 	
 	public function getSignature() {
@@ -30,6 +30,7 @@ class SendJob extends \AbstractQueuedJob {
 		}
 		$this->domain = $domain;
 		$this->parameters = $parameters;
+		
 	}
 	
 	/**
@@ -53,7 +54,7 @@ class SendJob extends \AbstractQueuedJob {
 		
 		$domain = $this->domain;
 		$parameters = $this->parameters;
-		
+	
 		if(!$domain || empty($parameters)) {
 			$msg = "MailgunSync\SendJob is missing either the domain or parameters properties";
 			$this->messages[] = $msg;
@@ -67,13 +68,14 @@ class SendJob extends \AbstractQueuedJob {
 			//\SS_Log::log("SendJob::process using domain {$domain}", \SS_Log::DEBUG);
 			//\SS_Log::log("SendJob::process to '{$parameters['to']}', from '{$parameters['from']}', subject '{$parameters['subject']}'", \SS_Log::DEBUG);
 			
+			$connector->decodeAttachments($parameters);
 			$response = $client->messages()->send($domain, $parameters);
 			
 			$message_id = "";
 			if($response && ($response instanceof SendResponse) && ($message_id = $response->getId())) {
 				$message_id = $connector::cleanMessageId($message_id);
 				$this->parameters = [];//remove all params
-				$msg = "SendJob::process got message: {$message_id}";
+				$msg = "SendJob::process OK got message.id: {$message_id}";
 				$this->messages[] = $msg;
 				//\SS_Log::log($msg, \SS_Log::DEBUG);
 				// job finished and not marked broken

@@ -39,3 +39,9 @@ Only:
 UserDefinedForm_Controller:
   extensions:
     - NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension
+---
+Name: mailgunsyncqueue
+---
+QueuedJobDescriptor:
+  db:
+    SavedJobData : 'NSWDPC\SilverstripeMailgunSync\LongText'

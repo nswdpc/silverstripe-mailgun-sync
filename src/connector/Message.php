@@ -28,7 +28,6 @@ class Message extends Base {
 	 * Send a message with parameters
 	 * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
 	 * @returns SendResponse
-	 * @todo QueuedJob for large emails with optional config off/on
 	 */
 	public function send($parameters) {
 		$client = $this->getClient();
@@ -68,9 +67,34 @@ class Message extends Base {
 	}
 	
 	/**
+	 * Base64 encode attachments, primarily used to avoid attachment corruption issues when storing binary data in a queued job
+	 */
+	public function encodeAttachments(&$parameters) {
+		if(!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
+			foreach($parameters['attachment'] as $k=>$attachment) {
+				$parameters['attachment'][$k]['fileContent'] = base64_encode($attachment['fileContent']);
+				\SS_Log::log("encode attachment_length=" . strlen($parameters['attachment'][$k]['fileContent']), \SS_Log::DEBUG);
+			}
+		}
+	}
+	
+	/**
+	 * Base64 decode attachments, for decoding attachments encoded with {@link self::encodeAttachments()}
+	 */
+	public function decodeAttachments(&$parameters) {
+		if(!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
+			foreach($parameters['attachment'] as $k=>$attachment) {
+				$parameters['attachment'][$k]['fileContent'] = base64_decode($attachment['fileContent']);
+				\SS_Log::log("decode attachment_length=" . strlen($parameters['attachment'][$k]['fileContent']), \SS_Log::DEBUG);
+			}
+		}
+	}
+	
+	/**
 	 * Send via the queued job instead
 	 */
 	private function queueAndSend($domain, $parameters) {
+		$this->encodeAttachments($parameters);
 		$start = new \DateTime('now +1 minute');
 		$job  = new MailgunSyncSendJob($domain, $parameters);
 		return singleton('QueuedJobService')->queueJob($job, $start->format('Y-m-d H:i:s'));
