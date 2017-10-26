@@ -73,7 +73,6 @@ class Message extends Base {
 		if(!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
 			foreach($parameters['attachment'] as $k=>$attachment) {
 				$parameters['attachment'][$k]['fileContent'] = base64_encode($attachment['fileContent']);
-				\SS_Log::log("encode attachment_length=" . strlen($parameters['attachment'][$k]['fileContent']), \SS_Log::DEBUG);
 			}
 		}
 	}
@@ -85,7 +84,6 @@ class Message extends Base {
 		if(!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
 			foreach($parameters['attachment'] as $k=>$attachment) {
 				$parameters['attachment'][$k]['fileContent'] = base64_decode($attachment['fileContent']);
-				\SS_Log::log("decode attachment_length=" . strlen($parameters['attachment'][$k]['fileContent']), \SS_Log::DEBUG);
 			}
 		}
 	}
