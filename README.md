@@ -5,7 +5,7 @@ This module provides functionality to both send emails via the Mailgun API and t
 In Paid mode, Mailgun stores messages for 3 days and events for 30 days. After this time, messages and events respectively will most likely no longer be accessible.
 
 ## Installing
-The module is not in Packagist, add:
+The module is not (yet) in Packagist, add:
 ```
 "repositories": [
   {
@@ -14,9 +14,19 @@ The module is not in Packagist, add:
   }
 ]
 ```
-to your composer.json, then run:
+to your composer.json, then run (to install v0.2+):
 ```
-$ composer require nswdpc/silverstripe-mailgun-sync
+$ composer require nswdpc/silverstripe-mailgun-sync:~0.2
+```
+
+### Module Dependencies:
++ [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs)
++ [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets)
+
+See composer.json for current framework/cms and [Mailgun PHP API client dependencies](https://github.com/mailgun/mailgun-php#installation).
+You will need to install a ```php-http/client-implementation``` such as ```php-http/guzzle6-adapter``` via composer along with ```guzzle/psr7```, for example:
+```
+$ composer require guzzlehttp/psr7 php-http/guzzle6-adapter:v1.1.1
 ```
 
 ## Configuration
@@ -152,14 +162,8 @@ You can manually resubmit both failed and delivered events.
 
 Since July 2017 you can also resend messages from the Mailgun website Admin Logs screen, via the cog icon.
 
-## Module Dependencies:
-+ [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs)
-+ [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets)
-
-See composer.json for current framework/cms and Mailgun PHP API client dependencies.
-
 ## Tests
-The dpcnsw/silverstripe-mailgun-sync-test module provides tests and a TestMailgunFormSubmission DataObject.
+The nswdpc/silverstripe-mailgun-sync-test module provides tests and a TestMailgunFormSubmission DataObject.
 
 When testing this module, you probably want to avoid emails going out to the internet. Ensure you use a Mailgun sandbox domain with approved recipients to avoid this.
 
