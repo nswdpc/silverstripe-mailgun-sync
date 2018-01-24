@@ -18,8 +18,8 @@
 		"installer-name" : "mailgun-sync"
 	},
 	"require": {
-		"silverstripe/queuedjobs": "~2.0",
-		"mailgun/mailgun-php": "^2.3",
+		"symbiote/silverstripe-queuedjobs": "~2.0",
+		"mailgun/mailgun-php": "^2.4",
 		"silverstripe/framework" : "~3.2",
 		"silverstripe/secureassets": "~1.1"
 	}
