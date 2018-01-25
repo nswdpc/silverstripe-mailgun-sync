@@ -2,7 +2,7 @@
 namespace NSWDPC\SilverstripeMailgunSync;
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
- * This Job runs once per day and polls local 'failed' OR 'rejected' MailgunEvent records matching the date range
+ * This Job runs once per day and polls local 'Failed' MailgunEvent records matching the date range
  * 	to check for 'delivered' status linked to the message-id stored in the event
  *	The job then stores a delivered event
  */
@@ -49,7 +49,7 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 	}
 	
 	/**
-	 * Checks for local 'failed' events marked FailedThenDelivered=0 and queries Mailgun for a 'delivered' status
+	 * Checks for local 'Failed' events marked FailedThenDelivered=0 and queries Mailgun for a 'Delivered' status
 	 */
 	public function process() {
 		try {
@@ -61,10 +61,9 @@ class DeliveryCheckJob extends \AbstractQueuedJob {
 			$start->modify('-30 days');// MG events are only stored for 30 days
 			$start_formatted = $start->format('Y-m-d');
 			
-			// Find local failed OR rejected events created in the date range
-			$events = \MailgunEvent::get()->filterAny([
-				'EventType' => [ \MailgunEvent::FAILED, \MailgunEvent::REJECTED ],
-			])->filter([
+			// Find local Failed events created in the date range
+			$events = \MailgunEvent::get()->filter([
+				'EventType' => \MailgunEvent::FAILED,
 				'FailedThenDelivered' => 0,
 				'UTCEventDate:GreaterThanOrEqual' => $start_formatted,
 			]);

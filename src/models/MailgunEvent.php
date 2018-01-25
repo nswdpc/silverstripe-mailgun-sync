@@ -142,7 +142,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	}
 	
 	public function FailedThenDeliveredNice() {
-		if( $this->IsFailure() || $this->IsRejected() ) {
+		if( $this->IsFailed() || $this->IsRejected() ) {
 			return $this->FailedThenDelivered == 1 ? "yes" : "no";
 		}
 		return "";
@@ -222,7 +222,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		$fields->dataFieldByName('Timestamp')->setRightTitle( $this->UTCDateTime() );
 		
 		// no point showing this when not a failure
-		if(!$this->IsFailure() && !$this->IsRejected()) {
+		if(!$this->IsFailed() && !$this->IsRejected()) {
 			$fields->removeByName('FailedThenDelivered');
 		}
 		
@@ -286,18 +286,32 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	public static function UserActionStatus() {
 		return [ self::OPENED, self::CLICKED, self::UNSUBSCRIBED, self::COMPLAINED ];
 	}
-	
-	public function IsFailure() {
+
+	public function IsFailed() {
 		return $this->EventType == self::FAILED;
+	}
+
+	/**
+	 * @deprecated use IsFailed() in order to match API event naming
+	 */	
+	public function IsFailure() {
+		return $this->IsFailed();
 	}
 	
 	// Mailgun has not even attempted to deliver these
 	public function IsRejected() {
 		return $this->EventType == self::REJECTED;
 	}
+
+	public function IsFailedOrRejected() {
+		return $this->IsFailed() || $this->IsRejected();
+	}
 	
+	/**
+	 * @deprecated use IsFailedOrRejected in order to match API event naming
+ 	 */
 	public function IsFailureOrRejected() {
-		return $this->IsFailure() || $this->IsRejected();
+		return $this->IsFailedOrRejected();
 	}
 	
 	public function IsDelivered() {
@@ -348,7 +362,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	 */
 	private static function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type) {
 		if(!$message_id || !$timestamp || !$recipient || !$event_type) {
-			\SS_Log::log("Tried to get a current event but one or more of message_id, timestamp, recipient or event_type was missing", \SS_Log::ERR);
+			//\SS_Log::log("Tried to get a current event but one or more of message_id, timestamp, recipient or event_type was missing. message_id={$message_id} event_type={$event_type}", \SS_Log::DEBUG);
 			return false;
 		}
 		$event = \MailgunEvent::get()->filter( ['MessageId' => $message_id, 'Timestamp' => $timestamp, 'Recipient' => $recipient, 'EventType' => $event_type ] )->first();
@@ -473,7 +487,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		$actions = parent::getCMSActions();
 		if (\Permission::check('MAILGUNEVENT_RESUBMIT')) {
 			$delivered = $this->IsDelivered();
-			if( ($this->IsFailureOrRejected() && $this->Severity == self::FAILURE_PERMANENT) || $delivered ) {
+			if( ($this->IsFailedOrRejected() && $this->Severity != self::FAILURE_TEMPORARY) || $delivered ) {
 				$try_again = new \FormAction ('doTryAgain', 'Resubmit');
 				$try_again->addExtraClass('ss-ui-action-constructive');
 				$actions->push($try_again);
@@ -543,8 +557,9 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	 */
 	public function AutomatedResubmit() {
 		
-		if(!$this->IsFailureOrRejected()) {
-			//\SS_Log::log("Not Failed/Rejected - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
+		// only Failed events can be resubmitted this way
+		if(!$this->IsFailed()) {
+			//\SS_Log::log("Not Failed - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
 			return false;
 		}
 		
@@ -595,7 +610,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 			throw new \ValidationException("Access denied");
 		}
 		
-		if(!$this->IsFailure() && !$this->IsRejected() && !$this->IsDelivered()) {
+		if(!$this->IsFailed() && !$this->IsRejected() && !$this->IsDelivered()) {
 			throw new \ValidationException("Can only resubmit an event if it is failed/rejected/delivered");
 		}
 		
