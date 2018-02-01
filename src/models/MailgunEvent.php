@@ -462,7 +462,7 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 		$mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
 		$mailgun_event->saveDeliveryStatus( $status );
 		$mailgun_event->StorageURL = isset($storage['url']) ? $storage['url'] : '';
-		$mailgun_event->DecodedStorageKey = (isset($storage['key']) ? base64_decode($storage['key']) : '');
+		$mailgun_event->DecodedStorageKey = "";
 		$event_id = $mailgun_event->write();
 		if(!$event_id) {
 			// could not create record
