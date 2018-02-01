@@ -19,7 +19,7 @@
 	},
 	"require": {
 		"symbiote/silverstripe-queuedjobs": "~2.0",
-		"mailgun/mailgun-php": "^2.4",
+		"mailgun/mailgun-php": "~2.4",
 		"silverstripe/framework" : "~3.2",
 		"silverstripe/secureassets": "~1.1"
 	}
