@@ -75,7 +75,7 @@ class SendJob extends \AbstractQueuedJob {
 			if($response && ($response instanceof SendResponse) && ($message_id = $response->getId())) {
 				$message_id = $connector::cleanMessageId($message_id);
 				$this->parameters = [];//remove all params
-				$msg = "SendJob::process OK got message.id: {$message_id}";
+				$msg = "OK {$message_id}";
 				$this->messages[] = $msg;
 				//\SS_Log::log($msg, \SS_Log::DEBUG);
 				// job finished and not marked broken
