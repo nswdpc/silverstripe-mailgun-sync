@@ -12,9 +12,13 @@ abstract class Base {
 	private static $api_testmode = false;// when true ALL emails are sent with o:testmode = 'yes'
 	private static $sync_local_mime = false;// download messages when failed
 	private static $resubmit_failures = 2;// number of resubmit failures before the message is stored (when sync_local_mime is true)
+	private static $always_set_sender = true;
 	private static $track_userform = false;// track userform submissions (userform module support)
 	
 	private static $workaround_testmode = false;// this works around an oddity where testmode is 'yes', the recipient is in the supression list but messages are 'delivered' in testmode
+	
+	private static $send_via_job = 'when-attachments';
+	private static $default_recipient = '';
 	
 	/**
 	 * Returns an RFC2822 datetime in the format accepted by Mailgun
@@ -96,8 +100,20 @@ abstract class Base {
 	final protected function applyTestMode(&$parameters) {
 		$mailgun_testmode = \Config::inst()->get(__CLASS__,'api_testmode');
 		if($mailgun_testmode) {
-			\SS_Log::log("applyTestMode - yes", \SS_Log::NOTICE);
+			//\SS_Log::log("applyTestMode - yes", \SS_Log::NOTICE);
 			$parameters['o:testmode'] = 'yes';
+		}
+	}
+	
+	/**
+	 * When Bcc/Cc is provided with no 'To', mailgun rejects the request (400 Bad Request), this method applies the configured default_recipient
+	 */
+	final public function applyDefaultRecipient(&$parameters) {
+		if(empty($parameters['to'])
+				&& (!empty($parameters['cc']) || !empty($parameters['bcc']))
+				&& ($default_recipient = \Config::inst()->get(__CLASS__,'default_recipient'))) {
+					//\SS_Log::log("applyDefaultRecipient - {$default_recipient}", \SS_Log::NOTICE);
+					$parameters['to'] = $default_recipient;
 		}
 	}
 	

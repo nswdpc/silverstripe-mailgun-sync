@@ -46,6 +46,9 @@ class Message extends Base {
 		// apply Mailgun testmode if Config is set
 		$this->applyTestMode($parameters);
 		
+		// if required, apply the default recipient
+		$this->applyDefaultRecipient($parameters);
+		
 		$send_via_job = $this->sendViaJob();
 		//\SS_Log::log("send_via_job={$send_via_job}", \SS_Log::DEBUG);
 		
@@ -373,5 +376,5 @@ class Message extends Base {
 		$filename = hash("md5", $time . $rand) . ".txt";
 		return $filename;
 	}
-	
+
 }

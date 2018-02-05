@@ -81,6 +81,8 @@ The message will be sent via a Queued Job depending on this setting and the mess
 + 'when-attachments' = Only when attachments are present
 
 With a value of 'when-attachments' set, message delivery attempts without attachments will not use the queued job.
+### default_recipient
+Mailgun requires a 'to' parameter. If your system sends messages with Bcc/Cc but no 'To' then you will need to specify a default_recipient (one that you control).
 
 ## Sending
 Sending of messages occurs via ```NSWDPC\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.

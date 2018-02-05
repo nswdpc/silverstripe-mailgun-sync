@@ -68,6 +68,9 @@ class SendJob extends \AbstractQueuedJob {
 			//\SS_Log::log("SendJob::process using domain {$domain}", \SS_Log::DEBUG);
 			//\SS_Log::log("SendJob::process to '{$parameters['to']}', from '{$parameters['from']}', subject '{$parameters['subject']}'", \SS_Log::DEBUG);
 			
+			// if required, apply the default recipient
+			$connector->applyDefaultRecipient($parameters);
+			// decode all attachments
 			$connector->decodeAttachments($parameters);
 			$response = $client->messages()->send($domain, $parameters);
 			
