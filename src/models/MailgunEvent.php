@@ -481,7 +481,6 @@ class MailgunEvent extends \DataObject implements \PermissionProvider {
 	
 	/**
 	 * Provide action buttons to allow a resubmit. Only failures marked 'permanent' can be resubmitted - temporary failures are retried by MG
-	 * TODO permission check for button and resubmit() access
 	 */
 	public function getCMSActions() {
 		$actions = parent::getCMSActions();

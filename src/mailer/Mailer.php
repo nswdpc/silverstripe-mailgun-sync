@@ -57,7 +57,6 @@ class Mailer extends SilverstripeMailer {
 	
 	/**
 	 * Send a message using the Mailgun messages API. If there is a submission source, save the resulting message.id on successful response
-	 * @TODO once a message is sent, clear tags and submission? Leave test mode as-is?
 	 * @param string $to
 	 * @param string $from
 	 * @param string $subject
@@ -167,7 +166,6 @@ class Mailer extends SilverstripeMailer {
 	}
 	
 	/**
-	 * TODO parse out any X- prefixed headers  and add them as h:X-My-Header
 	 * TODO support all o:options in Mailgun API
 	 */
 	protected function addCustomParameters(&$parameters, $headers) {
