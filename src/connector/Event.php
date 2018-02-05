@@ -12,8 +12,7 @@ class Event extends Base {
 	 * @param string $begin an RFC 2822 formatted UTC datetime OR empty string for no begin datetime
 	 * @param string $event_filter see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also be a filter expression e.g "failed OR rejected"
 	 * @param boolean $resubmit whether to resubmit events if possible
-	 * @todo when two installs share the same api_domain, events will be synchronised to both install.
-	 *					Possible workaround is to tag each message with a specific install 'tag' and add this as a filter on event polling here
+	 * @todo when two installs share the same api_domain, events will be synchronised to both install. Possible workaround is to tag each message with a specific install 'tag' and add this as a filter on event polling here
 	 */
 	public function pollEvents($begin = NULL, $event_filter = "", $resubmit = false, $extra_params = array()) {
 		

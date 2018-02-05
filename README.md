@@ -135,19 +135,19 @@ A FailedEventsJob exists to poll for events with a Mailgun 'failed' status. This
 A DeliveryCheckJob exists to poll local 'failed' events and determine if they have been delivered, based on the message-id and recipient of the failed event. It will save 'delivered' events for failed events that were subsequently delivered.
 
 ## Queued Jobs
-Run the ```NSWDPC\SilverstripeMailgunSync\QueueMailgunSyncJobs``` dev task (dev/tasks) to create both the ```NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob``` and the ```NSWDPC\SilverstripeMailgunSync\FailedEventsJob```
-Without these jobs running, synchronisation will not occur. Ensure you read the ```queuedjobs``` module documentation for information on processing queues automatically.
+If you wish to have the queued jobs running, run the ```NSWDPC\SilverstripeMailgunSync\QueueMailgunSyncJobs``` dev task (dev/tasks) to create both the ```NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob``` and the ```NSWDPC\SilverstripeMailgunSync\FailedEventsJob```
+Without these jobs running, synchronisation will not occur. Ensure you read the queuedjobs module documentation for information on processing queues automatically.
 
 ### SendJob
 This is a queued job that can be used to send emails depending on the ```send_via_job``` config value -
-+ all the time
-+ only when attachments are present, or
-+ never (in which case messages will never send via a Queued Job)
++ 'yes' - all the time
++ 'when-attachments' - only when attachments are present, or
++ 'no' - never (in which case messages will never send via a Queued Job)
 
 Relevant messages are handed off to the queued job, which is configured to send after one minute. Once delivered, the message parameters are cleared to reduce space used by large messages.
 
 ### Resubmission
-Automated resubmission occurs for events of 'failed' status within the Mailgun 3 day storage limit, currently via a QueuedJob. This is done by downloading the MIME encoded representation of the message from Mailgun and resubmitting it via the Mailgun API to the recipient specified in the event.
+When the queued job is running, automated resubmission occurs for events of 'failed' status within the Mailgun 3 day storage limit, currently via a QueuedJob. This is done by downloading the MIME encoded representation of the message from Mailgun and resubmitting it via the Mailgun API to the recipient specified in the event.
 After 3 days, this is no longer possible and as such automated resubmissions will not take place.
 
 Resubmissions may result in another failed event being registered (a good example is a recipient mailbox being over quota for more than a day). In this case, another resubmit attempt will occur on the next FailedEventsJob run.

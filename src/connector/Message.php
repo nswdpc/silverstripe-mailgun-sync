@@ -276,7 +276,6 @@ class Message extends Base {
 	
 	/**
 	 * Given an Event, store its contents if it is > 2 days old and if config allows
-	 * @todo encryption of downloaded message ?
 	 * @param \MailgunEvent $event
 	 * @param string $contents
 	 * @param boolean $force
