@@ -17,7 +17,10 @@ class SendJob extends \AbstractQueuedJob {
 	}
 	
 	public function getTitle() {
-		return 'Email via Mailgun To: ' . $this->parameters['to'] . ' Subject: ' . $this->parameters['subject'];
+		$to = isset($this->parameters['to']) ? $this->parameters['to'] : '';
+		$subject = isset($this->parameters['subject']) ? $this->parameters['subject'] : '';
+		$from = isset($this->parameters['from']) ? $this->parameters['from'] : '';
+		return "Email via Mailgun To: {$to} From: {$from} Subject: {$subject}";
 	}
 	
 	public function getSignature() {

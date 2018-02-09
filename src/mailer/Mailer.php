@@ -18,6 +18,8 @@ class Mailer extends SilverstripeMailer {
 	protected $is_test_mode = false;// when true, Mailgun receives messages (accepted event) but does not send them to the remote. 'delivered' events are recorded.
 	protected $tags = [];//Note 4000 limit: http://mailgun-documentation.readthedocs.io/en/latest/user_manual.html#tagging
 	protected $sender = "";// for setting the sender header
+	
+	public $alwaysFrom;// when set, override From address, applying From provided to Reply-To header
 
 	/**
 	 * {@inheritdoc}
@@ -72,6 +74,14 @@ class Mailer extends SilverstripeMailer {
 				$attachments = $this->prepareAttachments($attachments);
 				
 				$parameters = [];
+				
+				// check if alwaysFrom is set
+				if($this->alwaysFrom) {
+					$parameters['h:Reply-To'] = $from;// set the from as a replyto
+					$from = $this->alwaysFrom;
+					$this->setSender($from);//set Sender header to be the new From address
+				}
+				
 				// add in o: and v: params
 				$this->addCustomParameters($parameters, $headers);
 				
