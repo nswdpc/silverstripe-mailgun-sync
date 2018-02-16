@@ -57,6 +57,8 @@ NSWDPC\SilverstripeMailgunSync\Connector\Base:
   always_set_sender: true
   # Whether to send via a job
   send_via_job: 'when-attachments'
+  # When set, messages with no 'To' header are delivered here.
+  default_recipient: ''
 # Send messages via the MailgunSync Mailer
 Injector:
   Mailer:
@@ -83,6 +85,16 @@ The message will be sent via a Queued Job depending on this setting and the mess
 With a value of 'when-attachments' set, message delivery attempts without attachments will not use the queued job.
 ### default_recipient
 Mailgun requires a 'to' parameter. If your system sends messages with Bcc/Cc but no 'To' then you will need to specify a default_recipient (one that you control).
+
+### alwaysFrom
+If you wish to have all emails sent from a single address by default, add the following to your Mailer config:
+```
+Injector:
+  Mailer:
+    properties:
+      alwaysFrom: someone@example.com
+```
+This is off by default.
 
 ## Sending
 Sending of messages occurs via ```NSWDPC\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.
