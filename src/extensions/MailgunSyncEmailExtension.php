@@ -35,11 +35,11 @@ class MailgunSyncEmailExtension extends \Extension {
 		}
 
 		$mailer = $email::mailer();
-		if($mailer instanceof MailgunSyncMailer) {
-			// When email->send() is called our Mailer will have called addCustomParameters() prior to ensure properties are set for the API request
-			$mailer->setSubmissionSource( $submission ); // the submission, saves message-id on successful send
-			$mailer->setIsTestMode($test_mode);// if in test mode (true/false)
-			$mailer->setTags($tags);//set any Mailgun tags (o:tag property). Only array values are sent.
+		if (($mailer instanceof MailgunSyncMailer)) {
+			// set headers on Email, rather than via methods on the Mailer
+			$email->addCustomHeader( 'X-MSE-SID', $submission_id ); // the submission, saves message-id on successful send
+			$email->addCustomHeader( 'X-MSE-TEST', (int)$test_mode );// if in test mode (true/false)
+			$email->addCustomHeader( 'X-MSE-O:TAGS', json_encode($tags) );//set any Mailgun tags (o:tag property). Only array values are sent.
 		}
 		
 		return $submission;

@@ -9,17 +9,30 @@ use Mailgun\Mailgun;
  * This Mailer class is based on Kinglozzer\SilverStripeMailgunner\Mailer and adds
  * 		sendMessage() using v3.0 compatible API methods
  *		prepareAttachments() - avoids writing file attachments to a temp file as {@link Email::attachFileFromString()} already provides the file bytes
- * 		Calling MessageBuilder() and BatchMessage(), which are both deprecated as of 3.0
+ * 		Remove calling MessageBuilder() and BatchMessage(), which are both deprecated as of 3.0
  *		Removal of BatchMessage in general
+ *
+ * HEADERS
+ * Some specific headers can be set on the Email instance and are handled in addCustomParameters()
+ * These headers are unset on use and not sent to Mailgun
+ * X-MSE-O:TAGS:
+ *		Sets o:tags parameter
+ *		JSON encoded string of tags to send with the email, only the array values are sent to Mailgun
+ * 		Note 4000 limit: http://mailgun-documentation.readthedocs.io/en/latest/user_manual.html#tagging
+ * X-MSE-TEST:
+ *		Sets o:testmode parameter
+ * 		When true, Mailgun receives messages (accepted event) but does not send them to the remote. 'delivered' events are recorded.
+ * X-MSE-SID:
+ *		Sets v:s parameter
+ * 		Provide a MailgunSubmission.ID value for inclusion in the message headers
+ *
+ * Mailgun Message-ID return value
+ * A header 'X-Mailgun-MessageID' will be returned by sendMessage() in the 'headers' index.
+ * This value may be empty (if the response was invalid or the message-id was not returned)
  */
 class Mailer extends SilverstripeMailer {
 	
-	protected $submission;// \MailgunSubmission
-	protected $is_test_mode = false;// when true, Mailgun receives messages (accepted event) but does not send them to the remote. 'delivered' events are recorded.
-	protected $tags = [];//Note 4000 limit: http://mailgun-documentation.readthedocs.io/en/latest/user_manual.html#tagging
-	protected $sender = "";// for setting the sender header
-	
-	public $alwaysFrom;// when set, override From address, applying From provided to Reply-To header
+	public $alwaysFrom;// when set, override From address, applying From provided to Reply-To header, set original "From" as "Sender" header
 
 	/**
 	 * {@inheritdoc}
@@ -36,26 +49,13 @@ class Mailer extends SilverstripeMailer {
 	}
 	
 	/**
-	 * Set the submission source on the 
+	 * These four methods are retained for BC but are now unused
+	 * Set the relevant headers on the Email instance instead
 	 */
-	public function setSubmissionSource(\MailgunSubmission $submission) {
-		$this->submission = $submission;
-	}
-	
-	public function setIsTestMode($is) {
-		$this->is_test_mode = $is;
-	}
-	
-	public function setTags($tags) {
-		$this->tags = $tags;
-	}
-	
-	/**
-	 */
-	public function setSender($email, $name = "") {
-		$this->sender = ($name ? $name . " <{$email}>" : $email);
-	}
-	
+	public function setSubmissionSource(\MailgunSubmission $submission) {}
+	public function setIsTestMode($is) {}
+	public function setTags($tags) {}
+	public function setSender($email, $name = "") {}
 	
 	/**
 	 * Send a message using the Mailgun messages API. If there is a submission source, save the resulting message.id on successful response
@@ -79,7 +79,7 @@ class Mailer extends SilverstripeMailer {
 				if($this->alwaysFrom) {
 					$parameters['h:Reply-To'] = $from;// set the from as a replyto
 					$from = $this->alwaysFrom;
-					$this->setSender($from);//set Sender header to be the new From address
+					$headers['Sender'] = $from;// set in addCustomParameters below
 				}
 				
 				// add in o: and v: params
@@ -119,19 +119,18 @@ class Mailer extends SilverstripeMailer {
 				$response = $connector->send($parameters);
 				$message_id = "";
 				if($response && $response instanceof SendResponse) {
-					// save message.id to the submission
+					// get a message.id from the response
 					$message_id = $this->saveResponse($response);
 				}
+				// provide a message-id value that can be picked up from the result of email->send()
+				$headers['X-Mailgun-MessageID'] = $message_id;
 				
 			} catch (\Exception $e) {
-				// Throwing the exception would break SilverStripe's Email API expectations, so we log
-				// errors and show a message (which is hidden in live mode)
 				\SS_Log::log('Mailgun-Sync / Mailgun error: ' . $e->getMessage(), \SS_Log::ERR);
 				return false;
 			}
 
 			// Return format matching {@link Mailer::sendPreparedMessage()}
-			// TODO would be nice to get message_id back to email->send()
 			return [$to, $subject, $content, $headers, ''];
 	}
 	
@@ -151,14 +150,6 @@ class Mailer extends SilverstripeMailer {
 		return $attachments;
 	}
 	
-	/**
-	 * Has a \MailgunSubmission been attached to this Mailer instance?
-	 */
-	protected function hasSubmission() {
-		return ($this->submission instanceof \MailgunSubmission) && !empty($this->submission->ID);
-	}
-	
-	
 	/*
 		object(Mailgun\Model\Message\SendResponse)[1740]
 			private 'id' => string '<message-id.mailgun.org>' (length=92)
@@ -167,11 +158,6 @@ class Mailer extends SilverstripeMailer {
 	final protected function saveResponse($message) {
 		$message_id = $message->getId();
 		$message_id = MessageConnector::cleanMessageId($message_id);
-		if($this->hasSubmission()) {
-			//\SS_Log::log('Saving messageId: ' . $message_id  . " to submission {$this->submission->ID}", \SS_Log::DEBUG);
-			$this->submission->MessageId = $message_id;// for submissions with multiple recipients this will be the last message_id returned
-			$this->submission->write();
-		}
 		return $message_id;
 	}
 	
@@ -181,13 +167,16 @@ class Mailer extends SilverstripeMailer {
 	protected function addCustomParameters(&$parameters, $headers) {
 		
 		// When a submission source is present, set custom data
-		if($this->hasSubmission()) {
-			//\SS_Log::log("addCustomParameters: adding submission - {$this->submission->ID}", \SS_Log::DEBUG);
-			$parameters['v:s'] = $this->submission->ID;// adds to X-Mailgun-Variables header e.g {"s": "77"}
+		$submission_id = isset($headers['X-MSE-SID']) ? $headers['X-MSE-SID'] : false;
+		unset($headers['X-MSE-SID']);//no longer required
+		if($submission_id) {
+			$parameters['v:s'] = $submission_id;// adds to X-Mailgun-Variables header e.g {"s": "77"}
 		}
 		
 		// setting test mode on/off
-		if($this->is_test_mode) {
+		$is_test_mode = isset($headers['X-MSE-TEST']) ? $headers['X-MSE-TEST'] : false;
+		unset($headers['X-MSE-TEST']);// no longer required
+		if($is_test_mode) {
 			\SS_Log::log("addCustomParameters: is test mode", \SS_Log::NOTICE);
 			$parameters['o:testmode'] = 'yes';//Adds X-Mailgun-Drop-Message header
 		}
@@ -201,19 +190,19 @@ class Mailer extends SilverstripeMailer {
 		
 		// if tags are provided, add them
 		// tags can be filtered on when polling for events
-		if(!empty($this->tags) && is_array($this->tags)) {
-			$parameters['o:tag'] = array_values($this->tags);
+		// tags are an array, values are used - e.g ['ball','black','sport'], keys are ignored
+		$tags = isset($headers['X-MSE-O:TAGS']) ? json_decode($headers['X-MSE-O:TAGS'], true) : [];
+		unset($headers['X-MSE-O:TAGS']);// no longer required
+		if(!empty($tags) && is_array($tags)) {
+			$parameters['o:tag'] = array_values($tags);
 		}
 		
-		// add all headers
+		// add all remaining headers
 		if(is_array($headers)) {
 			foreach($headers as $header => $header_value) {
 				$parameters['h:' . $header] = $header_value;
 			}
 		}
 		
-		if($this->sender) {
-			$parameters['h:Sender'] = $this->sender;
-		}
 	}
 }

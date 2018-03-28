@@ -68,7 +68,7 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 		// Set options on the Mailer
 		$mailer = $email::mailer();
 		if (($mailer instanceof MailgunSyncMailer) && $recipient->EmailFrom) {
-			$mailer->setSender($recipient->EmailFrom);// sets the 'Sender' header
+			$email->addCustomHeader('Sender', $recipient->EmailFrom);
 		}
 		
 		try {
