@@ -25,6 +25,8 @@ use Mailgun\Mailgun;
  * X-MSE-SID:
  *		Sets v:s parameter
  * 		Provide a MailgunSubmission.ID value for inclusion in the message headers
+ * X-MSE-IN:
+ * 		When the email is sent via a queued job, this value will set the StartAfter datetime for the Queued Job, if not set 'now +1 minute' is used
  *
  * Mailgun Message-ID return value
  * A header 'X-Mailgun-MessageID' will be returned by sendMessage() in the 'headers' index.
@@ -75,6 +77,13 @@ class Mailer extends SilverstripeMailer {
 				
 				$parameters = [];
 				
+				// Store a value for sending in the future
+				$in = '';
+				if(isset($headers['X-MSE-IN'])) {
+					$in = $headers['X-MSE-IN'];
+					unset($headers['X-MSE-IN']);
+				}
+				
 				// check if alwaysFrom is set
 				if($this->alwaysFrom) {
 					$parameters['h:Reply-To'] = $from;// set the from as a replyto
@@ -116,7 +125,7 @@ class Mailer extends SilverstripeMailer {
 				}
 				
 				//\SS_Log::log('Sending...', \SS_Log::DEBUG);
-				$response = $connector->send($parameters);
+				$response = $connector->send($parameters, $in);
 				$message_id = "";
 				if($response && $response instanceof SendResponse) {
 					// get a message.id from the response

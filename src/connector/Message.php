@@ -28,8 +28,10 @@ class Message extends Base {
 	 * Send a message with parameters
 	 * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
 	 * @returns SendResponse
+	 * @param array $parameters an array of parameters for the Mailgun API
+	 * @param string $in a strtotime value added to 'now' being the time that the message will be sent via a queued job, if enabled
 	 */
-	public function send($parameters) {
+	public function send($parameters, $in = '') {
 		$client = $this->getClient();
 		$domain = $this->getApiDomain();
 		// If configured and not already specified, set the Sender hader
@@ -54,11 +56,11 @@ class Message extends Base {
 		
 		switch( $send_via_job ) {
 			case 'yes':
-				return $this->queueAndSend($domain, $parameters);
+				return $this->queueAndSend($domain, $parameters, $in);
 				break;
 			case 'when-attachments':
 				if(!empty($parameters['attachment'])) {
-					return $this->queueAndSend($domain, $parameters);
+					return $this->queueAndSend($domain, $parameters, $in);
 					break;
 				}
 				// fallback to direct
@@ -92,11 +94,34 @@ class Message extends Base {
 	}
 	
 	/**
-	 * Send via the queued job instead
+	 * Returns a DateTime being when the queued job should be started after
+	 * @returns DateTime
+	 * @param string $in See:http://php.net/manual/en/datetime.formats.relative.php
 	 */
-	private function queueAndSend($domain, $parameters) {
+	private function getSendDateTime($in) {
+		$default_in = '1 minute';
+		if($in == '') {
+			$in = $default_in;
+		}
+		
+		try {
+			$dt = new \DateTime("now +{$in}");
+		} catch (\Exception $e) {
+			// if $in results in a non-valid time parameter to DateTime, use the default
+			$dt = new \DateTime("now +{$default_in}");
+		}
+		return $dt;
+	}
+	
+	/**
+	 * Send via the queued job instead
+	 * @param string $domain the Mailgun API domain e.g sandboxXXXXXX.mailgun.org
+	 * @param array $parameters Mailgun API parameters
+	 * @param string $in
+	 */
+	private function queueAndSend($domain, $parameters, $in) {
 		$this->encodeAttachments($parameters);
-		$start = new \DateTime('now +1 minute');
+		$start = $this->getSendDateTime($in);
 		$job  = new MailgunSyncSendJob($domain, $parameters);
 		return singleton('QueuedJobService')->queueJob($job, $start->format('Y-m-d H:i:s'));
 	}
