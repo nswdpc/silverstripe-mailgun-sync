@@ -14,9 +14,9 @@ The module is not (yet) in Packagist, add:
   }
 ]
 ```
-to your composer.json, then run (to install v0.2+):
+to your composer.json, then run (to install vN.n+):
 ```
-$ composer require nswdpc/silverstripe-mailgun-sync:~0.2
+$ composer require nswdpc/silverstripe-mailgun-sync:~N.n
 ```
 
 ### Module Dependencies:
@@ -87,14 +87,16 @@ With a value of 'when-attachments' set, message delivery attempts without attach
 Mailgun requires a 'to' parameter. If your system sends messages with Bcc/Cc but no 'To' then you will need to specify a default_recipient (one that you control).
 
 ### alwaysFrom
-If you wish to have all emails sent from a single address by default, add the following to your Mailer config:
+If you wish to have all emails sent from a single address by default, regardless of the From header set, add the following to your Mailer config:
 ```
 Injector:
   Mailer:
     properties:
-      alwaysFrom: someone@example.com
+      alwaysFrom: 'Someone <someone@example.com>'
+      # or
+      # alwaysFrom: 'someone@example.com'
 ```
-This is off by default.
+This is off by default. When in use the From header will be set as the Reply-To.
 
 ## Sending
 Sending of messages occurs via ```NSWDPC\SilverstripeMailgunSync\Connector\Message``` class using API configuration from YAML.
