@@ -88,7 +88,7 @@ class TruncateJob extends \AbstractQueuedJob {
 			}	
 		}
 		
-		$this->addMessage("Removed {$counts['e']} events, {$counts['f']} files, {$counts['f']} submissions", "info");
+		$this->addMessage("Removed {$counts['e']} events, {$counts['f']} files, {$counts['s']} submissions", "info");
 		$this->isComplete = true;
 		return;
 		
