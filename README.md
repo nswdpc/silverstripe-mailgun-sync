@@ -21,7 +21,6 @@ $ composer require nswdpc/silverstripe-mailgun-sync:~N.n
 
 ### Module Dependencies:
 + [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs)
-+ [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets)
 
 See composer.json for current framework/cms and [Mailgun PHP API client dependencies](https://github.com/mailgun/mailgun-php#installation).
 You will need to install a ```php-http/client-implementation``` such as ```php-http/guzzle6-adapter``` via composer along with ```guzzle/psr7```, for example:
@@ -71,7 +70,6 @@ When true, messages will send with the o:testmode parameter set to 'yes'
 When true, failed messages have their contents downloaded for later resubmission after 'resubmit_failures' attempts
 When false, failed messages are not downloaded.
 
-If you are downloading messages, the [Secure Assets](https://github.com/silverstripe/silverstripe-secureassets) module should be used to restrict file access.
 ### track_userform
 You may have the [User Forms](https://github.com/silverstripe/silverstripe-userforms) module installed but not want to track submissions. Set this option to false if so.
 ### always_set_sender
@@ -112,7 +110,7 @@ In addition, the MailgunSync Mailer allows setting of Mailgun's testmode on the 
 The default configuration is as-follows:
 ```
 MailgunEvent:
-  # when sync_local_mime is true, messages are downloaded here. You can change this to another folder managed by Secure Assets module
+  # when sync_local_mime is true, messages are downloaded here
   secure_folder_name : 'SecureUploads'
   # maximum number of failures before an event cannot be auto-resubmitted
   max_failures : 3

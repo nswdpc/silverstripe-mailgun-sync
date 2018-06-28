@@ -37,12 +37,12 @@ Only:
   ModuleExists: userforms
 ---
 # UserDefinedForm submission handling, if module exists
-UserDefinedForm_Controller:
+SilverStripe\UserForms\Control\UserDefinedFormController:
   extensions:
     - NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension
 ---
 Name: mailgunsyncqueue
 ---
-QueuedJobDescriptor:
+Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor:
   db:
-    SavedJobData : 'NSWDPC\SilverstripeMailgunSync\LongText'
+    SavedJobData : 'NSWDPC\SilverstripeMailgunSync\DBLongText'

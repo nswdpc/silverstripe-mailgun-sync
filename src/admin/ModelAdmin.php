@@ -1,50 +1,56 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync;
 
+use SilverStripe\Admin\ModelAdmin as SS_ModelAdmin;
+use SilverStripe\Security\Member;
+use SilverStripe\Security\Permission;
+use SilverStripe\Control\Controller;
+use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
+
 /**
  * Admin for MailgunSync
  */
-class ModelAdmin extends \ModelAdmin {
+class ModelAdmin extends SS_ModelAdmin {
 	private static $url_segment = 'mailgunsync';
 	private static $menu_title = 'Mailgun';
 	private static $managed_models = array(
-		'MailgunSubmission',
-		'MailgunEvent',
+		'NSWDPC\SilverstripeMailgunSync\MailgunSubmission',
+		'NSWDPC\SilverstripeMailgunSync\MailgunEvent',
 	);
 
 	public function init() {
 		parent::init();
 		$this->showImportForm = false;
 	}
-	
+
 	/**
 	 * Provide an alternative access check to handle older SS 50chr Permission code limits
 	 */
 	public function alternateAccessCheck() {
-		$member = \Member::currentUser();
-		return \Permission::check('MAILGUNEVENT_VIEW', 'any', $member) || \Permission::check('MAILGUNSUBMISSION_VIEW', 'any', $member);
+		$member = Member::currentUser();
+		return Permission::check('MAILGUNEVENT_VIEW', 'any', $member) || Permission::check('MAILGUNSUBMISSION_VIEW', 'any', $member);
 	}
 
 	public function getEditForm($id = null, $fields = null) {
 		$form = parent::getEditForm($id, $fields);
-		
+
 		$grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
 		$config = $grid->getConfig();
-		
+
 		$config->removeComponentsByType('GridFieldAddNewButton');
 		//$config->removeComponentsByType('GridFieldEditButton');
 		$config->removeComponentsByType('GridFieldPrintButton');
 		$config->removeComponentsByType('GridFieldDeleteAction');
-		
+
 		$config = $form->Fields()
 								->fieldByName($this->sanitiseClassName($this->modelClass))
 								->getConfig();
-		
+
 		$field = $config->getComponentByType('GridFieldDetailForm');
 		$field->setItemRequestClass('NSWDPC\SilverstripeMailgunSync\ModelAdmin_ItemRequest');
 		return $form;
 	}
-	
+
 	/**
 	 * Returns managed models based on permissions of current user
 	 */
@@ -61,13 +67,13 @@ class ModelAdmin extends \ModelAdmin {
 		}
 		return $models;
 	}
-	
+
 }
 
 /**
  * @note handle item requests for managed models
  */
-class ModelAdmin_ItemRequest extends \GridFieldDetailForm_ItemRequest {
+class ModelAdmin_ItemRequest extends GridFieldDetailForm_ItemRequest {
 
 	private static $allowed_actions = array (
 		'edit',
@@ -93,10 +99,10 @@ class ModelAdmin_ItemRequest extends \GridFieldDetailForm_ItemRequest {
 	}
 
 	/**
-	 * Provide ability to resubmit a message via a \MailgunEvent record
+	 * Provide ability to resubmit a message via a MailgunEvent record
 	 */
 	public function doTryAgain($data, $form) {
-		if($this->record instanceof \MailgunEvent) {
+		if($this->record instanceof MailgunEvent) {
 			if($submission = $this->record->Resubmit()) {
 				// resubmitting will return a new submission record
 				$form->sessionMessage('Resubmitted', 'good');
@@ -105,7 +111,7 @@ class ModelAdmin_ItemRequest extends \GridFieldDetailForm_ItemRequest {
 				$form->sessionMessage('Failed, could not resubmit.', 'bad');
 			}
 		}
-		return $this->edit( \Controller::curr()->getRequest() );
+		return $this->edit( Controller::curr()->getRequest() );
 	}
 
 }

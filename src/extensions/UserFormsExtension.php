@@ -1,13 +1,16 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync;
 use NSWDPC\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
+use SilverStripe\ORM\ArrayList;
+use SilverStripe\Core\Extension;
 
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
  * @note provides a way to manipulate the Email/Mailer prior to a UserDefinedForm submission. See {@link UserDefinedForm_Controller::process()}
+ * @TODO SS4 = UserFormRecipientEmail, UserDefinedForm_EmailRecipient
  */
-class UserDefinedFormSubmissionExtension extends \Extension {
-	
+class UserDefinedFormSubmissionExtension extends Extension {
+
 	/**
 	 * Creates a submission just prior to submitting the email, called on a per UserDefinedForm_EmailRecipient basis
 	 * @param array $emailData containing at least a key 'Fields' which is a {@link ArrayList}
@@ -17,7 +20,7 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 	 * @see {@link MailgunMailer::buildMessage()}
 	 */
 	public function updateEmail(\UserFormRecipientEmail $email, \UserDefinedForm_EmailRecipient $recipient, $emailData) {
-		
+
 		$tracking = Connector\Base::trackUserFormSubmissions();
 		if(!$tracking) {
 			/*
@@ -26,33 +29,33 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 			 */
 			return;
 		}
-		
-		if(empty($emailData['Fields']) || !($emailData['Fields'] instanceof \ArrayList)) {
+
+		if(empty($emailData['Fields']) || !($emailData['Fields'] instanceof ArrayList)) {
 			// no fields, can't actually find the SubmittedForm due to the way process() works
 			return;
 		}
-		
+
 		// traverse through the Fields until one with a ParentID is found, this is the SubmittedForm.ID
 		$submitted_form_id = NULL;
 		foreach($emailData['Fields'] as $field) {
-			if($field instanceof \SubmittedFormField && !empty($field->ParentID)) {
+			if($field instanceof SilverStripe\UserForms\Model\Submission\SubmittedFormField && !empty($field->ParentID)) {
 				$submitted_form_id = $field->ParentID;
 				break;
 			}
 		}
-		
+
 		if(!$submitted_form_id) {
 			// no point enabling any tracking here if no SubmittedForm.ID is found or it's not actually a valid SubmittedForm.ID
 			return;
 		}
-		
+
 		// get the SubmittedForm record
-		$submitted_form = \SubmittedForm::get()->filter('ID', $submitted_form_id)->first();
+		$submitted_form = SilverStripe\UserForms\Model\Submission\SubmittedForm::get()->filter('ID', $submitted_form_id)->first();
 		if(empty($submitted_form->ID)) {
 			// no point enabling any tracking here if no SubmittedForm record matching
 			return;
 		}
-		
+
 		// determine the Recipient based on the configuration for this Form
 		$recipient_email_address = "";
 		/*
@@ -64,16 +67,16 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 			$recipient_email_address = $recipient->EmailAddress;
 		}
 		*/
-		
+
 		// Set options on the Mailer
 		$mailer = $email::mailer();
 		if (($mailer instanceof MailgunSyncMailer) && $recipient->EmailFrom) {
 			$email->addCustomHeader('Sender', $recipient->EmailFrom);
 		}
-		
+
 		try {
 			// create the tracking record
-			// SubmittedForm records can have multiple recipients, each \MailgunEvent tracks events per recipient
+			// SubmittedForm records can have multiple recipients, each MailgunEvent tracks events per recipient
 			$tags = ['userform'];
 			$sync = new MailgunSyncEmailExtension();
 			$sync->mailgunSyncEmail($email, $submitted_form, $recipient_email_address, $tags);
@@ -81,9 +84,9 @@ class UserDefinedFormSubmissionExtension extends \Extension {
 		} catch (\Exception $e) {
 			\SS_Log::log("Error trying to setup sync record for Mailgun: " . $e->getMessage(), \SS_Log::NOTICE);
 		}
-		
+
 		return false;
-		
+
 	}
-	
+
 }
