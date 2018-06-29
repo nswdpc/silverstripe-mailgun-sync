@@ -2,11 +2,15 @@
 namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Config\Configurable;
+
 /**
  * Base connector to the Mailgun API
  * Read the Docs at http://mailgun-documentation.readthedocs.io/en/latest/api_reference.html for reference implementations
  */
 abstract class Base {
+
+	use Configurable;
 
 	private static $api_key = '';
 	private static $api_domain = '';
@@ -42,12 +46,12 @@ abstract class Base {
 	}
 
 	public function getApiKey() {
-		$mailgun_api_key = Config::inst()->get(__CLASS__,'api_key');
+		$mailgun_api_key = $this->config()->get('api_key');
 		return $mailgun_api_key;
 	}
 
 	public function getApiDomain() {
-		$mailgun_api_domain = Config::inst()->get(__CLASS__,'api_domain');
+		$mailgun_api_domain = $this->config()->get('api_domain');
 		return $mailgun_api_domain;
 	}
 
@@ -56,28 +60,28 @@ abstract class Base {
 	 * {@link NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension::updateEmail()}
 	 */
 	public static function trackUserFormSubmissions() {
-		return Config::inst()->get(__CLASS__,'track_userform');
+		return $this->config()->get('track_userform');
 	}
 
 	/**
 	 * Returns whether or not syncing remote message to a local file is allowed in config
 	 */
 	final protected function syncLocalMime() {
-		return Config::inst()->get(__CLASS__,'sync_local_mime');
+		return $this->config()->get('sync_local_mime');
 	}
 
 	/**
 	 * Whether to send via a queued job or
 	 */
 	final protected function sendViaJob() {
-		return Config::inst()->get(__CLASS__,'send_via_job');
+		return $this->config()->get('send_via_job');
 	}
 
 	/**
 	 * Returns configured number of resubmit failures, before the MIME message is downloaded (if configured)
 	 */
 	final protected function resubmitFailures() {
-		return Config::inst()->get(__CLASS__,'resubmit_failures');
+		return $this->config()->get('resubmit_failures');
 	}
 
 	/**
@@ -85,21 +89,21 @@ abstract class Base {
 	 * When true this worksaround a quirk in Mailgun where sending messages with testmode on to recipients in the supression list are 'delivered' (should be 'failed')
 	 */
 	final protected function workaroundTestMode() {
-		return Config::inst()->get(__CLASS__,'workaround_testmode');
+		return $this->config()->get('workaround_testmode');
 	}
 
 	/**
 	 * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\SilverstripeMailgunSync\Mailer::setSender()} to set the Sender header as required
 	 */
 	final protected function alwaysSetSender() {
-		return Config::inst()->get(__CLASS__,'always_set_sender');
+		return $this->config()->get('always_set_sender');
 	}
 
 	/**
 	 * Prior to any send/sendMime action, check config and set testmode if config says so
 	 */
 	final protected function applyTestMode(&$parameters) {
-		$mailgun_testmode = Config::inst()->get(__CLASS__,'api_testmode');
+		$mailgun_testmode = $this->config()->get('api_testmode');
 		if($mailgun_testmode) {
 			//\SS_Log::log("applyTestMode - yes", \SS_Log::NOTICE);
 			$parameters['o:testmode'] = 'yes';
@@ -112,7 +116,7 @@ abstract class Base {
 	final public function applyDefaultRecipient(&$parameters) {
 		if(empty($parameters['to'])
 				&& (!empty($parameters['cc']) || !empty($parameters['bcc']))
-				&& ($default_recipient = Config::inst()->get(__CLASS__,'default_recipient'))) {
+				&& ($default_recipient = $this->config()->get('default_recipient'))) {
 					//\SS_Log::log("applyDefaultRecipient - {$default_recipient}", \SS_Log::NOTICE);
 					$parameters['to'] = $default_recipient;
 		}

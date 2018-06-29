@@ -35,12 +35,14 @@ class SendJob extends AbstractQueuedJob {
 	}
 
 	public function __construct($domain = "", $parameters = []) {
-		if(!$domain || empty($parameters)) {
+		if(!$domain) {
+			return;
+		}
+		if(empty($parameters)) {
 			return;
 		}
 		$this->domain = $domain;
 		$this->parameters = $parameters;
-
 	}
 
 	/**

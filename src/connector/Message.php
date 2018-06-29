@@ -3,13 +3,13 @@ namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
 use NSWDPC\SilverstripeMailgunSync\Connector\Event as EventConnector;
 use Mailgun\Model\Message\ShowResponse;
-use NSWDPC\SilverstripeMailgunSync\SendJob as MailgunSyncSendJob;
+use NSWDPC\SilverstripeMailgunSync\SendJob;
 use NSWDPC\SilverstripeMailgunSync\MailgunEvent;
 use NSWDPC\SilverstripeMailgunSync\MailgunMimeFile;
 use SilverStripe\Assets\Folder;
 use SilverStripe\Assets\File;
 use SilverStripe\Security\Group;
-use SilverStripe\Dev\SapphireTest;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Exception;
 use DateTime;
 
@@ -130,8 +130,8 @@ class Message extends Base {
 	private function queueAndSend($domain, $parameters, $in) {
 		$this->encodeAttachments($parameters);
 		$start = $this->getSendDateTime($in);
-		$job  = new MailgunSyncSendJob($domain, $parameters);
-		return singleton('QueuedJobService')->queueJob($job, $start->format('Y-m-d H:i:s'));
+		$job  = new SendJob($domain, $parameters);
+		return singleton( QueuedJobService::class )->queueJob($job, $start->format('Y-m-d H:i:s'));
 	}
 
 	/**
@@ -203,13 +203,8 @@ class Message extends Base {
 		 * in which case, we don't want to resubmit
 		 * TODO tests should be able to access this?
 		 */
-		$is_running_test = SapphireTest::is_running_test();
-		if(!$is_running_test) {
-			$use_local_file_contents = false;
-			//\SS_Log::log("SapphireTest is not running", \SS_Log::DEBUG);
-			if(!$allow_redeliver && $this->isDelivered($event)) {
-				throw new Exception("Mailgun has already delivered this message (allow_redeliver is off)");
-			}
+		if(!$allow_redeliver && $this->isDelivered($event)) {
+			throw new Exception("Mailgun has already delivered this message (allow_redeliver is off)");
 		}
 
 		// retrieve MIME content from event
@@ -294,10 +289,6 @@ class Message extends Base {
 	 * @returns mixed array|false
 	 */
 	public function storeTestMessage(MailgunEvent $event)  {
-		$is_running_test = SapphireTest::is_running_test();
-		if(!$is_running_test) {
-			return false;
-		}
 		$message = $this->getMime($event);
 		if($message instanceof ShowResponse) {
 			$message_mime_content = $message->getBodyMime();

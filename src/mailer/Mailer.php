@@ -6,15 +6,16 @@ use SilverStripe\Control\Email\Mailer as SilverstripeMailer;
 use SilverStripe\Control\Email\Email;
 use Mailgun\Mailgun;
 use SilverStripe\Core\Convert;
-use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Config\Configurable;
+use Swift_Message;
+use Swift_MimePart;
+use Swift_Attachment;
+use Swift_Mime_SimpleHeaderSet;
 
 /**
- * This Mailer class is based on Kinglozzer\SilverStripeMailgunner\Mailer and adds
- * 		sendMessage() using v3.0 compatible API methods
- *		prepareAttachments() - avoids writing file attachments to a temp file as {@link Email::attachFileFromString()} already provides the file bytes
- * 		Remove calling MessageBuilder() and BatchMessage(), which are both deprecated as of 3.0
- *		Removal of BatchMessage in general
+ * Mailgun Mailer, called via $email->send();
+ * See: https://docs.silverstripe.org/en/4/developer_guides/email/ for Email documentation.
  *
  * HEADERS
  * Some specific headers can be set on the Email instance and are handled in addCustomParameters()
@@ -38,21 +39,133 @@ use SilverStripe\Core\Config\Config;
  */
 class Mailer implements SilverstripeMailer {
 
+	use Configurable;
+
 	public $alwaysFrom;// when set, override From address, applying From provided to Reply-To header, set original "From" as "Sender" header
 
-	public function send($email) {}
-
 	/**
-	 * {@inheritdoc}
+	 * @var array An array of headers that Swift produces and Mailgun probably doesn't need
 	 */
-	public function sendPlain($to, $from, $subject, $plainContent, $attachments = [], $headers = []) {
-			return $this->sendMessage($to, $from, $subject, $htmlContent = '', $plainContent, $attachments, $headers);
+	private static $blacklist_headers = [
+		'Content-Type',
+		'MIME-Version',
+		'Date',
+		'Message-ID',
+	];
+
+	public function send($email) {
+		/**
+		 * @var Swift_Message
+		 */
+		$message = $email->getSwiftMessage();
+
+		if(!$message instanceof Swift_Message) {
+			throw new InvalidRequestException("There is no message associated with this request");
+		}
+
+		/**
+		 * Work out whether the message is plain or not (HTML+Plain)
+		 * For a sendPlain() message, the following will be set
+		 * $has_plain_part -> true
+		 * $body -> will be set
+		 * $plain_body -> will not be set
+		 * For a send() message, the following will be set
+		 * $has_plain_part -> true
+		 * $body -> will be set
+		 * $plain_body -> will be set
+		 */
+		$plain_body = $email->findPlainPart();
+		$has_plain_part = $email->hasPlainPart();
+		$body = $email->getBody();
+		if($plain_body instanceof Swift_MimePart) {
+			$plain_body = $plain_body->getBody();
+		}
+
+		if($has_plain_part && $body && $plain_body) {
+			// an HTML message will have HTML, plain and have a plain part
+			$is_html_message = true;
+		} else {
+			$plain_body = $body;
+		}
+
+		$to = $from = [];
+
+		// Handle 'From' headers from Swift_Message
+		$message_from = $message->getFrom();
+		if(empty($message_from) || !is_array($message_from)) {
+			// Mailgun requires a from header
+			throw new InvalidRequestException("At least one 'From' entry in a mailbox spec is required");
+		}
+		foreach($message_from as $from_email=>$from_name) {
+			if(!empty($from_name)) {
+				$from[] = $from_name . " <" . $from_email . ">";
+			} else {
+				$from[] = $from_email;
+			}
+		}
+
+		// Handle 'To' headers from Swift_Message
+		$message_to = $message->getTo();
+		if(empty($message_to) || !is_array($message_to)) {
+			// Mailgun requires a from header
+			throw new InvalidRequestException("At least one 'To' entry in a mailbox spec is required");
+		}
+		foreach($message_to as $to_email => $to_name) {
+			if(!empty($to_name)) {
+				$to[] = $to_name . " <" . $to_email . ">";
+			} else {
+				$to[] = $to_email;
+			}
+		}
+
+		$subject = $message->getSubject();
+
+		if($is_html_message) {
+			$result = $this->sendHTML(
+											implode(",", $to),
+											implode(",", $from),
+											$subject,
+											$body,
+											$message->getChildren(),
+											$message->getHeaders(),
+											$plain_body
+										);
+		} else {
+			$result = $this->sendPlain(
+											implode(",", $to),
+											implode(",", $from),
+											$subject,
+											$plain_body,
+											$message->getChildren(),
+											$message->getHeaders()
+										);
+		}
+		return $result != 0;
 	}
 
 	/**
-	 * {@inheritdoc}
+	* @param string $to
+	* @param string $from
+	* @param string $subject
+	* @param string $content the HTML content
+	* @param string $plainContent
+	* @param array $attachments an array of attachments, each value is a {@link Swift_Attachment}
+	* @param mixed $headers {@link Swift_Mime_SimpleHeaderSet}
 	 */
-	public function sendHTML($to, $from, $subject, $htmlContent, $attachments = [], $headers = [], $plainContent = '') {
+	protected function sendPlain($to, $from, $subject, $plainContent, $attachments = [], $headers = null) {
+			return $this->sendMessage($to, $from, $subject, '', $plainContent, $attachments, $headers);
+	}
+
+	/**
+	* @param string $to
+	* @param string $from
+	* @param string $subject
+	* @param string $content the HTML content
+	* @param string $plainContent
+	* @param array $attachments an array of attachments, each value is a {@link Swift_Attachment}
+	* @param mixed $headers {@link Swift_Mime_SimpleHeaderSet}
+	 */
+	protected function sendHTML($to, $from, $subject, $htmlContent, $attachments = [], $headers = null, $plainContent = '') {
 			return $this->sendMessage($to, $from, $subject, $htmlContent, $plainContent, $attachments, $headers);
 	}
 
@@ -70,16 +183,31 @@ class Mailer implements SilverstripeMailer {
 	 * @param string $to
 	 * @param string $from
 	 * @param string $subject
-	 * @param string $content
+	 * @param string $content the HTML content
 	 * @param string $plainContent
-	 * @param array $attachments
-	 * @param array $headers
+	 * @param array $attachments an array of attachments, each value is a {@link Swift_Attachment}
+	 * @param Swift_Mime_SimpleHeaderSet|null $headers an array of attachments, each value is a {@link Swift_Attachment}
 	 */
 	protected function sendMessage($to, $from, $subject, $content, $plainContent, $attachments, $headers) {
 			try {
 
 				$connector = new Connector\Message();
-				$attachments = $this->prepareAttachments($attachments);
+
+				// process attachments
+				if(!empty($attachments)) {
+					$attachments = $this->prepareAttachments($attachments);
+				} else {
+					// eensure empty array
+					$attachments = [];
+				}
+
+				// process headers
+				if($headers instanceof Swift_Mime_SimpleHeaderSet) {
+					$headers = $this->prepareHeaders($headers);
+				} else {
+					// ensure empty array
+					$headers = [];
+				}
 
 				$parameters = [];
 
@@ -150,19 +278,61 @@ class Mailer implements SilverstripeMailer {
 	}
 
 	/**
+	 * @returns array
+	 * Prepare headers for use in Mailgun
+	 */
+	protected function prepareHeaders(Swift_Mime_SimpleHeaderSet $header_set) {
+		$list = $header_set->getAll();
+		$headers = [];
+		foreach($list as $header) {
+			// Swift_Mime_Headers_ParameterizedHeader
+			$headers[ $header->getFieldName() ] = $header->getFieldBody();
+		}
+		$blacklist = $this->config()->get('blacklist_headers');
+		if(is_array($blacklist)) {
+			$blacklist = array_merge(
+				$blacklist,
+				[ 'From', 'To', 'Subject'] // avoid multiple headers and RFC5322 issues with a From: appearing twice, for instance
+			);
+			foreach($blacklist as $header_name) {
+				unset($headers[ $header_name ]);
+			}
+		}
+		return $headers;
+	}
+
+	/**
 	 * @note refer to {@link Mailgun\Api\Message::prepareFile()} which is the preferred way of attaching messages from 3.0 onwards as {@link Mailgun\Connection\RestClient} is deprecated
 	 * This overrides writing to temp files as Silverstripe {@link Email::attachFileFromString()} already provides the attachments in the following way:
 	 *		 'contents' => $data,
 	 *		 'filename' => $filename,
 	 *		 'mimetype' => $mimetype,
+	 * @param array $attachements Each value is a {@link Swift_Attachment}
 	 */
-	protected function prepareAttachments(array $attachments) {
+	protected function prepareAttachments(array &$attachments) {
+		foreach($attachments as $attachment) {
+			if(!$attachment instanceof Swift_Attachment) {
+				continue;
+			}
+			$mailgun_attachments[] = [
+				'fileContent' => $attachment->getBody(),
+				'filename' => $attachment->getFilename(),
+				'mimetype' => $attachment->getContentType()
+			];
+		}
+		$attachments = null;
+		unset($attachments);
+		return $mailgun_attachments;
+
+		/*
 		foreach ($attachments as $k => $attachment) {
+
 			// ensure the content of the attachment is in the key that Mailgun\Api\Message::prepareFile() can handle
 			$attachments[$k]['fileContent'] = $attachment['contents'];
 			unset($attachments[$k]['contents']);
 		}
 		return $attachments;
+		*/
 	}
 
 	/*
@@ -196,9 +366,8 @@ class Mailer implements SilverstripeMailer {
 			$parameters['o:testmode'] = 'yes';//Adds X-Mailgun-Drop-Message header
 		}
 
-		$is_running_test = SapphireTest::is_running_test();
 		$workaround_testmode = Config::inst()->get('NSWDPC\SilverstripeMailgunSync\Connector\Base', 'workaround_testmode');
-		if($is_running_test && $workaround_testmode) {
+		if($workaround_testmode) {
 			//\SS_Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", \SS_Log::DEBUG);
 			unset($parameters['o:testmode']);
 		}
