@@ -9,6 +9,7 @@ use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
+use SilverStripe\ORM\FieldType\DBVarchar;
 
 /**
  * @author James Ellis
@@ -64,6 +65,17 @@ class MailgunSubmission extends DataObject implements PermissionProvider {
 	];
 
 	/**
+	 * Defines a default list of filters for the search context
+	 * @var array
+	 */
+	private static $searchable_fields = [
+		'Created',
+		'SubmissionClassName',
+		'MessageId',
+		'Domain',
+	];
+
+	/**
 	 * @return array
 	 */
 	public function providePermissions() {
@@ -84,7 +96,7 @@ class MailgunSubmission extends DataObject implements PermissionProvider {
 	}
 
 	public function SubmissionDetails() {
-		return $this->SubmissionClassName . " #" . $this->SubmissionID;
+		return DBVarchar::create_field('Varchar', $this->SubmissionClassName . " #" . $this->SubmissionID);
 	}
 
 	/**

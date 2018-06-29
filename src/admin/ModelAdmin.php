@@ -6,17 +6,33 @@ use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
+use SilverStripe\Forms\GridField\GridField;
+use SilverStripe\Forms\GridField\GridFieldAddNewButton;
+use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
+use SilverStripe\Forms\GridField\GridFieldDataColumns;
+use SilverStripe\Forms\GridField\GridFieldPrintButton;
+use SilverStripe\Forms\GridField\GridFieldDeleteAction;
+use SilverStripe\Forms\GridField\GridFieldDetailForm;
 
 /**
  * Admin for MailgunSync
  */
-class ModelAdmin extends SS_ModelAdmin {
+class MailgunModelAdmin extends SS_ModelAdmin {
+
 	private static $url_segment = 'mailgunsync';
 	private static $menu_title = 'Mailgun';
-	private static $managed_models = array(
-		'NSWDPC\SilverstripeMailgunSync\MailgunSubmission',
-		'NSWDPC\SilverstripeMailgunSync\MailgunEvent',
-	);
+
+	/**
+	 * @var array
+	 */
+	private static $allowed_actions = [
+			'EditForm'
+	];
+
+	private static $managed_models = [
+		MailgunSubmission::class,
+		MailgunEvent::class,
+	];
 
 	public function init() {
 		parent::init();
@@ -37,17 +53,17 @@ class ModelAdmin extends SS_ModelAdmin {
 		$grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
 		$config = $grid->getConfig();
 
-		$config->removeComponentsByType('GridFieldAddNewButton');
+		$config->removeComponentsByType(GridFieldAddNewButton::class);
 		//$config->removeComponentsByType('GridFieldEditButton');
-		$config->removeComponentsByType('GridFieldPrintButton');
-		$config->removeComponentsByType('GridFieldDeleteAction');
+		$config->removeComponentsByType(GridFieldPrintButton::class);
+		$config->removeComponentsByType(GridFieldDeleteAction::class);
 
 		$config = $form->Fields()
 								->fieldByName($this->sanitiseClassName($this->modelClass))
 								->getConfig();
 
-		$field = $config->getComponentByType('GridFieldDetailForm');
-		$field->setItemRequestClass('NSWDPC\SilverstripeMailgunSync\ModelAdmin_ItemRequest');
+		$field = $config->getComponentByType(GridFieldDetailForm::class);
+		$field->setItemRequestClass( ModelAdmin_ItemRequest::class );
 		return $form;
 	}
 

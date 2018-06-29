@@ -15,6 +15,7 @@ use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\ORM\ValidationException;
+use SilverStripe\ORM\FieldType\DBVarchar;
 use DateTime;
 use DateTimeZone;
 use Exception;
@@ -105,6 +106,21 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 		'LocalDateTime' => 'Date (SYD)',
 	);
 
+	/**
+	 * Defines a default list of filters for the search context
+	 * @var array
+	 */
+	private static $searchable_fields = [
+		'Resubmitted',
+		'Reason',
+		'Severity',
+		'EventType',
+		'DeliveryStatusCode',
+		'Recipient',
+		'MessageId',
+		'FailedThenDelivered'
+	];
+
 	private static $indexes = array(
 		'EventType' => true,
 		'EventId' => true,
@@ -170,7 +186,7 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 	 * Allow for easy visual matching between this and the Mailgin App Logs screen
 	 */
 	public function getTitle() {
-		return "#{$this->ID} - {$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}";
+		return DBVarchar::create_field('Varchar', "#{$this->ID} - {$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}");
 	}
 
 	/**
