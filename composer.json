@@ -1,7 +1,7 @@
 {
 	"name": "nswdpc/silverstripe-mailgun-sync",
 	"description": "Send messages via Mailgun, optionally synchronise events and resubmit failed messages to Mailgun.",
-	"type": "silverstripe-module",
+	"type": "silverstripe-vendormodule",
 	"homepage" : "https://github.com/nswdpc/silverstripe-mailgun-sync",
 	"keywords": ["silverstripe", "mailgun","mime","email","mail"],
 	"license": "BSD-3-Clause",
