@@ -22,7 +22,9 @@ class LongText extends \Text {
 		$schema = \DB::get_schema();
 		if($schema && $schema instanceof \MySQLSchemaManager) {
 			// modify requirement to longtest for MySQL / MariaDB
-			$values = "longtext character set utf8 collate utf8_general_ci";
+			$charset = \Config::inst()->get('MySQLDatabase', 'charset');
+			$collation = \Config::inst()->get('MySQLDatabase', 'collation');
+			$values = "longtext character set {$charset} collate {$collation}";
 			\DB::require_field($this->tableName, $this->name, $values, $this->default);
 		} else {
 			// different manager e.g SQLite3 TEXT = 2^31 - 1 length
