@@ -1,0 +1,20 @@
+---
+Name: mailgunsync_test
+---
+# Configuration for the tests
+NSWDPC\SilverstripeMailgunSync\MailgunSyncTest:
+  to_address : ''
+  to_name : ''
+  from_address : ''
+  from_name : ''
+  test_body : '<h1>Header provider strategic</h1><p>consulting support conversation advertisements policy promotional request.</p><p>Option purpose programming</p>'
+  # setting to a low number can cause accepted -> delivered events to not be picked up
+  sleep_time : 30
+  test_attachment : ''
+SilverStripe\Assets\File:
+  extensions:
+    - TestMailgunFormSubmissionAttachment
+TestMailgunFormSubmission:
+  extensions:
+    - 'NSWDPC\SilverstripeMailgunSync\MailgunSyncEmailExtension'
+    - 'NSWDPC\SilverstripeMailgunSync\MailgunSubmissionExtension'

@@ -1,0 +1,4 @@
+SilverStripe\Security\Group:
+  admin:
+    Code: 'administrators'
+    Name: 'Administrators'
