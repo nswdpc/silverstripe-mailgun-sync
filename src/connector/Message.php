@@ -245,19 +245,13 @@ class Message extends Base {
 
 		$params = [];
 		$params['o:tag'] = [ MailgunEvent::TAG_RESUBMIT ];//tag - can poll for resubmitted events then
-		if($is_running_test) {
-			// Specific handling during tests to ensure testmode is correctly set, as required
-			if($this->workaroundTestMode()) {
-				// ensure testmode is off when set, see method documentation for more
-				// only applicable when running tests
-				// this works around an issue where events that will fail are marked as "test delivered" in Mailgun
-				//\SS_Log::log("Workaround testmode is ON - turning testmode off",  \SS_Log::DEBUG);
-				unset($params['o:testmode']);
-			} else {
-				// resubmit() during tests are done with testmode = 'yes'
-				//\SS_Log::log("Workaround testmode is OFF - turning testmode on while running test",  \SS_Log::DEBUG);
-				$params['o:testmode'] = 'yes';// per http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
-			}
+		// Specific handling during tests to ensure testmode is correctly set, as required
+		if($this->workaroundTestMode()) {
+			// ensure testmode is off when set, see method documentation for more
+			// only applicable when running tests
+			// this works around an issue where events that will fail are marked as "test delivered" in Mailgun
+			//\SS_Log::log("Workaround testmode is ON - turning testmode off",  \SS_Log::DEBUG);
+			unset($params['o:testmode']);
 		}
 		// apply testmode if Config is set - this will not override is_running_test application of testmode above
 		$this->applyTestMode($params);
@@ -343,12 +337,12 @@ class Message extends Base {
 		$file_id = $file->write();
 		if(empty($file_id)) {
 			// could not write the file
-			throw new Exception("Failed to write file {$file->Name} into folder {$folder_path}");
+			throw new Exception("Failed to write file {$file->Name} into folder #{$folder->ID}");
 		}
 
-		$result = file_put_contents($file->getFullPath(), $contents);
+		$result = $file->setFromString( $contents, $file->Name );
 		if($result === false) {
-			throw new Exception("Failed to put contents into {$folder_path}/{$file->Name}");
+			throw new Exception("Failed to put contents into folder #{$folder->ID}/{$file->Name}");
 		}
 
 		$event->MimeMessageID = $file_id;

@@ -13,7 +13,7 @@ class Bounce extends Base {
 	 * Remove an address from the bounce suppression list
 	 */
 	public function remove($email_address) {
-		$valid = Email::validEmailAddress($email_address);
+		$valid = Email::is_valid_address($email_address);
 		if(!$valid) {
 			throw new Exception("{$email_address} is not a valid email address");
 		}
@@ -28,7 +28,7 @@ class Bounce extends Base {
 	 */
 	public function add($email_address, $code = 550, $error = "", $created_at = "") {
 
-		$valid = Email::validEmailAddress($email_address);
+		$valid = Email::is_valid_address($email_address);
 		if(!$valid) {
 			throw new Exception("{$email_address} is not a valid email address");
 		}

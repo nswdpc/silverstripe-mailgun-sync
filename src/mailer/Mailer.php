@@ -53,6 +53,9 @@ class Mailer implements SilverstripeMailer {
 		'Message-ID',
 	];
 
+	/**
+	 * @returns string the mailgun message id
+	 */
 	public function send($email) {
 		/**
 		 * @var Swift_Message
@@ -121,7 +124,7 @@ class Mailer implements SilverstripeMailer {
 		$subject = $message->getSubject();
 
 		if($is_html_message) {
-			$result = $this->sendHTML(
+			$message_id = $this->sendHTML(
 											implode(",", $to),
 											implode(",", $from),
 											$subject,
@@ -131,7 +134,7 @@ class Mailer implements SilverstripeMailer {
 											$plain_body
 										);
 		} else {
-			$result = $this->sendPlain(
+			$message_id = $this->sendPlain(
 											implode(",", $to),
 											implode(",", $from),
 											$subject,
@@ -140,7 +143,7 @@ class Mailer implements SilverstripeMailer {
 											$message->getHeaders()
 										);
 		}
-		return $result != 0;
+		return $message_id;
 	}
 
 	/**
@@ -265,16 +268,14 @@ class Mailer implements SilverstripeMailer {
 					// get a message.id from the response
 					$message_id = $this->saveResponse($response);
 				}
-				// provide a message-id value that can be picked up from the result of email->send()
-				$headers['X-Mailgun-MessageID'] = $message_id;
 
 			} catch (Exception $e) {
 				\SS_Log::log('Mailgun-Sync / Mailgun error: ' . $e->getMessage(), \SS_Log::ERR);
 				return false;
 			}
 
-			// Return format matching {@link Mailer::sendPreparedMessage()}
-			return [$to, $subject, $content, $headers, ''];
+			// return a message_id - note that this may not be set in the case of sending via a queued job
+			return $message_id;
 	}
 
 	/**
@@ -309,7 +310,8 @@ class Mailer implements SilverstripeMailer {
 	 *		 'mimetype' => $mimetype,
 	 * @param array $attachements Each value is a {@link Swift_Attachment}
 	 */
-	protected function prepareAttachments(array &$attachments) {
+	protected function prepareAttachments(array $attachments) {
+		$mailgun_attachments = [];
 		foreach($attachments as $attachment) {
 			if(!$attachment instanceof Swift_Attachment) {
 				continue;
@@ -362,7 +364,7 @@ class Mailer implements SilverstripeMailer {
 		$is_test_mode = isset($headers['X-MSE-TEST']) ? $headers['X-MSE-TEST'] : false;
 		unset($headers['X-MSE-TEST']);// no longer required
 		if($is_test_mode) {
-			\SS_Log::log("addCustomParameters: is test mode", \SS_Log::NOTICE);
+			//\SS_Log::log("addCustomParameters: is test mode", \SS_Log::NOTICE);
 			$parameters['o:testmode'] = 'yes';//Adds X-Mailgun-Drop-Message header
 		}
 

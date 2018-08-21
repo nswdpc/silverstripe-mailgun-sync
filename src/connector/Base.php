@@ -87,6 +87,7 @@ abstract class Base {
 	/**
 	 * Returns whether testmode workaround is on.
 	 * When true this worksaround a quirk in Mailgun where sending messages with testmode on to recipients in the supression list are 'delivered' (should be 'failed')
+	 * This setting is only applicable when running tests. When used outside of tests, the "testmode" parameter will be removed, even if it was set with applyTestMode()
 	 */
 	final protected function workaroundTestMode() {
 		return $this->config()->get('workaround_testmode');

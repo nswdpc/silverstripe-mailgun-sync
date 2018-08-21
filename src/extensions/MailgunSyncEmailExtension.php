@@ -3,7 +3,9 @@ namespace NSWDPC\SilverstripeMailgunSync;
 use NSWDPC\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Control\Email\Email;
+use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Core\Extension;
+use SilverStripe\Core\Injector\Injector;
 
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
@@ -37,12 +39,11 @@ class MailgunSyncEmailExtension extends Extension {
 			return;
 		}
 
-		$mailer = $email::mailer();
-		if (($mailer instanceof MailgunSyncMailer)) {
+		if( Injector::inst()->get(Mailer::class) instanceof MailgunSyncMailer ) {
 			// set headers on Email, rather than via methods on the Mailer
-			$email->addCustomHeader( 'X-MSE-SID', $submission_id ); // the submission, saves message-id on successful send
-			$email->addCustomHeader( 'X-MSE-TEST', (int)$test_mode );// if in test mode (true/false)
-			$email->addCustomHeader( 'X-MSE-O:TAGS', json_encode($tags) );//set any Mailgun tags (o:tag property). Only array values are sent.
+			$email->getSwiftMessage()->getHeaders()->addTextHeader( 'X-MSE-SID', $submission_id ); // the submission, saves message-id on successful send
+			$email->getSwiftMessage()->getHeaders()->addTextHeader( 'X-MSE-TEST', (int)$test_mode );// if in test mode (true/false)
+			$email->getSwiftMessage()->getHeaders()->addTextHeader( 'X-MSE-O:TAGS', json_encode($tags) );//set any Mailgun tags (o:tag property). Only array values are sent.
 		}
 
 		return $submission;

@@ -547,7 +547,7 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 		$file = $this->MimeMessage();
 		// does the file exist, of the correct type and does the current member have permissions?
 		if(!empty($file->ID) && ($file instanceof MailgunMimeFile) && $file->CanView()) {
-			$content = file_get_contents( $file->getFullPath() );
+			$content = $file->getString();
 		}
 		return $content;
 	}

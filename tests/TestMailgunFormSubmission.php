@@ -11,15 +11,22 @@ use SilverStripe\Assets\File;
 use SilverStripe\Assets\Folder;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Control\Email\Email;
+use SilverStripe\Control\Director;
 use Exception;
 
 /*
  * @author James <james.ellis@dpc.nsw.gov.au>
  * @note this is a test submission DataObject used to:
   		1. test sending emails via Mailgun
-			2. test resubmissions of {@link \MailgunEvent} records
+			2. test resubmissions of {@link MailgunEvent} records
  */
 class TestMailgunFormSubmission extends DataObject implements TestOnly {
+
+	/**
+	 * Defines the database table name
+	 * @var string
+	 */
+	private static $table_name = 'TestMailgunFormSubmission';
 
 	private static $default_sort = "Created DESC";
 
@@ -44,7 +51,7 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 	);
 
 	private static $many_many = array(
-		'Attachments' => 'File',
+		'Attachments' => File::class,
 	);
 
 	public function getTitle() {
@@ -92,7 +99,7 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 			throw new Exception("This record must exist before attachments can be linked - write() it first");
 		}
 		// save contents to a file
-		$secure_folder_name = Config::inst()->get('MailgunEvent', 'secure_folder_name');
+		$secure_folder_name = Config::inst()->get( MailgunEvent::class, 'secure_folder_name');
 		if(!$secure_folder_name) {
 			throw new Exception("No secure_folder_name configured on class MailgunEvent");
 		}
@@ -110,10 +117,9 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 			throw new Exception("Failed to write File {$file->Name} into folder {$folder_path}");
 		}
 
-		$contents = file_get_contents($absolute_file_path);
-		$result = file_put_contents($file->getFullPath(), $contents);
+		$result = $file->setFromString( file_get_contents($absolute_file_path), $file->Name );
 		if($result === false) {
-			throw new Exception("Failed to put contents of {$absolute_file_path} into {$file->getFullPath()}");
+			throw new Exception("Failed to put contents of {$absolute_file_path} into file #{$file->ID}");
 		}
 
 		$this->Attachments()->add( $file );
@@ -146,9 +152,8 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 		// attach files
 		$attachments = $this->Attachments();
 		foreach($attachments as $attachment) {
-			$attachment_file_path = $attachment->getFullPath();
-			SS_Log::log("SubmitMessage: attaching file {$attachment_file_path}", SS_Log::DEBUG);
-			$email->attachFile($attachment_file_path);
+			SS_Log::log("SubmitMessage: attaching file {$attachment->Name}", SS_Log::DEBUG);
+			$email->addAttachmentFromData( $attachment->getString(), $attachment->Name );
 		}
 
 		// assign this record to a submission
@@ -158,11 +163,13 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 		$submission = $this->extend('mailgunSyncEmail', $email, $this, $to, $tags, $test_mode);
 
 		// send the email
-		$send = $email->send();
-		if($send) {
-			SS_Log::log("SubmitMessage: sent to: {$to} test_mode={$test_mode}", SS_Log::DEBUG);
+		$message_id = $email->send();
+		if($message_id) {
+			SS_Log::log("SubmitMessage: sent to: {$to} test_mode={$test_mode} message_id={$message_id}", SS_Log::DEBUG);
+			$this->MessageId = $message_id;
 			$this->write();
 		}
+
 		return $submission;
 	}
 
