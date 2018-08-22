@@ -4,6 +4,8 @@ This module provides functionality to both send emails via the Mailgun API and t
 
 In Paid mode, Mailgun stores messages for 3 days and events for 30 days. After this time, messages and events respectively will most likely no longer be accessible.
 
+> This is the Silverstripe 4 version, and is under development
+
 ## Installing
 The module is not (yet) in Packagist, add:
 ```
@@ -14,9 +16,9 @@ The module is not (yet) in Packagist, add:
   }
 ]
 ```
-to your composer.json, then run (to install vN.n+):
+to your composer.json, then install this dev branch
 ```
-$ composer require nswdpc/silverstripe-mailgun-sync:~N.n
+$ composer require nswdpc/silverstripe-mailgun-sync:dev-feature-ss4
 ```
 
 ### Module Dependencies:
@@ -109,7 +111,7 @@ In addition, the MailgunSync Mailer allows setting of Mailgun's testmode on the 
 ## MailgunEvent configuration
 The default configuration is as-follows:
 ```
-MailgunEvent:
+NSWDPC\SilverstripeMailgunSync\MailgunEvent:
   # when sync_local_mime is true, messages are downloaded here
   secure_folder_name : 'SecureUploads'
   # maximum number of failures before an event cannot be auto-resubmitted
@@ -119,7 +121,7 @@ Both values can be set in your project config.
 
 ## Extensions
 The module provides the following extensions
-+ UserDefinedFormSubmissionExtension - provide handling for linking a MailgunSubmission record to a userforms module SubmittedForm record
++ UserDefinedFormSubmissionExtension - provide handling for linking a MailgunSubmission record to the [silverstripe-userforms](https://github.com/silverstripe/silverstripe-userforms) module ```SubmittedForm``` record
 + MailgunSubmissionExtension - provides Mailgun tab for linked records (optional)
 + MailgunSyncEmailExtension - provides an extension method to link a MailgunSubmission record with a source DataObject
 
@@ -177,13 +179,11 @@ You can manually resubmit both failed and delivered events.
 Since July 2017 you can also resend messages from the Mailgun website Admin Logs screen, via the cog icon.
 
 ## Tests
-The nswdpc/silverstripe-mailgun-sync-test module provides tests and a TestMailgunFormSubmission DataObject.
+See ./tests
 
-When testing this module, you probably want to avoid emails going out to the internet. Ensure you use a Mailgun sandbox domain with approved recipients to avoid this.
+When testing this module, you probably want to avoid emails going out to the internet.
 
-The testing module applies testmode by default with the exception of failure testing. The config ```api_testmode: true``` will override this and may cause tests for failed events to not pass.
-
-> If you are running tests and do not use a sandbox domain, it's likely that emails from other processes in your website will be delivered to their recipients.
+Ensure you use a Mailgun sandbox domain with approved recipients to avoid this.
 
 ## Roadmap
 + Webhooks - Mailgun provides webhooks to provide event updates via HTTP POST to a controller on a website.
