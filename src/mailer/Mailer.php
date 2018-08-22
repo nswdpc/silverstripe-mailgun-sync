@@ -261,7 +261,7 @@ class Mailer implements SilverstripeMailer {
 					$parameters['attachment'] = $attachments;
 				}
 
-				//\SS_Log::log('Sending...', \SS_Log::DEBUG);
+				//Log::log('Sending...', 'DEBUG');
 				$response = $connector->send($parameters, $in);
 				$message_id = "";
 				if($response && $response instanceof SendResponse) {
@@ -270,7 +270,7 @@ class Mailer implements SilverstripeMailer {
 				}
 
 			} catch (Exception $e) {
-				\SS_Log::log('Mailgun-Sync / Mailgun error: ' . $e->getMessage(), \SS_Log::ERR);
+				Log::log('Mailgun-Sync / Mailgun error: ' . $e->getMessage(), 'ERROR');
 				return false;
 			}
 
@@ -364,13 +364,13 @@ class Mailer implements SilverstripeMailer {
 		$is_test_mode = isset($headers['X-MSE-TEST']) ? $headers['X-MSE-TEST'] : false;
 		unset($headers['X-MSE-TEST']);// no longer required
 		if($is_test_mode) {
-			//\SS_Log::log("addCustomParameters: is test mode", \SS_Log::NOTICE);
+			//Log::log("addCustomParameters: is test mode", 'NOTICE');
 			$parameters['o:testmode'] = 'yes';//Adds X-Mailgun-Drop-Message header
 		}
 
 		$workaround_testmode = Config::inst()->get('NSWDPC\SilverstripeMailgunSync\Connector\Base', 'workaround_testmode');
 		if($workaround_testmode) {
-			//\SS_Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", \SS_Log::DEBUG);
+			//Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", 'DEBUG');
 			unset($parameters['o:testmode']);
 		}
 

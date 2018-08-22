@@ -90,16 +90,16 @@ class DeliveryCheckJob extends AbstractQueuedJob {
 				$total = count($events);
 				foreach($events as $event) {
 					try {
-						//\SS_Log::log("DeliveryCheckJob check isDelivered for event #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
+						//Log::log("DeliveryCheckJob check isDelivered for event #{$event->ID}/{$event->EventType}", 'DEBUG');
 						// Check for delivered events, cleanup
 						$connector->isDelivered($event, true);
 						$count++;
 					} catch (Exception $e) {
 						// don't allow a single isDelivered check to cause later ones to fail
-						\SS_Log::log("DeliveryCheckJob hit an issue on event #{$event->ID} - " . $e->getMessage(), \SS_Log::NOTICE);
+						Log::log("DeliveryCheckJob hit an issue on event #{$event->ID} - " . $e->getMessage(), 'NOTICE');
 					}
 				}
-				//\SS_Log::log("DeliveryCheckJob cleaned up {$count}/{$total} events", \SS_Log::DEBUG);
+				//Log::log("DeliveryCheckJob cleaned up {$count}/{$total} events", 'DEBUG');
 			}
 
 			$this->isComplete = true;
@@ -107,7 +107,7 @@ class DeliveryCheckJob extends AbstractQueuedJob {
 
 		} catch (Exception $e) {
 			// failed somewhere along the line
-			\SS_Log::log("DeliveryCheckJob exception: " .  $e->getMessage(), \SS_Log::NOTICE);
+			Log::log("DeliveryCheckJob exception: " .  $e->getMessage(), 'NOTICE');
 		}
 
 		$this->isComplete = true;
@@ -123,7 +123,7 @@ class DeliveryCheckJob extends AbstractQueuedJob {
 		$service = singleton(QueuedJobService::class);
 		$descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
 		if(!$descriptor_id) {
-			\SS_Log::log("Failed to queue new DeliveryCheckJob!", \SS_Log::WARN);
+			Log::log("Failed to queue new DeliveryCheckJob!", 'WARNING');
 		}
 	}
 

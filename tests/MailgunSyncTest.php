@@ -1,6 +1,7 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync;
 use NSWDPC\SilverstripeMailgunSync\Connector;
+use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
 use SilverStripe\Dev\SapphireTest;
@@ -51,7 +52,7 @@ class MailgunSyncTest extends SapphireTest {
     // never send via a job
     Config::inst()->update(Connector\Base::class, 'send_via_job', 'no');
     // testing sleep time between event polling checks, increase this if Mailgun is slow
-    Config::inst()->update( MailgunSyncTest::class, 'sleep_time', 30);
+    // Config::inst()->update( MailgunSyncTest::class, 'sleep_time', 30);
 
   }
 
@@ -75,12 +76,12 @@ class MailgunSyncTest extends SapphireTest {
    */
   private function sleepAfterDelivery() {
     $time = Config::inst()->get(__CLASS__, 'sleep_time');
-    TestLog::log("Sleeping for {$time}s", TestLog::DEBUG);
+    Log::log("Sleeping for {$time}s", 'DEBUG');
     if(!$time || $time < 0) {
       $time = 10;
     }
     sleep($time);
-    TestLog::log("Done sleeping", TestLog::DEBUG);
+    Log::log("Done sleeping", 'DEBUG');
   }
 
   /**
@@ -118,7 +119,7 @@ class MailgunSyncTest extends SapphireTest {
       $extra_params['tags'] = $tags;// filter on these tags as well (can be an expression e.g 'fixed OR broken')
     }
 
-    TestLog::log("Polling for '{$event_filter}' event of message {$message_id} to {$event->Recipient}. Tags=" .  (isset($extra_params['tags']) ? $extra_params['tags'] : ""), TestLog::DEBUG);
+    Log::log("Polling for '{$event_filter}' event of message {$message_id} to {$event->Recipient}. Tags=" .  (isset($extra_params['tags']) ? $extra_params['tags'] : ""), 'DEBUG');
 
     // this should return 2 events - the delivered and accepted
     $events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
@@ -141,7 +142,7 @@ class MailgunSyncTest extends SapphireTest {
 
     $this->assertEquals(2, $matched_events);
 
-    TestLog::log("Both events found", TestLog::DEBUG);
+    Log::log("Both events found", 'DEBUG');
 
     return true;
 
@@ -199,7 +200,7 @@ class MailgunSyncTest extends SapphireTest {
     $begin = Connector\Base::DateTime($timeframe);
     $resubmit = false;//don't resubmit
 
-    TestLog::log("TestMailgunFormSubmission has MessageId: {$record->MessageId}", TestLog::DEBUG);
+    Log::log("TestMailgunFormSubmission has MessageId: {$record->MessageId}", 'DEBUG');
 
     // Poll for events based on the message id returned and the recipient of the message
     // FROM THE DOCS:
@@ -210,7 +211,7 @@ class MailgunSyncTest extends SapphireTest {
       'recipient' => $to_address,// must be an email address
     ];
 
-    TestLog::log("submitAndCheckEvent - Begin: {$begin}, Filter: {$event_filter},  Params:" . json_encode($extra_params), TestLog::DEBUG);
+    Log::log("submitAndCheckEvent - Begin: {$begin}, Filter: {$event_filter},  Params:" . json_encode($extra_params), 'DEBUG');
 
     $events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 
@@ -218,14 +219,14 @@ class MailgunSyncTest extends SapphireTest {
     if(empty(!$events)) {
       foreach($events as $event) {
         if($event->SubmissionID == $submission->ID) {
-          TestLog::log("Matched Event #{$event->ID}", TestLog::DEBUG);
+          Log::log("Matched Event #{$event->ID}", 'DEBUG');
           $filtered_event = $event;
           break;
         }
       }
     }
 
-    $this->assertNotNull($filtered_event);
+    $this->assertNotNull($filtered_event, "Filtered event is null. Filter={$event_filter}");
 
     // this is used for other tests
     return $filtered_event;
@@ -310,6 +311,8 @@ class MailgunSyncTest extends SapphireTest {
     $this->assertNotEmpty($from_address);
     $subject = "test_api_delivery";
 
+    Log::log("Sending to {$to_address}", 'DEBUG');
+
     $parameters = [
       'o:testmode' => 'yes',
       'o:tag' => array('api_test'),
@@ -327,6 +330,13 @@ class MailgunSyncTest extends SapphireTest {
     $response = $connector->send($parameters);
 
     $this->assertTrue( $response && ($response instanceof SendResponse));
+
+    $message_id = $response->getId();
+		$message_id = MessageConnector::cleanMessageId($message_id);
+
+    $this->assertNotEmpty($message_id, "Response has no message id");
+
+    Log::log("API DELIVERY OK {$message_id}", 'DEBUG');
 
   }
 
@@ -463,14 +473,14 @@ class MailgunSyncTest extends SapphireTest {
     $code = 550;
     $error = "test_failure";
     try {
-      TestLog::log("Attempting bounce removal.. {$email_address} ..", TestLog::DEBUG);
+      Log::log("Attempting bounce removal.. {$email_address} ..", 'DEBUG');
       // first remove the email address so that it can be added
       // if the email address is not in the bounce list, Mailgun will return a 404 along with a \Mailgun\Exception\HttpClientException
       $remove_response = $connector->remove($email_address);
     } catch (Exception $e) {
     }
 
-    TestLog::log("Attempting bounce create.. {$email_address} ..", TestLog::DEBUG);
+    Log::log("Attempting bounce create.. {$email_address} ..", 'DEBUG');
     $add_response = $connector->add($email_address, $code, $error);
     $this->assertTrue( $add_response instanceof \Mailgun\Model\Suppression\Bounce\CreateResponse );
 
@@ -478,7 +488,7 @@ class MailgunSyncTest extends SapphireTest {
     $attachments = [
       $this->getTestAttachment()
     ];
-    TestLog::log("Attempting delivery.. {$email_address} ..", TestLog::DEBUG);
+    Log::log("Attempting delivery.. {$email_address} ..", 'DEBUG');
     // testThatAMessageIsDelivered will assert that delivered event is NULL
     $failed_event = $this->submitCheckFailed("test_message_failure_resubmit", $attachments);
 
@@ -530,7 +540,7 @@ class MailgunSyncTest extends SapphireTest {
     // Set that we can download MIME files locally
     Config::inst()->update(Connector\Base::class, 'sync_local_mime', true);
     // Up the sleep time between submit and event polling
-    Config::inst()->update( MailgunSyncTest::class, 'sleep_time', 30);
+    Config::inst()->update( MailgunSyncTest::class, 'sleep_time', 10);
     // turn testmode off for the failure checking part
     Config::inst()->update(Connector\Base::class, 'workaround_testmode', true);
 
@@ -544,40 +554,44 @@ class MailgunSyncTest extends SapphireTest {
     $code = 550;
     $error = "test_failed_events_job";
     try {
-      TestLog::log("Attempting bounce removal.. {$email_address} ..", TestLog::DEBUG);
+      Log::log("Attempting bounce removal.. {$email_address} ..", 'DEBUG');
       // first remove the email address so that it can be added
       // if the email address is not in the bounce list, Mailgun will return a 404 along with a \Mailgun\Exception\HttpClientException
       $remove_response = $bounce_connector->remove($email_address);
     } catch (Exception $e) {
     }
 
-    TestLog::log("Attempting bounce create.. {$email_address} ..", TestLog::DEBUG);
+    Log::log("Attempting bounce create.. {$email_address} ..", 'DEBUG');
     $add_response = $bounce_connector->add($email_address, $code, $error);
 
-    $this->assertTrue( $add_response instanceof \Mailgun\Model\Suppression\Bounce\CreateResponse );
+    $this->assertTrue( ($add_response instanceof \Mailgun\Model\Suppression\Bounce\CreateResponse) && $add_response->getAddress() ==  $email_address, "Bounce not created or address is not {$email_address}");
 
     // try to deliver a message...
     $attachments = [
       $this->getTestAttachment()
     ];
-    TestLog::log("Attempting delivery.. {$email_address} ..", TestLog::DEBUG);
+    Log::log("Attempting delivery.. {$email_address} ..", 'DEBUG');
     // this should return a single failed event, DOES NOT auto resubmit on failure
     $failed_event = $this->submitCheckFailed("test_message_failed_event_job", $attachments);
     // at this point one FAILED event exists remotely
 
     // our failed event should be failed - first instance
-    $this->assertTrue( ($failed_event instanceof MailgunEvent) && $failed_event->EventType == MailgunEvent::FAILED );
+    $this->assertTrue( ($failed_event instanceof MailgunEvent) && $failed_event->EventType == MailgunEvent::FAILED, "Event does not exist or is not FAILED" );
 
-    TestLog::log("testFailedEventProcessing failed event {$failed_event->ID}", TestLog::DEBUG);
+    Log::log("testFailedDeliveredEventProcessing failed event #{$failed_event->ID}", 'DEBUG');
 
     // 1st resubmission of the original failed event
     $failed_event->AutomatedResubmit();
     // 2 failed events should exist remotely
 
+    Log::log("testFailedDeliveredEventProcessing post AutomatedResubmit()", 'DEBUG');
+
     $this->sleepAfterDelivery();
 
     // turn workaround off for testmode as address is about to be removed
     Config::inst()->update(Connector\Base::class, 'workaround_testmode', false);
+    // ensure testmode is back on
+    Config::inst()->update(Connector\Base::class, 'api_testmode', true);
 
     // now remove the address from the block list
     $remove_response = $bounce_connector->remove($email_address);
@@ -587,18 +601,18 @@ class MailgunSyncTest extends SapphireTest {
     $event_connector = new Connector\Event();
     $timeframe = 'now -5 minutes';
     $begin = Connector\Base::DateTime($timeframe);
-    $resubmit = true;// this will resubmit any failed events
+    $resubmit = true;// this will resubmit any failed events (which should deliver as the bounce supression record was removed)
     $event_filter = MailgunEvent::FAILED;
     $extra_params = [
       'message-id' => $failed_event->MessageId,
       'recipient' => $failed_event->Recipient,// must be an email address
     ];
-    TestLog::log("testFailedEventProcessing polling - Begin: {$begin}, Filter: {$event_filter},  Params:" . json_encode($extra_params), TestLog::DEBUG);
+    Log::log("testFailedEventProcessing polling - Begin: {$begin}, Filter: {$event_filter},  Params:" . json_encode($extra_params), 'DEBUG');
 
     $events = $event_connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 
     // We should now have 2 local failed events to match the remote ones -  the original failure and the resubmit
-    $this->assertEquals(count($events), 2);
+    $this->assertEquals(count($events), 2, "There are no events with filter {$event_filter}");
 
     // resubmit should have failed - should now have a downloaded MIME file attached to the new Event as 2 failures for submission
     $resubmitted_event = NULL;
@@ -612,16 +626,16 @@ class MailgunSyncTest extends SapphireTest {
     // must be another failed MailgunEvent
     $this->assertTrue(!empty($resubmitted_event->ID) && ($resubmitted_event instanceof MailgunEvent));
 
-    TestLog::log("testFailedEventProcessing resubmitted event {$resubmitted_event->ID}", TestLog::DEBUG);
+    Log::log("testFailedEventProcessing resubmitted event {$resubmitted_event->ID}", 'DEBUG');
 
     // As we've gone over the failure limit, a local file would have downloaded, check it
     // the event should have a MIME attachment with contents matching the original email
     $content = $resubmitted_event->MimeMessageContent();
 
     // must have some content
-    $this->assertNotEmpty($content);
+    $this->assertNotEmpty($content, "MimeMessageContent is empty");
 
-    // sleep to pick up delivered event
+    // sleep to pick up delivered event (via resubmit=true above)
     $this->sleepAfterDelivery();
 
     // #2 poll for delivered event, resubmitted from #1 Poll before
@@ -636,15 +650,18 @@ class MailgunSyncTest extends SapphireTest {
       'message-id' => $resubmitted_event->MessageId,
       'recipient' => $resubmitted_event->Recipient,// must be an email address
     ];
-    TestLog::log("testFailedEventProcessing polling - Begin: {$begin}, Filter: {$event_filter},  Params:" . json_encode($extra_params), TestLog::DEBUG);
+    Log::log("testFailedEventProcessing polling - Begin: {$begin}, Filter: {$event_filter},  Params:" . json_encode($extra_params), 'DEBUG');
 
     $events = $event_connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 
-    $this->assertEquals(count($events), 1);
+    $this->assertEquals(count($events), 1, "There are no events with filter {$event_filter}");
 
     $delivered_event = $events[0];
 
-    $this->assertTrue(!empty($delivered_event->ID) && ($delivered_event instanceof MailgunEvent));
+    $this->assertTrue(!empty($delivered_event->ID) && ($delivered_event instanceof MailgunEvent), "Delivered event is not a valid event");
+
+    // turn testmode workaround back on
+    Config::inst()->update(Connector\Base::class, 'workaround_testmode', true);
 
   }
 

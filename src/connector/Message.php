@@ -1,6 +1,7 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
+use NSWDPC\SilverstripeMailgunSync\Log;
 use NSWDPC\SilverstripeMailgunSync\Connector\Event as EventConnector;
 use Mailgun\Model\Message\ShowResponse;
 use NSWDPC\SilverstripeMailgunSync\SendJob;
@@ -60,7 +61,7 @@ class Message extends Base {
 		$this->applyDefaultRecipient($parameters);
 
 		$send_via_job = $this->sendViaJob();
-		//\SS_Log::log("send_via_job={$send_via_job}", \SS_Log::DEBUG);
+		//Log::log("send_via_job={$send_via_job}", 'DEBUG');
 
 		switch( $send_via_job ) {
 			case 'yes':
@@ -166,18 +167,18 @@ class Message extends Base {
 			// mark this event as FailedThenDelivered, DeliveryCheckJob then ignores it on the next run
 			$event->FailedThenDelivered = 1;
 			$event->write();
-			//\SS_Log::log("isDelivered set MailgunEvent #{$event->ID}/{$event->EventType} to FailedThenDelivered=1", \SS_Log::DEBUG);
+			//Log::log("isDelivered set MailgunEvent #{$event->ID}/{$event->EventType} to FailedThenDelivered=1", 'DEBUG');
 
 		 	if($cleanup) {
 				try {
 					// Remove event folder and the downloaded message file (see Folder::onBeforeDelete()
 					$folder = $this->getFolder($event);
 					$folder->delete();
-					//\SS_Log::log("isDelivered deleted folder for #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
+					//Log::log("isDelivered deleted folder for #{$event->ID}/{$event->EventType}", 'DEBUG');
 				} catch (Exception $e) {}
 			}
 		} else {
-			//\SS_Log::log("isDelivered no polled 'delivered' events for #{$event->ID}/{$event->EventType}", \SS_Log::DEBUG);
+			//Log::log("isDelivered no polled 'delivered' events for #{$event->ID}/{$event->EventType}", 'DEBUG');
 		}
 
 		return $is_delivered;
@@ -216,12 +217,12 @@ class Message extends Base {
 			}
 		} catch (Exception $e) {
 			// Will throw a Mailgun 404 HTTPClientException like "The endpoint you tried to access does not exist. Check your URL"
-			\SS_Log::log("getMime: " . $e->getMessage(), \SS_Log::NOTICE);
+			Log::log("getMime: " . $e->getMessage(), 'NOTICE');
 		}
 
 		// No message content or $use_local_file_contents==true (Test)
 		if(!$message_mime_content) {
-			\SS_Log::log("Message for Event #{$event->ID} at URL:{$event->StorageURL} no longer exists. It may be old?", \SS_Log::NOTICE);
+			Log::log("Message for Event #{$event->ID} at URL:{$event->StorageURL} no longer exists. It may be old?", 'NOTICE');
 			// If the message no longer exists.. maybe it's been stored locally
 			$message_mime_content = $event->MimeMessageContent();
 		}
@@ -233,7 +234,7 @@ class Message extends Base {
 		try {
 			$this->storeIfRequired($event, $message_mime_content);
 		} catch (Exception $e) {
-			\SS_Log::log("Could not store message. Error: " . $e->getMessage(), \SS_Log::NOTICE);
+			Log::log("Could not store message. Error: " . $e->getMessage(), 'NOTICE');
 		}
 
 		$api_key = $this->getApiKey();
@@ -241,7 +242,7 @@ class Message extends Base {
 		$domain = $this->getApiDomain();
 
 		// send to this event's recipient
-		//\SS_Log::log("Resend message to {$event->Recipient} using domain {$domain}",  \SS_Log::DEBUG);
+		//Log::log("Resend message to {$event->Recipient} using domain {$domain}",  'DEBUG');
 
 		$params = [];
 		$params['o:tag'] = [ MailgunEvent::TAG_RESUBMIT ];//tag - can poll for resubmitted events then
@@ -250,8 +251,11 @@ class Message extends Base {
 			// ensure testmode is off when set, see method documentation for more
 			// only applicable when running tests
 			// this works around an issue where events that will fail are marked as "test delivered" in Mailgun
-			//\SS_Log::log("Workaround testmode is ON - turning testmode off",  \SS_Log::DEBUG);
+			//Log::log("Workaround testmode is ON - turning testmode off",  'DEBUG');
 			unset($params['o:testmode']);
+		} else {
+			$testmode = isset($params['o:testmode']) ? $params['o:testmode'] : "not set";
+			//Log::log("Workaround testmode is OFF - o:testmode={$testmode}",  'DEBUG');
 		}
 		// apply testmode if Config is set - this will not override is_running_test application of testmode above
 		$this->applyTestMode($params);
@@ -266,7 +270,7 @@ class Message extends Base {
 		} else {
 			$message_id =  $result->getId();
 			$message_id = self::cleanMessageId($message_id, "<>");
-			//\SS_Log::log("Resent message to {$event->Recipient}. messageid={$message_id} message={$result->getMessage()}",  \SS_Log::DEBUG);
+			//Log::log("Resent message to {$event->Recipient}. messageid={$message_id} message={$result->getMessage()}",  'DEBUG');
 			return $message_id;
 		}
 
@@ -304,7 +308,7 @@ class Message extends Base {
 	private function storeIfRequired(MailgunEvent $event, $contents, $force = false) {
 		// Is local storage configured and on ?
 		if(!$this->syncLocalMime()) {
-			//\SS_Log::log("storeIfRequired - sync_local_mime is off in config",  \SS_Log::DEBUG);
+			//Log::log("storeIfRequired - sync_local_mime is off in config",  'DEBUG');
 			return;
 		}
 
@@ -313,7 +317,7 @@ class Message extends Base {
 		$file = $event->MimeMessage();
 		if(($file instanceof MailgunMimeFile) && $file->exists() && $file->getAbsoluteSize() > 0) {
 			// no-op
-			//\SS_Log::log("storeIfRequired - event already has a MimeMessage file",  \SS_Log::DEBUG);
+			//Log::log("storeIfRequired - event already has a MimeMessage file",  'DEBUG');
 			return;
 		}
 
@@ -323,32 +327,35 @@ class Message extends Base {
 			$failures = $event->GetRecipientFailures();//number of failures for this submission/recipient
 			$min_resubmit_failures = $this->resubmitFailures();
 			if($failures < $min_resubmit_failures) { // e.g if resubmit_failures is 2 then the 3rd failure will download the MIME content
-				//\SS_Log::log("storeIfRequired - not enough failures - {$failures}",  \SS_Log::DEBUG);
+				//Log::log("storeIfRequired - not enough failures - {$failures}",  'DEBUG');
 				return;
 			}
 		}
 
 		// save contents to a file
-		//\SS_Log::log("storeIfRequired - storing locally. failures={$failures} min_resubmit_failures={$min_resubmit_failures}",  \SS_Log::DEBUG);
+		//Log::log("storeIfRequired - storing locally. failures={$failures} min_resubmit_failures={$min_resubmit_failures}",  'DEBUG');
 		$folder = $this->getFolder($event);
 		$file = new MailgunMimeFile();
 		$file->Name = $this->messageFileName();
 		$file->ParentID = $folder->ID;
+
+		// save string contents
+		$result = $file->setFromString( $contents, $file->Name );
+		if($result === false) {
+			throw new Exception("Failed to put contents into folder #{$folder->ID}/{$file->Name}");
+		}
+
 		$file_id = $file->write();
 		if(empty($file_id)) {
 			// could not write the file
 			throw new Exception("Failed to write file {$file->Name} into folder #{$folder->ID}");
 		}
 
-		$result = $file->setFromString( $contents, $file->Name );
-		if($result === false) {
-			throw new Exception("Failed to put contents into folder #{$folder->ID}/{$file->Name}");
-		}
-
 		$event->MimeMessageID = $file_id;
 		$event->write();
 
-		//\SS_Log::log("storeIfRequired - event has file id {$file_id}",  \SS_Log::DEBUG);
+		$length = strlen($contents);
+		//Log::log("storeIfRequired - event has file id {$file_id} length={$length}",  'DEBUG');
 
 		return $file;
 

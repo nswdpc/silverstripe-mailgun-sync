@@ -64,7 +64,7 @@ class TruncateJob extends AbstractQueuedJob {
 					$counts['f']++;
 				}
 			} catch (Exception $e) {
-				\SS_Log::log("MailgunEvent/Message #{$message->ID} failed to delete", \SS_Log::NOTICE);
+				Log::log("MailgunEvent/Message #{$message->ID} failed to delete", 'NOTICE');
 			}
 
 			try {
@@ -74,14 +74,14 @@ class TruncateJob extends AbstractQueuedJob {
 					$counts['s']++;
 				}
 			} catch (Exception $e) {
-				\SS_Log::log("MailgunEvent/Submission #{$submission->ID} failed to delete", \SS_Log::NOTICE);
+				Log::log("MailgunEvent/Submission #{$submission->ID} failed to delete", 'NOTICE');
 			}
 
 			try {
 				$event->delete();
 				$counts['e']++;
 			} catch (Exception $e) {
-				\SS_Log::log("MailgunEvent #{$event->ID} failed to delete", \SS_Log::NOTICE);
+				Log::log("MailgunEvent #{$event->ID} failed to delete", 'NOTICE');
 			}
 		}
 
@@ -92,7 +92,7 @@ class TruncateJob extends AbstractQueuedJob {
 				$submission->delete();
 				$counts['s']++;
 			} catch (Exception $e) {
-				\SS_Log::log("MailgunSubmission #{$submission->ID} failed to delete", \SS_Log::NOTICE);
+				Log::log("MailgunSubmission #{$submission->ID} failed to delete", 'NOTICE');
 			}
 		}
 
@@ -113,7 +113,7 @@ class TruncateJob extends AbstractQueuedJob {
 		$service = singleton(QueuedJobService::class);
 		$descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
 		if(!$descriptor_id) {
-			\SS_Log::log("Failed to queue new TruncateJob!", \SS_Log::WARN);
+			Log::log("Failed to queue new TruncateJob!", 'WARNING');
 		}
 	}
 

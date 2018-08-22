@@ -1,6 +1,5 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync;
-
 use Mailgun\Mailgun;
 use SilverStripe\ORM\DataObject;
 use Mailgun\Model\Event\Event as MailgunEventModel;
@@ -396,7 +395,7 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 	 */
 	private static function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type) {
 		if(!$message_id || !$timestamp || !$recipient || !$event_type) {
-			//\SS_Log::log("Tried to get a current event but one or more of message_id, timestamp, recipient or event_type was missing. message_id={$message_id} event_type={$event_type}", \SS_Log::DEBUG);
+			//Log::log("Tried to get a current event but one or more of message_id, timestamp, recipient or event_type was missing. message_id={$message_id} event_type={$event_type}", 'DEBUG');
 			return false;
 		}
 		$event = MailgunEvent::get()->filter( ['MessageId' => $message_id, 'Timestamp' => $timestamp, 'Recipient' => $recipient, 'EventType' => $event_type ] )->first();
@@ -472,7 +471,7 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 		$mailgun_message_id = MessageConnector::cleanMessageId($mailgun_message_id);
 
 		if(!$mailgun_message_id) {
-			\SS_Log::log("Tried to create/find a  MailgunEvent but no message_id was provided or found", \SS_Log::ERR);
+			Log::log("Tried to create/find a  MailgunEvent but no message_id was provided or found", 'ERROR');
 			return false;
 		}
 
@@ -500,13 +499,13 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 		$event_id = $mailgun_event->write();
 		if(!$event_id) {
 			// could not create record
-			\SS_Log::log("Failed to create a MailgunEvent within MailgunEvent::StoreEvent()", \SS_Log::ERR);
+			Log::log("Failed to create a MailgunEvent within MailgunEvent::StoreEvent()", 'ERROR');
 			return false;
 		}
 
 		/*
 		if($create) {
-			//\SS_Log::log("Stored Event #{$event_id} of type '{$mailgun_event->EventType}' for submission #{$submission_id}", \SS_Log::DEBUG);
+			//Log::log("Stored Event #{$event_id} of type '{$mailgun_event->EventType}' for submission #{$submission_id}", 'DEBUG');
 		}
 		*/
 
@@ -546,10 +545,26 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 		$content = "";
 		$file = $this->MimeMessage();
 		// does the file exist, of the correct type and does the current member have permissions?
-		if(!empty($file->ID) && ($file instanceof MailgunMimeFile) && $file->CanView()) {
-			$content = $file->getString();
+		$error = "";
+		if(empty($file->ID)) {
+			$error = "File does not exist";
 		}
-		return $content;
+
+		if(!($file instanceof MailgunMimeFile)) {
+			$error = "File is not a MailgunMimeFile";
+		}
+
+		if(!$file->CanView()) {
+			$error = "File cannot be viewed";
+		}
+
+		if($error) {
+			Log::log($error, 'NOTICE');
+			return false;
+		} else {
+			$content = $file->getString();
+			return $content;
+		}
 	}
 
 	/**
@@ -577,7 +592,7 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 		$current_failures = $this->GetRecipientFailures();
 		if($current_failures >= $max_failures) {
 			// cannot resubmit
-			\SS_Log::log("Too many recipient/msg failures : {$current_failures}", \SS_Log::NOTICE);
+			Log::log("Too many recipient/msg failures : {$current_failures}", 'NOTICE');
 			return false;
 		}
 
@@ -592,23 +607,24 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 
 		// only Failed events can be resubmitted this way
 		if(!$this->IsFailed()) {
-			//\SS_Log::log("Not Failed - not attempting AutomatedResubmit for {$this->EventType} event.", \SS_Log::DEBUG);
+			//Log::log("Not Failed - not attempting AutomatedResubmit for {$this->EventType} event.", 'DEBUG');
 			return false;
 		}
 
 		// If this SPECIFIC event has been resubmitted already, do not resubmit
 		if($this->Resubmitted) {
-			//\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", \SS_Log::DEBUG);
+			//Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", 'DEBUG');
 			return false;
 		}
 
 		if($this->FailedThenDelivered == 1) {
-			//\SS_Log::log("AutomatedResubmit - this specific event #{$this->ID} was marked failed then delivered, not resubmitting", \SS_Log::DEBUG);
+			//Log::log("AutomatedResubmit - this specific event #{$this->ID} was marked failed then delivered, not resubmitting", 'DEBUG');
 			return false;
 		}
 
 		// Automated resubmits must check if a limit has been reached
 		if(!$this->CanResubmit()) {
+			//Log::log("AutomatedResubmit CannotResubmit", 'DEBUG');
 			throw new Exception("Cannot resubmit: too many failures");
 		}
 
@@ -618,14 +634,14 @@ class MailgunEvent extends DataObject implements PermissionProvider {
 			$result = $message->resubmit($this);
 			// A single event can only be resubmitted once
 			// Resubmission may result in another failed event (and that can be resubmitted)
-			//\SS_Log::log("AutomatedResubmit - mark as resubmitted", \SS_Log::DEBUG);
+			//Log::log("AutomatedResubmit - mark as resubmitted", 'DEBUG');
 			$this->Resubmitted = 1;
 			$this->Resubmits = ($this->Resubmits + 1);
 			$this->write();
 		} catch (Exception $e) {
 			// update number of resubmits
 			$this->Resubmits = ($this->Resubmits + 1);
-			//\SS_Log::log("AutomatedResubmit - error resubmits={$this->Resubmits} - " . $e->getMessage(), \SS_Log::DEBUG);
+			//Log::log("AutomatedResubmit - error resubmits={$this->Resubmits} - " . $e->getMessage(), 'DEBUG');
 			$this->write();
 		}
 

@@ -1,6 +1,7 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use NSWDPC\SilverstripeMailgunSync\MailgunEvent;
+use NSWDPC\SilverstripeMailgunSync\Log;
 use Mailgun\Mailgun;
 use Exception;
 
@@ -55,11 +56,11 @@ class Event extends Base {
 		} else {
 			$this->results = array_merge( $this->results, $items );
 			// recursively retrieve the events based on pagination
-			//\SS_Log::log("pollEvents getting next page", \SS_Log::DEBUG);
+			//Log::log("pollEvents getting next page", 'DEBUG');
 			$this->getNextPage($client, $response);
 		}
 
-		//\SS_Log::log("Events: " . count($this->results), \SS_Log::DEBUG);
+		//Log::log("Events: " . count($this->results), 'DEBUG');
 
 		foreach($this->results as $event) {
 
@@ -87,20 +88,20 @@ class Event extends Base {
 			$mailgun_event = MailgunEvent::storeEvent($event);
 			if(!empty($mailgun_event->ID)) {
 				$events[] = $mailgun_event;
-				//\SS_Log::log("Got MailgunEvent: {$mailgun_event->ID}", \SS_Log::DEBUG);
+				//Log::log("Got MailgunEvent #{$mailgun_event->ID} Type={$mailgun_event->EventType} MessageId={$mailgun_event->MessageId}", 'DEBUG');
 				if(!$resubmit) {
-					//\SS_Log::log("Not resubmitting", \SS_Log::DEBUG);
+					//Log::log("Not resubmitting", 'DEBUG');
 				} else {
-					//\SS_Log::log("--------------- Start AutomatedResubmit Event #{$mailgun_event->ID}-------------------", \SS_Log::DEBUG);
+					//Log::log("--------------- Start AutomatedResubmit Event #{$mailgun_event->ID}-------------------", 'DEBUG');
 					try {
 						$mailgun_event->AutomatedResubmit();
 					} catch (Exception $e) {
-						\SS_Log::log("AutomatedResubmit for event {$mailgun_event->ID} requested but failed with error: " . $e->getMessage(), \SS_Log::WARN);
+						Log::log("AutomatedResubmit for event {$mailgun_event->ID} requested but failed with error: " . $e->getMessage(), 'WARNING');
 					}
-					//\SS_Log::log("--------------- End   AutomatedResubmit Event #{$mailgun_event->ID}-------------------", \SS_Log::DEBUG);
+					//Log::log("--------------- End   AutomatedResubmit Event #{$mailgun_event->ID}-------------------", 'DEBUG');
 				}
 			} else {
-				\SS_Log::log("Failed to create/update MailgunEvent", \SS_Log::NOTICE);
+				Log::log("Failed to create/update MailgunEvent", 'NOTICE');
 			}
 		}
 
@@ -138,7 +139,7 @@ class Event extends Base {
 		}
 		// add to results
 		$this->results = array_merge( $this->results, $items );
-		//\SS_Log::log("pollEvents getNextPage again", \SS_Log::DEBUG);
+		//Log::log("pollEvents getNextPage again", 'DEBUG');
 		return $this->getNextPage($client, $response);
 
 	}

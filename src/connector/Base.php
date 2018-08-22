@@ -1,6 +1,7 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync\Connector;
 use Mailgun\Mailgun;
+use NSWDPC\SilverstripeMailgunSync\Log;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 
@@ -106,7 +107,7 @@ abstract class Base {
 	final protected function applyTestMode(&$parameters) {
 		$mailgun_testmode = $this->config()->get('api_testmode');
 		if($mailgun_testmode) {
-			//\SS_Log::log("applyTestMode - yes", \SS_Log::NOTICE);
+			//Log::log("o:testmode=yes", 'NOTICE');
 			$parameters['o:testmode'] = 'yes';
 		}
 	}
@@ -118,7 +119,7 @@ abstract class Base {
 		if(empty($parameters['to'])
 				&& (!empty($parameters['cc']) || !empty($parameters['bcc']))
 				&& ($default_recipient = $this->config()->get('default_recipient'))) {
-					//\SS_Log::log("applyDefaultRecipient - {$default_recipient}", \SS_Log::NOTICE);
+					//Log::log("applyDefaultRecipient - {$default_recipient}", 'NOTICE');
 					$parameters['to'] = $default_recipient;
 		}
 	}

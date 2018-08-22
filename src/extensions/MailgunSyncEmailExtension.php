@@ -34,7 +34,7 @@ class MailgunSyncEmailExtension extends Extension {
 		$submission_id = $submission->write();
 
 		if(!$submission_id) {
-			\SS_Log::log("mailgunSyncEmail: cannot write a MailgunSubmission record", \SS_Log::NOTICE);
+			Log::log("mailgunSyncEmail: cannot write a MailgunSubmission record", 'NOTICE');
 			// can't write :(
 			return;
 		}

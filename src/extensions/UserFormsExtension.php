@@ -82,7 +82,7 @@ class UserDefinedFormSubmissionExtension extends Extension {
 			$sync->mailgunSyncEmail($email, $submitted_form, $recipient_email_address, $tags);
 			return true;
 		} catch (\Exception $e) {
-			\SS_Log::log("Error trying to setup sync record for Mailgun: " . $e->getMessage(), \SS_Log::NOTICE);
+			Log::log("Error trying to setup sync record for Mailgun: " . $e->getMessage(), 'NOTICE');
 		}
 
 		return false;

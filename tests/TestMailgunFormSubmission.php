@@ -1,6 +1,5 @@
 <?php
 namespace NSWDPC\SilverstripeMailgunSync;
-use NSWDPC\SilverstripeMailgunSync\TestLog as SS_Log;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\Security\Permission;
@@ -111,15 +110,16 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 		$file = new File();
 		$file->Name = basename($absolute_file_path);
 		$file->ParentID = $folder->ID;
-		$file_id = $file->write();
-		if(empty($file_id)) {
-			// could not write the file
-			throw new Exception("Failed to write File {$file->Name} into folder {$folder_path}");
-		}
 
 		$result = $file->setFromString( file_get_contents($absolute_file_path), $file->Name );
 		if($result === false) {
 			throw new Exception("Failed to put contents of {$absolute_file_path} into file #{$file->ID}");
+		}
+
+		$file_id = $file->write();
+		if(empty($file_id)) {
+			// could not write the file
+			throw new Exception("Failed to write File {$file->Name} into folder {$folder_path}");
 		}
 
 		$this->Attachments()->add( $file );
@@ -152,8 +152,10 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 		// attach files
 		$attachments = $this->Attachments();
 		foreach($attachments as $attachment) {
-			SS_Log::log("SubmitMessage: attaching file {$attachment->Name}", SS_Log::DEBUG);
-			$email->addAttachmentFromData( $attachment->getString(), $attachment->Name );
+			$data = $attachment->getString();
+			$data_length = strlen($data);
+			Log::log("SubmitMessage: attaching file {$attachment->Name} of length {$data_length}", 'DEBUG');
+			$email->addAttachmentFromData( $data, $attachment->Name );
 		}
 
 		// assign this record to a submission
@@ -165,7 +167,7 @@ class TestMailgunFormSubmission extends DataObject implements TestOnly {
 		// send the email
 		$message_id = $email->send();
 		if($message_id) {
-			SS_Log::log("SubmitMessage: sent to: {$to} test_mode={$test_mode} message_id={$message_id}", SS_Log::DEBUG);
+			Log::log("SubmitMessage: sent to: {$to} test_mode={$test_mode} message_id={$message_id}", 'DEBUG');
 			$this->MessageId = $message_id;
 			$this->write();
 		}

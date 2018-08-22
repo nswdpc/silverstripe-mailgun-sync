@@ -70,14 +70,14 @@ class FailedEventsJob extends AbstractQueuedJob {
 				'limit' => 25 // per page
 			];
 			// poll for failed events using these filters
-			//\SS_Log::log("FailedEventsJob::process - polling from {$begin} onwards", \SS_Log::DEBUG);
+			//Log::log("FailedEventsJob::process - polling from {$begin} onwards", 'DEBUG');
 			$events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
-			//\SS_Log::log("FailedEventsJob::processing done - " . count($events) . " events polled", \SS_Log::DEBUG);
+			//Log::log("FailedEventsJob::processing done - " . count($events) . " events polled", 'DEBUG');
 			$this->isComplete = true;
 			return $events;
 		} catch (Exception $e) {
 			// failed somewhere along the line
-			\SS_Log::log("Caught an Exception in FailedEventsJob::process() - " . $e->getMessage(), \SS_Log::NOTICE);
+			Log::log("Caught an Exception in FailedEventsJob::process() - " . $e->getMessage(), 'NOTICE');
 		}
 		$this->isComplete = true;
 		return false;
@@ -92,7 +92,7 @@ class FailedEventsJob extends AbstractQueuedJob {
 		$service = singleton(QueuedJobService::class);
 		$descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
 		if(!$descriptor_id) {
-			\SS_Log::log("Failed to queue new FailedEventsJob!", \SS_Log::WARN);
+			Log::log("Failed to queue new FailedEventsJob!", 'WARNING');
 		}
 	}
 
