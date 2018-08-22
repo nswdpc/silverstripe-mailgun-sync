@@ -15,7 +15,7 @@ NSWDPC\SilverstripeMailgunSync\Connector\Base:
   send_via_job : 'when-attachments'
   default_recipient : ''
 # Event config
-MailgunEvent:
+NSWDPC\SilverstripeMailgunSync\MailgunEvent:
   secure_folder_name : 'SecureUploads'
   max_failures : 3
 # Job config
