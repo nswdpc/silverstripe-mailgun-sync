@@ -8,7 +8,7 @@ In Paid mode, Mailgun stores messages for 3 days and events for 30 days. After t
 
 ## Installing
 The module is not (yet) in Packagist, add:
-```
+```yml
 "repositories": [
   {
     "type" : "vcs",
