@@ -1,25 +1,25 @@
 {
-	"name": "nswdpc/silverstripe-mailgun-sync",
-	"description": "Send messages via Mailgun, optionally synchronise events and resubmit failed messages to Mailgun.",
-	"type": "silverstripe-vendormodule",
-	"homepage" : "https://github.com/nswdpc/silverstripe-mailgun-sync",
-	"keywords": ["silverstripe", "mailgun","mime","email","mail"],
-	"license": "BSD-3-Clause",
-	"authors": [
-		{
-			"name": "James Ellis",
-			"email": "james@dpc.nsw.gov.au"
-		}
-	],
-	"support" : {
-		"issues" : "https://github.com/nswdpc/silverstripe-mailgun-sync/issues"
-	},
-	"extra" : {
-		"installer-name" : "mailgun-sync"
-	},
-	"require": {
-		"symbiote/silverstripe-queuedjobs": "~4.2",
-		"mailgun/mailgun-php": "~2.4",
-		"silverstripe/framework" : "~4.0"
-	}
+    "name": "nswdpc/silverstripe-mailgun-sync",
+    "description": "Send messages via Mailgun, optionally synchronise events and resubmit failed messages to Mailgun.",
+    "type": "silverstripe-vendormodule",
+    "homepage" : "https://github.com/nswdpc/silverstripe-mailgun-sync",
+    "keywords": ["silverstripe", "mailgun","mime","email","mail"],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "James Ellis",
+            "email": "james@dpc.nsw.gov.au"
+        }
+    ],
+    "support" : {
+        "issues" : "https://github.com/nswdpc/silverstripe-mailgun-sync/issues"
+    },
+    "extra" : {
+        "installer-name" : "mailgun-sync"
+    },
+    "require": {
+        "symbiote/silverstripe-queuedjobs": "~4.2",
+        "mailgun/mailgun-php": "~2.4",
+        "silverstripe/framework" : "~4.0"
+    }
 }
