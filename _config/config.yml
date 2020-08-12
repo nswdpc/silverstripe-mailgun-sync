@@ -2,7 +2,7 @@
 Name: mailgunsync
 ---
 # API config
-NSWDPC\SilverstripeMailgunSync\Connector\Base:
+NSWDPC\Messaging\Mailgun\Connector\Base:
   api_domain: ''
   api_key: ''
   api_testmode: false
@@ -15,17 +15,17 @@ NSWDPC\SilverstripeMailgunSync\Connector\Base:
   send_via_job : 'when-attachments'
   default_recipient : ''
 # Event config
-NSWDPC\SilverstripeMailgunSync\MailgunEvent:
+NSWDPC\Messaging\Mailgun\MailgunEvent:
   secure_folder_name : 'SecureUploads'
   max_failures : 3
 # Job config
-NSWDPC\SilverstripeMailgunSync\FailedEventsJob:
+NSWDPC\Messaging\Mailgun\FailedEventsJob:
   repeat_time : 86400
   time_of_day :
     hour : 11
     minute : 0
     second : 0
-NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob:
+NSWDPC\Messaging\Mailgun\DeliveryCheckJob:
   repeat_time : 86400
   time_of_day :
     hour : 13
@@ -39,10 +39,10 @@ Only:
 # UserDefinedForm submission handling, if module exists
 SilverStripe\UserForms\Control\UserDefinedFormController:
   extensions:
-    - NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension
+    - NSWDPC\Messaging\Mailgun\UserDefinedFormSubmissionExtension
 ---
 Name: mailgunsyncqueue
 ---
 Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor:
   db:
-    SavedJobData : 'NSWDPC\SilverstripeMailgunSync\DBLongText'
+    SavedJobData : 'NSWDPC\Messaging\Mailgun\DBLongText'

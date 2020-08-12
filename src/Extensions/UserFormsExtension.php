@@ -1,7 +1,7 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
-use NSWDPC\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
+use NSWDPC\Messaging\Mailgun\Mailer as MailgunSyncMailer;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\Core\Extension;
 

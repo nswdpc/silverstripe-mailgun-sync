@@ -1,10 +1,10 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Mailgun;
 use SilverStripe\ORM\DataObject;
 use Mailgun\Model\Event\Event as MailgunEventModel;
-use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
@@ -84,7 +84,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'StorageURL' => 'Text',// storage URL for message at Mailgun (NB: max 3 days for paid accounts, message may have been deleted by MG)
         'DecodedStorageKey' => 'Text',  // JSON encoded storage key
 
-        'FailedThenDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for NSWDPC\SilverstripeMailgunSync\DeliveryCheckJob
+        'FailedThenDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for NSWDPC\Messaging\Mailgun\DeliveryCheckJob
     );
 
     private static $has_one = array(
@@ -164,7 +164,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $manager_group_id = $manager_group->write();
         if ($manager_group_id) {
             Permission::grant($manager_group_id, 'MAILGUNEVENT_RESUBMIT');
-            //\Permission::grant($manager_group_id, 'CMS_ACCESS_NSWDPC\SilverstripeMailgunSync\ModelAdmin');
+            //\Permission::grant($manager_group_id, 'CMS_ACCESS_NSWDPC\Messaging\Mailgun\ModelAdmin');
         }
 
         // ensure admins have this permission as well

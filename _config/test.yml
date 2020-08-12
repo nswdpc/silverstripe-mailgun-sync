@@ -2,7 +2,7 @@
 Name: mailgunsync_test
 ---
 # Configuration for the tests
-NSWDPC\SilverstripeMailgunSync\MailgunSyncTest:
+NSWDPC\Messaging\Mailgun\MailgunSyncTest:
   to_address : ''
   to_name : ''
   from_address : ''
@@ -12,7 +12,7 @@ NSWDPC\SilverstripeMailgunSync\MailgunSyncTest:
   sleep_time : 30
   test_attachment : 'attachments/test_attachment.pdf'
 # Apply extensions for test dataobjects
-NSWDPC\SilverstripeMailgunSync\TestMailgunFormSubmission:
+NSWDPC\Messaging\Mailgun\TestMailgunFormSubmission:
   extensions:
-    - 'NSWDPC\SilverstripeMailgunSync\MailgunSyncEmailExtension'
-    - 'NSWDPC\SilverstripeMailgunSync\MailgunSubmissionExtension'
+    - 'NSWDPC\Messaging\Mailgun\MailgunSyncEmailExtension'
+    - 'NSWDPC\Messaging\Mailgun\MailgunSubmissionExtension'

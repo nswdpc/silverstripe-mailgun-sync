@@ -1,8 +1,8 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
-use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use SilverStripe\Control\Email\Mailer as SilverstripeMailer;
 use SilverStripe\Control\Email\Email;
 use Mailgun\Mailgun;
@@ -383,7 +383,7 @@ class Mailer implements SilverstripeMailer
             $parameters['o:testmode'] = 'yes';//Adds X-Mailgun-Drop-Message header
         }
 
-        $workaround_testmode = Config::inst()->get('NSWDPC\SilverstripeMailgunSync\Connector\Base', 'workaround_testmode');
+        $workaround_testmode = Config::inst()->get('NSWDPC\Messaging\Mailgun\Connector\Base', 'workaround_testmode');
         if ($workaround_testmode) {
             //Log::log("addCustomParameters: workaround_testmode is ON - this unsets o:testmode while running tests", 'DEBUG');
             unset($parameters['o:testmode']);

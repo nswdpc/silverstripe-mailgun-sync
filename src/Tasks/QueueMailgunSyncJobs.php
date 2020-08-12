@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Dev\BuildTask;
 use Symbiote\QueuedJobs\Services\QueuedJobService;

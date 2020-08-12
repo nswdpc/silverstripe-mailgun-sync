@@ -1,5 +1,5 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Admin\ModelAdmin as SS_ModelAdmin;
 use SilverStripe\Security\Member;

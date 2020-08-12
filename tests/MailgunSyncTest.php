@@ -1,10 +1,10 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
-use NSWDPC\SilverstripeMailgunSync\Connector;
-use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Connector;
+use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use Mailgun\Model\Message\SendResponse;
-use NSWDPC\SilverstripeMailgunSync\Mailer as MailgunSyncMailer;
+use NSWDPC\Messaging\Mailgun\Mailer as MailgunSyncMailer;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;

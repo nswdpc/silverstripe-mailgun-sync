@@ -1,13 +1,13 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync\Connector;
+namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\SilverstripeMailgunSync\Log;
-use NSWDPC\SilverstripeMailgunSync\Connector\Event as EventConnector;
+use NSWDPC\Messaging\Mailgun\Log;
+use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
 use Mailgun\Model\Message\ShowResponse;
-use NSWDPC\SilverstripeMailgunSync\SendJob;
-use NSWDPC\SilverstripeMailgunSync\MailgunEvent;
-use NSWDPC\SilverstripeMailgunSync\MailgunMimeFile;
+use NSWDPC\Messaging\Mailgun\SendJob;
+use NSWDPC\Messaging\Mailgun\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\MailgunMimeFile;
 use SilverStripe\Assets\Folder;
 use SilverStripe\Assets\File;
 use SilverStripe\Security\Group;

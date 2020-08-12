@@ -1,8 +1,8 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
-use NSWDPC\SilverstripeMailgunSync\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 use SilverStripe\Core\Config\Config;

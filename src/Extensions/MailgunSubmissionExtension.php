@@ -1,5 +1,5 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\ORM\DataExtension;
 use SilverStripe\Forms\FieldList;

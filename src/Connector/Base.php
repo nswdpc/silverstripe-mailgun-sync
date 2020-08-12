@@ -1,8 +1,8 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync\Connector;
+namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\SilverstripeMailgunSync\Log;
+use NSWDPC\Messaging\Mailgun\Log;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 
@@ -63,7 +63,7 @@ abstract class Base
 
     /**
      * Does config state the module should track userform submissions?
-     * {@link NSWDPC\SilverstripeMailgunSync\UserDefinedFormSubmissionExtension::updateEmail()}
+     * {@link NSWDPC\Messaging\Mailgun\UserDefinedFormSubmissionExtension::updateEmail()}
      */
     public static function trackUserFormSubmissions()
     {
@@ -105,7 +105,7 @@ abstract class Base
     }
 
     /**
-     * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\SilverstripeMailgunSync\Mailer::setSender()} to set the Sender header as required
+     * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\Messaging\Mailgun\Mailer::setSender()} to set the Sender header as required
      */
     final protected function alwaysSetSender()
     {

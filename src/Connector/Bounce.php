@@ -1,8 +1,8 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync\Connector;
+namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\SilverstripeMailgunSync\Log;
+use NSWDPC\Messaging\Mailgun\Log;
 use Exception;
 use SilverStripe\Control\Email\Email;
 

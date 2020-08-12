@@ -1,5 +1,5 @@
 <?php
-namespace NSWDPC\SilverstripeMailgunSync;
+namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\ORM\FieldType\DBText;
 use SilverStripe\ORM\DB;
@@ -15,7 +15,7 @@ use SilverStripe\Core\Config\Config;
  * <code>
  * QueuedJobDescriptor:
  *   db:
- *     SavedJobData : 'NSWDPC\SilverstripeMailgunSync\LongText'
+ *     SavedJobData : 'NSWDPC\Messaging\Mailgun\LongText'
  * </code>
  */
 class DBLongText extends DBText

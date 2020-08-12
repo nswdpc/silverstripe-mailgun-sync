@@ -4,10 +4,10 @@ A unit test of record submission and synchronisation of related events.
 
 ## Configuration
 
-+ Ensure the ```NSWDPC\SilverstripeMailgunSync\Connector\Base``` yml is correct for your setup. Use a project yml config file (/mysite or /app config.yml)
++ Ensure the ```NSWDPC\Messaging\Mailgun\Connector\Base``` yml is correct for your setup. Use a project yml config file (/mysite or /app config.yml)
 + Add a copy of the below to your project configuration, with relevant changes
 ```
-NSWDPC\SilverstripeMailgunSync\MailgunSyncTest:
+NSWDPC\Messaging\Mailgun\MailgunSyncTest:
   # a test recipient address - where test emails will be sent
   to_address : 'recipient@example.com'
 
