@@ -67,7 +67,7 @@ abstract class Base
      */
     public static function trackUserFormSubmissions()
     {
-        return $this->config()->get('track_userform');
+        return self::config()->get('track_userform');
     }
 
     /**
