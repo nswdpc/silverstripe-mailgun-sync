@@ -163,6 +163,9 @@ class MailgunSyncTest extends SapphireTest
         if(!$this->canSend()) {
             throw new \Exception("Cannot test sandbox delivery");
         }
+
+        Config::inst()->update(Base::class, 'send_via_job', 'no');
+
         $connector = MessageConnector::create();
         $to = $to_address = $this->config()->get('to_address');
         $to_name = $this->config()->get('to_name');
