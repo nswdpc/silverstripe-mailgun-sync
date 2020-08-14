@@ -6,43 +6,18 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   api_domain: ''
   api_key: ''
   api_testmode: false
-  sync_local_mime: false
-  track_userform: false
-  resubmit_failures : 2
+  webhooks_enabled: true
+  webhook_signing_key: ''
   always_set_sender : true
-  workaround_testmode: false
   # yes|no|when-attachments
   send_via_job : 'when-attachments'
   default_recipient : ''
-# Event config
-NSWDPC\Messaging\Mailgun\MailgunEvent:
-  secure_folder_name : 'SecureUploads'
-  max_failures : 3
-# Job config
-NSWDPC\Messaging\Mailgun\FailedEventsJob:
-  repeat_time : 86400
-  time_of_day :
-    hour : 11
-    minute : 0
-    second : 0
-NSWDPC\Messaging\Mailgun\DeliveryCheckJob:
-  repeat_time : 86400
-  time_of_day :
-    hour : 13
-    minute : 0
-    second : 0
----
-Name: mailgunsyncuserform
-Only:
-  ModuleExists: userforms
----
-# UserDefinedForm submission handling, if module exists
-SilverStripe\UserForms\Control\UserDefinedFormController:
-  extensions:
-    - NSWDPC\Messaging\Mailgun\UserDefinedFormSubmissionExtension
+# Mailer config
+NSWDPC\Messaging\Mailgun\Mailer:
+   always_from: ''
 ---
 Name: mailgunsyncqueue
 ---
 Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor:
   db:
-    SavedJobData : 'NSWDPC\Messaging\Mailgun\DBLongText'
+    SavedJobData : 'NSWDPC\Messaging\Mailgun\ORM\FieldType\DBLongText'

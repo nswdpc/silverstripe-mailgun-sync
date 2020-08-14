@@ -1,10 +1,11 @@
 <?php
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\ORM\FieldType;
 
 use SilverStripe\ORM\FieldType\DBText;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\Connect\MySQLSchemaManager;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\ORM\Connect\MySQLDatabase;
 
 /**
  * Represents a variable-length string of up to 4GB
@@ -30,8 +31,8 @@ class DBLongText extends DBText
         $schema = DB::get_schema();
         if ($schema && $schema instanceof MySQLSchemaManager) {
             // modify requirement to longtest for MySQL / MariaDB
-            $charset = Config::inst()->get('SilverStripe\ORM\Connect\MySQLDatabase', 'charset');
-            $collation = Config::inst()->get('SilverStripe\ORM\Connect\MySQLDatabase', 'collation');
+            $charset = Config::inst()->get(MySQLDatabase::class, 'charset');
+            $collation = Config::inst()->get(MySQLDatabase::class, 'collation');
             $values = "longtext character set {$charset} collate {$collation}";
             DB::require_field($this->tableName, $this->name, $values, $this->default);
         } else {

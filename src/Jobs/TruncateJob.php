@@ -27,18 +27,19 @@ class TruncateJob extends AbstractQueuedJob
 
     public function getTitle()
     {
-        return "Remove Mailgun data > {$this->days} days old";
+        return "Remove Mailgun event data > {$this->days}d old, repeat in {$this->recreate_in}s";
     }
 
     /**
-     * @param int $days number of days to truncate up to
+     * @param float $days number of days to truncate back to
+     * @param int $recreate_in the number of seconds in the future this job will start its next run
      */
-    public function __construct($days = 90)
+    public function __construct($days = 1, $recreate_in = 86400)
     {
-        $min = 30;
-        $this->days = (int)$days;
-        if ($this->days < $min) {
-            $this->days = $min;
+        $this->recreate_in = $recreate_in;
+        $this->days = $days;
+        if ($this->days < 0) {
+            $this->days = 1;
         }
     }
 
@@ -47,62 +48,26 @@ class TruncateJob extends AbstractQueuedJob
      */
     public function process()
     {
-
-        // date
-        $dt = new DateTime('now -' . $this->days . ' day');
+        // Base date to check back for records in the past
+        if($this->days > 0) {
+            // allow for parts of days to the nearest hour
+            $hours = round($this->days * 24);
+            $dt = new DateTime("now -{$hours}hour");
+        } else {
+            $dt = new DateTime();
+        }
         $dt_formatted = $dt->format('Y-m-d H:i:s');
-
-        $counts = [
-            'e' => 0,
-            'f' => 0,
-            's' => 0,
-        ];
-
-        // truncate events
+        $this->addMessage("Removing events created before {$dt_formatted}", "info");
         $events = MailgunEvent::get()->filter('Created:LessThan', $dt_formatted);
-        foreach ($events as $event) {
-            try {
-                $message = $event->MimeMessage();
-                if (!empty($message->ID)) {
-                    $message->delete();
-                    $counts['f']++;
-                }
-            } catch (Exception $e) {
-                Log::log("MailgunEvent/Message #{$message->ID} failed to delete", 'NOTICE');
-            }
-
-            try {
-                $submission = $event->Submission();
-                if (!empty($submission->ID)) {
-                    $submission->delete();
-                    $counts['s']++;
-                }
-            } catch (Exception $e) {
-                Log::log("MailgunEvent/Submission #{$submission->ID} failed to delete", 'NOTICE');
-            }
-
-            try {
-                $event->delete();
-                $counts['e']++;
-            } catch (Exception $e) {
-                Log::log("MailgunEvent #{$event->ID} failed to delete", 'NOTICE');
-            }
+        $count = $events->count();
+        if($count > 0) {
+            $events->removeAll();
+            $this->addMessage("Removed {$count} events", "info");
+        } else {
+            $this->addMessage("No events to remove", "info");
         }
-
-        // remove any orphaned submissions
-        $submissions = MailgunSubmission::get()->filter('Created:LessThan', $dt_formatted);
-        foreach ($submissions as $submission) {
-            try {
-                $submission->delete();
-                $counts['s']++;
-            } catch (Exception $e) {
-                Log::log("MailgunSubmission #{$submission->ID} failed to delete", 'NOTICE');
-            }
-        }
-
-        $this->addMessage("Removed {$counts['e']} events, {$counts['f']} files, {$counts['s']} submissions", "info");
+        $this->currentStep = 1;
         $this->isComplete = true;
-        return;
     }
 
     /**
@@ -111,13 +76,12 @@ class TruncateJob extends AbstractQueuedJob
     public function afterComplete()
     {
         $next = new DateTime();
-        $next->modify('+1 day');
-
-        $job = new TruncateJob($this->days);
+        $next->modify('+' . $this->recreate_in . ' seconds');
+        $job = new TruncateJob($this->days, $this->recreate_in);
         $service = singleton(QueuedJobService::class);
         $descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
         if (!$descriptor_id) {
-            Log::log("Failed to queue new TruncateJob!", 'WARNING');
+            Log::log("Failed to queue new TruncateJob!", \Psr\Log\LogLevel::WARNING);
         }
     }
 }

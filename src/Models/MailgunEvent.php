@@ -16,6 +16,7 @@ use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\FieldType\DBVarchar;
+use SilverStripe\ORM\FieldType\DBField;
 use DateTime;
 use DateTimeZone;
 use Exception;
@@ -28,14 +29,11 @@ use Exception;
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
+
     private static $default_sort = "Timestamp DESC";// try to sort by most recent event first
 
     private static $singular_name = "Event";
     private static $plural_name = "Events";
-
-    private static $max_failures = 3;// maximum number of failures before an event cannot be auto-resubmitted (e.g total permanent failure)
-
-    private static $secure_folder_name = "SecureUploads";
 
     private static $table_name = "MailgunEvent";
 
@@ -54,11 +52,14 @@ class MailgunEvent extends DataObject implements PermissionProvider
     const FAILURE_TEMPORARY = 'temporary';
     const FAILURE_PERMANENT = 'permanent';
 
-    private static $db = array(
+    const PERMISSIONS_VIEW = 'MAILGUNEVENT_VIEW';
+    const PERMISSIONS_DELETE = 'MAILGUNEVENT_DELETE';
+
+    private static $db = [
         /**
          * @note Mailgun says "Event id. It is guaranteed to be unique within a day.
-         * 											It can be used to distinguish events that have already been retrieved
-         *											When requests with overlapping time ranges are made."
+         * It can be used to distinguish events that have already been retrieved
+         * When requests with overlapping time ranges are made."
          */
         'EventId' => 'Varchar(255)',
         'MessageId' => 'Varchar(255)',// remote message id for event
@@ -68,10 +69,6 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'Timestamp' => 'Decimal(16,6)',// The time when the event was generated in the system provided as Unix epoch seconds.
         'Recipient' => 'Varchar(255)', // the Recipient value is used to re-send the message, an email address
         'Reason' => 'Varchar(255)', // reason e.g old
-
-        // Whether this event was resubmitted
-        'Resubmitted' => 'Boolean',
-        'Resubmits' => 'Int',// # of times this specific event resubmitted
 
         // fields containing delivery status information
         'DeliveryStatusMessage' => 'Text', // reason text e.g for failures 'mailbox full', 'spam' etc
@@ -83,75 +80,72 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
         'StorageURL' => 'Text',// storage URL for message at Mailgun (NB: max 3 days for paid accounts, message may have been deleted by MG)
         'DecodedStorageKey' => 'Text',  // JSON encoded storage key
+    ];
 
-        'FailedThenDelivered' => 'Boolean',// failed events may end up being delivered due to a temporary failure, flag if so for NSWDPC\Messaging\Mailgun\DeliveryCheckJob
-    );
-
-    private static $has_one = array(
-        'Submission' => MailgunSubmission::class,
-        'MimeMessage' => MailgunMimeFile::class, // An {@link \File} - the MIME content of the message is stored if a failure extends beyond the configured retries
-    );
-
-    private static $summary_fields = array(
+    private static $summary_fields = [
         'ID' => '#',
-        'Resubmitted.Nice' => 'Resubmitted',
-        'Resubmits' => 'Resubmits',
         'EventType' => 'Event',
-        'DeliveryStatusAttempts' => 'MG Attempts',
+        'Severity' => 'Severity',
+        'DeliveryStatusAttempts' => 'Delivery Attempts',
         'DeliveryStatusCode' => 'Code',
         'Recipient' => 'Recipient',
         'MessageId' => 'Msg Id',
-        'FailedThenDeliveredNice' => 'Failed/delivered later',
-        //'MessageId' => 'Msg Id',
-        'LocalDateTime' => 'Date (SYD)',
-    );
+        'LocalDateTime' => 'Date',
+    ];
 
     /**
      * Defines a default list of filters for the search context
      * @var array
      */
     private static $searchable_fields = [
-        'Resubmitted',
         'Reason',
         'Severity',
         'EventType',
         'DeliveryStatusCode',
         'Recipient',
         'MessageId',
-        'FailedThenDelivered'
     ];
 
-    private static $indexes = array(
+    private static $indexes = [
+        'Created' => true,
+        'LastEdited' => true,
         'EventType' => true,
         'EventId' => true,
+        'MessageId' => true,
         'UTCEventDate' => true,
         'EventLookup' => [ 'type' => 'index', 'columns' => ["MessageId","Timestamp","Recipient","EventType"] ],
         'Recipient' => true,
-    );
+    ];
 
     /**
      * @return array
      */
     public function providePermissions()
     {
-        return array(
-            'MAILGUNEVENT_RESUBMIT' => array(
-                'name' => 'Resubmit a Mailgun Event',
-                'category' => 'Mailgun',
-            ),
-            'MAILGUNEVENT_VIEW' => array(
+        return [
+            self::PERMISSIONS_VIEW => [
                 'name' => 'View Mailgun events',
-                'category' => 'Mailgun',
-            )
-        );
+                'category' => 'Mailgun'
+            ],
+            self::PERMISSIONS_DELETE => [
+                'name' => 'Delete Mailgun events',
+                'category' => 'Mailgun'
+            ]
+        ];
     }
 
+    /**
+     * Set up permissions, assign to group
+     */
     public function requireDefaultRecords()
     {
         parent::requireDefaultRecords();
         $this->createGroupsAndPermissions();
     }
 
+    /**
+     * Set permission groups
+     */
     final private function createGroupsAndPermissions()
     {
         $manager_code = 'mailgun-managers';
@@ -163,25 +157,15 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $manager_group->Title = "Mailgun Managers";
         $manager_group_id = $manager_group->write();
         if ($manager_group_id) {
-            Permission::grant($manager_group_id, 'MAILGUNEVENT_RESUBMIT');
-            //\Permission::grant($manager_group_id, 'CMS_ACCESS_NSWDPC\Messaging\Mailgun\ModelAdmin');
+            $permissions = $manager_group->Permissions()->filter('Code', [ self::PERMISSIONS_DELETE, self::PERMISSIONS_VIEW ]);
+            $codes = $permissions->column('Code');
+            if(!in_array( self::PERMISSIONS_DELETE, $codes)) {
+                Permission::grant($manager_group_id, self::PERMISSIONS_DELETE);
+            }
+            if(!in_array( self::PERMISSIONS_VIEW, $codes)) {
+                Permission::grant($manager_group_id, self::PERMISSIONS_VIEW);
+            }
         }
-
-        // ensure admins have this permission as well
-        $admin_group = Group::get()->filter('Code', 'ADMIN')->first();
-        if (!empty($admin_group->ID)) {
-            Permission::grant($admin_group->ID, 'MAILGUNEVENT_RESUBMIT');
-        }
-
-        return;
-    }
-
-    public function FailedThenDeliveredNice()
-    {
-        if ($this->IsFailed() || $this->IsRejected()) {
-            return $this->FailedThenDelivered == 1 ? "yes" : "no";
-        }
-        return "";
     }
 
     /**
@@ -189,7 +173,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
      */
     public function getTitle()
     {
-        return DBVarchar::create_field('Varchar', "#{$this->ID} - {$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}");
+        return DBField::create_field('Varchar', "#{$this->ID} - {$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}");
     }
 
     /**
@@ -205,31 +189,22 @@ class MailgunEvent extends DataObject implements PermissionProvider
     }
 
     /**
-     * Returns the age of the submission linked to this event, in seconds
+     * Events can't be edited
      */
-    public function MessageAge()
-    {
-        $submission = $this->Submission();
-        if (empty($submission->ID)) {
-            return false;
-        }
-        $created = new DateTime($submission->Created);
-        $now = new DateTime();
-        $age = $now->format('U') - $created->format('U');
-        return $age;
-    }
-
-    public function canDelete($member = null)
+    public function canEdit($member = null)
     {
         return false;
     }
 
-    public function canEdit($member = null)
+    /**
+     * Apply permission check on deleting events
+     */
+    public function canDelete($member = null)
     {
         if (!$member) {
             $member = Member::currentUser();
         }
-        return Permission::check('MAILGUNEVENT_VIEW', 'any', $member);
+        return Permission::check(self::PERMISSIONS_DELETE, 'any', $member);
     }
 
     /**
@@ -240,14 +215,17 @@ class MailgunEvent extends DataObject implements PermissionProvider
         if (!$member) {
             $member = Member::currentUser();
         }
-        return Permission::check('MAILGUNEVENT_VIEW', 'any', $member);
+        return Permission::check(self::PERMISSIONS_VIEW, 'any', $member);
     }
 
+    /**
+     * Most of the fields here are readonly
+     */
     public function getCmsFields()
     {
         $fields = parent::getCmsFields();
 
-        $fields->removeByName(['SubmissionID','DecodedStorageKey','MimeMessage']);
+        $fields->removeByName(['DecodedStorageKey']);
 
         foreach ($fields->dataFields() as $field) {
             $fields->makeFieldReadonly($field);
@@ -268,22 +246,6 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
         $fields->dataFieldByName('Timestamp')->setRightTitle($this->UTCDateTime());
 
-        // no point showing this when not a failure
-        if (!$this->IsFailed() && !$this->IsRejected()) {
-            $fields->removeByName('FailedThenDelivered');
-        }
-
-        $mime_message = $this->MimeMessage();
-        if (!empty($mime_message->ID) && $mime_message->canView()) {
-            $fields->addFieldsToTab(
-                'Root.File',
-                [
-                    ReadonlyField::create('MimeMessageName', 'Name', $mime_message->Name),
-                    ReadonlyField::create('MimeMessageSize', 'Size', $mime_message->getSize())
-                ]
-            );
-        }
-
         // show a list of related events sharing the same MessageId
         $siblings = $this->getSiblingEvents();
         if ($siblings && $siblings->count() > 0) {
@@ -298,6 +260,10 @@ class MailgunEvent extends DataObject implements PermissionProvider
         return $fields;
     }
 
+    /**
+     * Events that are sibling to this event (sharing the smae MessageId)
+     * @return DataList
+     */
     public function getSiblingEvents()
     {
         $events = MailgunEvent::get()->filter('MessageId', $this->MessageId)->sort('Timestamp ASC');
@@ -306,6 +272,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * UTC date/time based on Timestamp of this event
+     * @return string
      */
     public function UTCDateTime()
     {
@@ -314,12 +281,17 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Local date/time based on Timestamp of this event
+     * @return string
      */
     public function LocalDateTime()
     {
         return $this->RecordDateTime("Australia/Sydney");
     }
 
+    /**
+     * Return RFC2822 formatted string of event timestamp
+     * @return string
+     */
     private function RecordDateTime($timezone = "UTC")
     {
         if (!$this->Timestamp) {
@@ -358,43 +330,53 @@ class MailgunEvent extends DataObject implements PermissionProvider
         return $this->EventType == self::REJECTED;
     }
 
+    /**
+     * Helper method to determin if event is failed || rejected
+     * @return boolean
+     */
     public function IsFailedOrRejected()
     {
         return $this->IsFailed() || $this->IsRejected();
     }
 
     /**
-     * @deprecated use IsFailedOrRejected in order to match API event naming
+     * @return boolean
      */
-    public function IsFailureOrRejected()
-    {
-        return $this->IsFailedOrRejected();
-    }
-
     public function IsDelivered()
     {
         return $this->EventType == self::DELIVERED;
     }
 
+    /**
+     * @return boolean
+     */
     public function IsAccepted()
     {
         return $this->EventType == self::ACCEPTED;
     }
 
+    /**
+     * @return boolean
+     */
     public function IsUserEvent()
     {
         return in_array($this->EventType, self::UserActionStatus());
     }
 
+    /**
+     * Helper method to create a UTC Date from a timestamp
+     * @return string
+     */
     private static function CreateUTCDate($timestamp)
     {
-        $dt = new DateTime();
-        $dt->setTimestamp($timestamp);
-        $dt->setTimezone(new DateTimeZone('UTC'));
-        return $dt->format('Y-m-d');
+        return self::CreateUTCDateTime($timestamp, "Y-m-d");
     }
 
-    private static function CreateUTCDateTime($timestamp)
+    /**
+     * Helper method to create a UTC DateTime from a timestamp
+     * @return string
+     */
+    private static function CreateUTCDateTime($timestamp, $format = "Y-m-d H:i:s")
     {
         $dt = new DateTime();
         $dt->setTimestamp($timestamp);
@@ -403,30 +385,11 @@ class MailgunEvent extends DataObject implements PermissionProvider
     }
 
     /**
-     * Retrieve a MailgunEvent by it's eventId and timestamp. If a submission is provided e.g via user variable, filter on that as well
-     * @note see note above about Event Id / Date - "Event id. It is guaranteed to be unique within a day."
-     */
-    private static function GetByIdAndDate($event_id, $timestamp, MailgunSubmission $submission = null)
-    {
-        $utcdate = self::CreateUTCDate($timestamp);
-        $event = MailgunEvent::get()->filter('EventId', $event_id)->filter('UTCEventDate', $utcdate);
-        if (!empty($submission->ID)) {
-            $event->filter('SubmissionID', $submission->ID);
-        }
-        $event = $event->first();
-        if (!empty($event->ID)) {
-            return $event;
-        }
-        return false;
-    }
-
-    /**
      * GetByMessageDetails - retrieve an event based on the message/timestamp/recipient/event type
      */
     private static function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type)
     {
         if (!$message_id || !$timestamp || !$recipient || !$event_type) {
-            //Log::log("Tried to get a current event but one or more of message_id, timestamp, recipient or event_type was missing. message_id={$message_id} event_type={$event_type}", 'DEBUG');
             return false;
         }
         $event = MailgunEvent::get()->filter(['MessageId' => $message_id, 'Timestamp' => $timestamp, 'Recipient' => $recipient, 'EventType' => $event_type ])->first();
@@ -436,6 +399,11 @@ class MailgunEvent extends DataObject implements PermissionProvider
         return false;
     }
 
+    /**
+     * Return message header from the  {@link Mailgun\Model\Event\Event}
+     * @return string
+     * @param string $header the header to retrieve
+     */
     private function getMessageHeader(MailgunEventModel $event, $header)
     {
         $message = $event->getMessage();
@@ -445,80 +413,46 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Based on a delivery status returned from Mailgun, grab relevant details for this record
+     * @param array $delivery_status
      */
-    private function saveDeliveryStatus($delivery_status)
+    private function saveDeliveryStatus(array $delivery_status)
     {
-        if (!is_array($delivery_status)) {
-            return;
-        }
-
         $this->DeliveryStatusMessage = isset($delivery_status['message']) ? $delivery_status['message'] : '';
         $this->DeliveryStatusDescription = isset($delivery_status['description']) ? $delivery_status['description'] : '';
         $this->DeliveryStatusCode = isset($delivery_status['code']) ? $delivery_status['code'] : '';
         $this->DeliveryStatusAttempts = isset($delivery_status['attempt-no']) ? $delivery_status['attempt-no'] : '';
         $this->DeliveryStatusSession = isset($delivery_status['session-seconds']) ? $delivery_status['session-seconds'] : '';
         $this->DeliveryStatusMxHost = isset($delivery_status['mx-host']) ? $delivery_status['mx-host'] : '';
-
         return true;
     }
 
     /**
-     * Given a Mailgun\Model\Event\Event, store if possible, or return the event if already stored
-     * @note get the custom data to determine a {@link MailgunSubmission} record if possible
+     * Given a Mailgun\Model\Event\Event, store if possible
      * @param Mailgun\Model\Event\Event $event
+     * @return MailgunEvent|boolean
      */
-    public static function StoreEvent(MailgunEventModel $event, $mailgun_message_id = "")
+    public function storeEvent(MailgunEventModel $event)
     {
 
-        // 1. Attempt to get a submission record via user variables set
+        $this->extend('onBeforeStoreMailgunEvent', $event);
+
+        $mailgun_event_id = $event->getId();
+        $event_type = $event->getEvent();
         $variables = $event->getUserVariables();
-        $submission_id = null;
-        if (!empty($variables['s'])) {
-            $submission_id = $variables['s'];// MailgunSubmission.ID
-        }
-
-        $submission = null;
-        // Retrieve the local submission record based on event user variables
-        if ($submission_id) {
-            $submission = MailgunSubmission::get()->filter('ID', $submission_id)->first();
-            if (!empty($submission->ID)) {
-                $submission_id = $submission->ID;
-            }
-        }
-
         $timestamp = $event->getTimestamp();
         $status = $event->getDeliveryStatus();
         $storage = $event->getStorage();
         $tags = $event->getTags();
         $recipient = $event->getRecipient();
-        $event_type = $event->getEvent();
-        $mailgun_event_id = $event->getId();// may be empty  e.g Webhook requests do not send an event id
 
-        // get message id from headers if not provided
-        if (!$mailgun_message_id) {
-            $message = $event->getMessage();
-            if (!empty($message['headers']['message-id'])) {
-                $mailgun_message_id = $message['headers']['message-id'];
-            }
+        // get message id from headers
+        $mailgun_message_id = "";
+        $message = $event->getMessage();
+        if (!empty($message['headers']['message-id'])) {
+            $mailgun_message_id = $message['headers']['message-id'];
         }
 
-        $mailgun_message_id = MessageConnector::cleanMessageId($mailgun_message_id);
-
-        if (!$mailgun_message_id) {
-            Log::log("Tried to create/find a  MailgunEvent but no message_id was provided or found", 'ERROR');
-            return false;
-        }
-
-        $create = false;
-        $mailgun_event = self::GetByMessageDetails($mailgun_message_id, $timestamp, $recipient, $event_type);
-        $ident_date = self::CreateUTCDateTime($timestamp);
-        $ident = "{$mailgun_message_id} {$ident_date} {$recipient} {$event_type}";
-        if (empty($mailgun_event->ID)) {
-            $mailgun_event = MailgunEvent::create();
-            $create = true;
-        }
-
-        $mailgun_event->SubmissionID = $submission_id;// if set
+        $mailgun_event = MailgunEvent::create();
         $mailgun_event->EventId = $mailgun_event_id;// webhooks do not provide a mailgun event id
         $mailgun_event->MessageId = $mailgun_message_id;
         $mailgun_event->Timestamp = $timestamp;
@@ -529,38 +463,14 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
         $mailgun_event->saveDeliveryStatus($status);
         $mailgun_event->StorageURL = isset($storage['url']) ? $storage['url'] : '';
-        $mailgun_event->DecodedStorageKey = "";
-        $event_id = $mailgun_event->write();
-        if (!$event_id) {
+        $mailgun_event->DecodedStorageKey = "";// no need to store this
+        $mailgun_event_id = $mailgun_event->write();
+        if (!$mailgun_event_id) {
             // could not create record
-            Log::log("Failed to create a MailgunEvent within MailgunEvent::StoreEvent()", 'ERROR');
             return false;
         }
-
-        /*
-        if($create) {
-            //Log::log("Stored Event #{$event_id} of type '{$mailgun_event->EventType}' for submission #{$submission_id}", 'DEBUG');
-        }
-        */
-
+        $this->extend('onAfterStoreMailgunEvent', $event, $mailgun_event);
         return $mailgun_event;
-    }
-
-    /**
-     * Provide action buttons to allow a resubmit. Only failures marked 'permanent' can be resubmitted - temporary failures are retried by MG
-     */
-    public function getCMSActions()
-    {
-        $actions = parent::getCMSActions();
-        if (Permission::check('MAILGUNEVENT_RESUBMIT')) {
-            $delivered = $this->IsDelivered();
-            if (($this->IsFailedOrRejected() && $this->Severity != self::FAILURE_TEMPORARY) || $delivered) {
-                $try_again = new FormAction('doTryAgain', 'Resubmit');
-                $try_again->addExtraClass('ss-ui-action-constructive');
-                $actions->push($try_again);
-            }
-        }
-        return $actions;
     }
 
     /**
@@ -577,148 +487,4 @@ class MailgunEvent extends DataObject implements PermissionProvider
         return $events;
     }
 
-    public function MimeMessageContent()
-    {
-        $content = "";
-        $file = $this->MimeMessage();
-        // does the file exist, of the correct type and does the current member have permissions?
-        $error = "";
-        if (empty($file->ID)) {
-            $error = "File does not exist";
-        }
-
-        if (!($file instanceof MailgunMimeFile)) {
-            $error = "File is not a MailgunMimeFile";
-        }
-
-        if (!$file->CanView()) {
-            $error = "File cannot be viewed";
-        }
-
-        if ($error) {
-            Log::log($error, 'NOTICE');
-            return false;
-        } else {
-            $content = $file->getString();
-            return $content;
-        }
-    }
-
-    /**
-     * Check if the event can be resubmitted via an {@link self::AutomatedResubmit()}
-     */
-    private function CanResubmit()
-    {
-
-        // is this a temporary failure ? Mailgun will try to resubmit itself
-        // if we resubmit it, MG may deliver the original on retry and the resubmit
-        if ($this->Severity == self::FAILURE_TEMPORARY) {
-            return false;
-        }
-
-        $max_failures = $this->config()->max_failures;
-        if (!is_int($max_failures)) {
-            $max_failures = 3;// default to 3 if not configured
-        }
-
-        // the number of times this has specific event has been resubmitted
-        if ($this->Resubmits >= $max_failures) {
-            return false;
-        }
-
-        // the number of failures for this Recipient/Submission combo
-        $current_failures = $this->GetRecipientFailures();
-        if ($current_failures >= $max_failures) {
-            // cannot resubmit
-            Log::log("Too many recipient/msg failures : {$current_failures}", 'NOTICE');
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Entry point for queued job to resubmit an event
-     */
-    public function AutomatedResubmit()
-    {
-
-        // only Failed events can be resubmitted this way
-        if (!$this->IsFailed()) {
-            //Log::log("Not Failed - not attempting AutomatedResubmit for {$this->EventType} event.", 'DEBUG');
-            return false;
-        }
-
-        // If this SPECIFIC event has been resubmitted already, do not resubmit
-        if ($this->Resubmitted) {
-            //Log::log("AutomatedResubmit - this specific event #{$this->ID} has already been resubmitted", 'DEBUG');
-            return false;
-        }
-
-        if ($this->FailedThenDelivered == 1) {
-            //Log::log("AutomatedResubmit - this specific event #{$this->ID} was marked failed then delivered, not resubmitting", 'DEBUG');
-            return false;
-        }
-
-        // Automated resubmits must check if a limit has been reached
-        if (!$this->CanResubmit()) {
-            //Log::log("AutomatedResubmit CannotResubmit", 'DEBUG');
-            throw new Exception("Cannot resubmit: too many failures");
-        }
-
-        try {
-            $message = new MessageConnector();
-            // Resubmit this event
-            $result = $message->resubmit($this);
-            // A single event can only be resubmitted once
-            // Resubmission may result in another failed event (and that can be resubmitted)
-            //Log::log("AutomatedResubmit - mark as resubmitted", 'DEBUG');
-            $this->Resubmitted = 1;
-            $this->Resubmits = ($this->Resubmits + 1);
-            $this->write();
-        } catch (Exception $e) {
-            // update number of resubmits
-            $this->Resubmits = ($this->Resubmits + 1);
-            //Log::log("AutomatedResubmit - error resubmits={$this->Resubmits} - " . $e->getMessage(), 'DEBUG');
-            $this->write();
-        }
-
-        return true;
-    }
-
-    /**
-     * Manually resubmit this event, returning a new MailgunSubmission record.
-     * @note we resubmit via the stored MIME message based on the StorageURL stored in this record, which is valid for 3 days
-     * @note if the event has a MimeMessage message attached, this will be used as the content of the message sent to Mailgun
-     */
-    public function Resubmit()
-    {
-        if (!Permission::check('MAILGUNEVENT_RESUBMIT')) {
-            throw new ValidationException("Access denied");
-        }
-
-        if (!$this->IsFailed() && !$this->IsRejected() && !$this->IsDelivered()) {
-            throw new ValidationException("Can only resubmit an event if it is failed/rejected/delivered");
-        }
-
-        $message = new MessageConnector();
-        $message_id = false;
-        try {
-            // Manual resubmits can redeliver a message even if delivered
-            $message_id = $message->resubmit($this, true);
-            $this->Resubmitted = 1;
-        } catch (Exception $e) {
-            throw new ValidationException($e->getMessage());
-        }
-
-        $this->Resubmits = ($this->Resubmits + 1);
-        $this->write();
-
-        if (!$message_id) {
-            throw new ValidationException("Sorry, could not resubmit this event. More information may be available in system logs.");
-            return false;
-        }
-
-        return $message_id;
-    }
 }

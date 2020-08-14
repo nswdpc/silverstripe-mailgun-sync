@@ -1,8 +1,9 @@
 <?php
 namespace NSWDPC\Messaging\Mailgun;
 
-use Exception;
-
-class InvalidRequestException extends Exception
+/**
+ * This exception is thrown when an error occurs pre message send
+ */
+class InvalidRequestException extends \Exception
 {
 }

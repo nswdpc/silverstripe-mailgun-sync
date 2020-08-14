@@ -12,6 +12,7 @@ use SilverStripe\Assets\Folder;
 use SilverStripe\Assets\File;
 use SilverStripe\Security\Group;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
+use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 use Exception;
 use DateTime;
 
@@ -20,6 +21,49 @@ use DateTime;
  */
 class Message extends Base
 {
+
+    /**
+     * Delay sending (via queued job)
+     * @var float
+     */
+    protected $send_in_seconds = 0;
+
+    /**
+     * Accelerated Mobile Pages (AMP) HTML part
+     * @var string
+     */
+    protected $amp_html = "";
+
+    /**
+     * Template options: name, verions, text (template, t:xxx)
+     * @var array
+     */
+    protected $template = [];
+
+    /**
+     * Options (o:xxx)
+     * @var array
+     */
+    protected $options = [];
+
+    /**
+     * Headers (h:X-xxx), the X is NOT auto-prefixed
+     * @var array
+     */
+    protected $headers = [];
+
+    /**
+     * Variables (v:xxx)
+     * @var array
+     */
+    protected $variables = [];
+
+
+    /**
+     * Recipient variables for batch sending (recipient-variables)
+     * @var array
+     */
+    protected $recipient_variables = [];
 
     /**
      * Retrieve MIME encoded version of message
@@ -42,7 +86,7 @@ class Message extends Base
      * @param array $parameters an array of parameters for the Mailgun API
      * @param string $in a strtotime value added to 'now' being the time that the message will be sent via a queued job, if enabled
      */
-    public function send($parameters, $in = '')
+    public function send($parameters)
     {
         $client = $this->getClient();
         $domain = $this->getApiDomain();
@@ -57,15 +101,19 @@ class Message extends Base
         unset($parameters['h:X-SilverStripeSite']);
         unset($parameters['h:X-PHP-Originating-Script']);
 
-        // apply Mailgun testmode if Config is set
+        // apply Mailgun testmode if it is enabled in configuration
         $this->applyTestMode($parameters);
 
+        // Add in all custom email parameters
+        $this->addCustomParameters($parameters);
+
         // if required, apply the default recipient
+        // a default recipient can be applied if the message has no "To" parameter
         $this->applyDefaultRecipient($parameters);
 
+        // send options
         $send_via_job = $this->sendViaJob();
-        //Log::log("send_via_job={$send_via_job}", 'DEBUG');
-
+        $in = $this->getSendIn();// seconds
         switch ($send_via_job) {
             case 'yes':
                 return $this->queueAndSend($domain, $parameters, $in);
@@ -86,6 +134,7 @@ class Message extends Base
 
     /**
      * Base64 encode attachments, primarily used to avoid attachment corruption issues when storing binary data in a queued job
+     * @param array $parameters
      */
     public function encodeAttachments(&$parameters)
     {
@@ -98,6 +147,7 @@ class Message extends Base
 
     /**
      * Base64 decode attachments, for decoding attachments encoded with {@link self::encodeAttachments()}
+     * @param array $parameters
      */
     public function decodeAttachments(&$parameters)
     {
@@ -130,17 +180,21 @@ class Message extends Base
     }
 
     /**
-     * Send via the queued job instead
+     * Send via the queued job
      * @param string $domain the Mailgun API domain e.g sandboxXXXXXX.mailgun.org
      * @param array $parameters Mailgun API parameters
      * @param string $in
+     * @return QueuedJobDescriptor|false
      */
     private function queueAndSend($domain, $parameters, $in)
     {
         $this->encodeAttachments($parameters);
         $start = $this->getSendDateTime($in);
         $job  = new SendJob($domain, $parameters);
-        return singleton(QueuedJobService::class)->queueJob($job, $start->format('Y-m-d H:i:s'));
+        if($job_id = QueuedJobService::singleton()->queueJob($job, $start->format('Y-m-d H:i:s'))) {
+            return QueuedJobDescriptor::get()->byId($job_id);
+        }
+        return false;
     }
 
     /**
@@ -171,120 +225,14 @@ class Message extends Base
         $events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
 
         $is_delivered = !empty($events);
-        if ($is_delivered) {
-
-            // mark this event as FailedThenDelivered, DeliveryCheckJob then ignores it on the next run
-            $event->FailedThenDelivered = 1;
-            $event->write();
-            //Log::log("isDelivered set MailgunEvent #{$event->ID}/{$event->EventType} to FailedThenDelivered=1", 'DEBUG');
-
-            if ($cleanup) {
-                try {
-                    // Remove event folder and the downloaded message file (see Folder::onBeforeDelete()
-                    $folder = $this->getFolder($event);
-                    $folder->delete();
-                    //Log::log("isDelivered deleted folder for #{$event->ID}/{$event->EventType}", 'DEBUG');
-                } catch (Exception $e) {
-                }
-            }
-        } else {
-            //Log::log("isDelivered no polled 'delivered' events for #{$event->ID}/{$event->EventType}", 'DEBUG');
-        }
-
         return $is_delivered;
     }
 
     /**
-     * Resubmits a message via sendMime() - note that headers are kept intact including Cc and To but the message is only ever sent to the $event->Recipient
-     * @param MailgunEvent $event containing a StorageURL
-     * @param boolean $allow_redeliver - allow redeliver, even if the event has been delivered previously (manual resubmit)
-     * @param boolean $use_local_file_contents used for tests to specify usage of a downloaded local file
-     * @note as of 10th July 2017, an authorised Mailgun user can resubmit from the Mailgun control panel via the cog icon in Logs View
-     * @note as MG only stores logs for 30 days
-     * @todo test that the MIME encoded contents being sent - the recipient in that matches the recipient from the Event?
+     * Trim < and > from message id
+     * @return string
+     * @param string
      */
-    public function resubmit(MailgunEvent $event, $allow_redeliver = false, $use_local_file_contents = false)
-    {
-        if (empty($event->Recipient)) {
-            throw new Exception("Event #{$event->ID} has no recipient, cannot resubmit");
-        }
-
-        /**
-         * Determine if the message has been delivered... for instance resent from Mailgun Admin
-         * in which case, we don't want to resubmit
-         * TODO tests should be able to access this?
-         */
-        if (!$allow_redeliver && $this->isDelivered($event)) {
-            throw new Exception("Mailgun has already delivered this message (allow_redeliver is off)");
-        }
-
-        // retrieve MIME content from event
-        $message_mime_content = "";
-        try {
-            $message = $this->getMime($event);
-            if (!$use_local_file_contents && ($message instanceof ShowResponse)) {
-                $message_mime_content = $message->getBodyMime();
-            }
-        } catch (Exception $e) {
-            // Will throw a Mailgun 404 HTTPClientException like "The endpoint you tried to access does not exist. Check your URL"
-            Log::log("getMime: " . $e->getMessage(), 'NOTICE');
-        }
-
-        // No message content or $use_local_file_contents==true (Test)
-        if (!$message_mime_content) {
-            Log::log("Message for Event #{$event->ID} at URL:{$event->StorageURL} no longer exists. It may be old?", 'NOTICE');
-            // If the message no longer exists.. maybe it's been stored locally
-            $message_mime_content = $event->MimeMessageContent();
-        }
-
-        if (!$message_mime_content) {
-            throw new Exception("No local or remote content found for message linked to MailgunEvent #{$event->ID}, cannot resubmit");
-        }
-
-        try {
-            $this->storeIfRequired($event, $message_mime_content);
-        } catch (Exception $e) {
-            Log::log("Could not store message. Error: " . $e->getMessage(), 'NOTICE');
-        }
-
-        $api_key = $this->getApiKey();
-        $client = $this->getClient($api_key);
-        $domain = $this->getApiDomain();
-
-        // send to this event's recipient
-        //Log::log("Resend message to {$event->Recipient} using domain {$domain}",  'DEBUG');
-
-        $params = [];
-        $params['o:tag'] = [ MailgunEvent::TAG_RESUBMIT ];//tag - can poll for resubmitted events then
-        // Specific handling during tests to ensure testmode is correctly set, as required
-        if ($this->workaroundTestMode()) {
-            // ensure testmode is off when set, see method documentation for more
-            // only applicable when running tests
-            // this works around an issue where events that will fail are marked as "test delivered" in Mailgun
-            //Log::log("Workaround testmode is ON - turning testmode off",  'DEBUG');
-            unset($params['o:testmode']);
-        } else {
-            $testmode = isset($params['o:testmode']) ? $params['o:testmode'] : "not set";
-            //Log::log("Workaround testmode is OFF - o:testmode={$testmode}",  'DEBUG');
-        }
-        // apply testmode if Config is set - this will not override is_running_test application of testmode above
-        $this->applyTestMode($params);
-        $result = $client->messages()->sendMime($domain, [ $event->Recipient ], $message_mime_content, $params);
-        /*
-            object(Mailgun\Model\Message\SendResponse)[1740]
-              private 'id' => string '<message-id.mailgun.org>' (length=92)
-              private 'message' => string 'Queued. Thank you.' (length=18)
-        */
-        if (!$result || empty($result->getId())) {
-            throw new Exception("Failed to resend message to {$event->Recipient} - unexpected response");
-        } else {
-            $message_id =  $result->getId();
-            $message_id = self::cleanMessageId($message_id, "<>");
-            //Log::log("Resent message to {$event->Recipient}. messageid={$message_id} message={$result->getMessage()}",  'DEBUG');
-            return $message_id;
-        }
-    }
-
     public static function cleanMessageId($message_id)
     {
         $message_id = trim($message_id, "<>");
@@ -292,126 +240,144 @@ class Message extends Base
     }
 
     /**
-     * This method is provided for tests to access storeIfRequired and store the downloaded event message contents
-     * @param MailgunEvent $event
-     * @returns mixed array|false
+     * When sending via a queued job, this the start time of the job in the future (in seconds)
+     * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
+     * To set "deliverytime" set it as an option to setOptions()
      */
-    public function storeTestMessage(MailgunEvent $event)
-    {
-        $message = $this->getMime($event);
-        if ($message instanceof ShowResponse) {
-            $message_mime_content = $message->getBodyMime();
-            $file =  $this->storeIfRequired($event, $message_mime_content, true);
-            return [
-                'File' => $file,
-                'Content' => $message_mime_content,
+    public function setSendIn(float $seconds) {
+        $this->send_in_seconds = $seconds;
+        return $this;
+    }
+
+    public function getSendIn() {
+        return $this->send_in_seconds;
+    }
+
+    /**
+     * @param array $recipient_variables where key is a plain recipient address
+     *              and value is a dictionary with variables
+     *              that can be referenced in the message body.
+     */
+    public function setRecipientVariables(array $recipient_variables) {
+        $this->recipient_variables = $recipient_variables;
+        return $this;
+    }
+
+    /**
+     * @returns string|null
+     */
+    public function getRecipientVariables() {
+        return $this->recipient_variables;
+    }
+
+    public function setAmpHtml(string $html) {
+        $this->amp_html = $html;
+        return $this;
+    }
+
+    public function getAmpHtml() {
+        return $this->amp_html;
+    }
+
+    public function setTemplate($template, $version = "", $include_in_text = "") {
+        if($template) {
+            $this->template = [
+                'template' => $template,
+                'version' => $version,
+                'text' => $include_in_text == "yes" ? "yes" : "",
             ];
         }
-        return false;
+        return $this;
+    }
+
+    public function getTemplate() {
+        return $this->template;
     }
 
     /**
-     * Given an Event, store its contents if it is > 2 days old and if config allows
-     * @param MailgunEvent $event
-     * @param string $contents
-     * @param boolean $force
+     * Keys are not prefixed with "o:"
      */
-    private function storeIfRequired(MailgunEvent $event, $contents, $force = false)
+    public function setOptions(array $options) {
+        $this->options = $options;
+        return $this;
+    }
+
+    public function getOptions() {
+        return $this->options;
+    }
+
+    /**
+     * Keys are not prefixed with "h:"
+     */
+    public function setCustomHeaders(array $headers) {
+        $this->headers = $headers;
+        return $this;
+    }
+
+    public function getCustomHeaders() {
+        return $this->headers;
+    }
+
+    /**
+     * Keys are not prefixed with "v:"
+     */
+    public function setVariables(array $variables) {
+        $this->variables = $variables;
+        return $this;
+    }
+
+    public function getVariables() {
+        return $this->variables;
+    }
+
+    /**
+     * Based on options set in {@link NSWDPC\Messaging\Mailgun\MailgunEmail} set Mailgun options, params, headers and variables
+     * @param NSWDPC\Messaging\Mailgun\MailgunEmail $email
+     * @param array $parameters
+     */
+    protected function addCustomParameters(&$parameters)
     {
-        // Is local storage configured and on ?
-        if (!$this->syncLocalMime()) {
-            //Log::log("storeIfRequired - sync_local_mime is off in config",  'DEBUG');
-            return;
+
+        // VARIABLES
+        $variables = $this->getVariables();
+        foreach($variables as $k=>$v) {
+            $parameters["v:{$k}"] = $v;
         }
 
-        // Does the $event already have a MimeMessage file ? yes -> return
-        // No point storing it again
-        $file = $event->MimeMessage();
-        if (($file instanceof MailgunMimeFile) && $file->exists() && $file->getAbsoluteSize() > 0) {
-            // no-op
-            //Log::log("storeIfRequired - event already has a MimeMessage file",  'DEBUG');
-            return;
+        // OPTIONS
+        $options = $this->getOptions();
+        foreach($options as $k=>$v) {
+            $parameters["o:{$k}"] = $v;
         }
 
-        // failures
-        $failures = $min_resubmit_failures = 0;
-        if (!$force) {
-            $failures = $event->GetRecipientFailures();//number of failures for this submission/recipient
-            $min_resubmit_failures = $this->resubmitFailures();
-            if ($failures < $min_resubmit_failures) { // e.g if resubmit_failures is 2 then the 3rd failure will download the MIME content
-                //Log::log("storeIfRequired - not enough failures - {$failures}",  'DEBUG');
-                return;
+        // TEMPLATE
+        $template = $this->getTemplate();
+        if(!empty($template['template'])) {
+            $parameters["template"] = $template['template'];
+            if(!empty($template['version'])) {
+                $parameters["t:version"] = $template['version'];
+            }
+            if(isset($template['text']) && $template['text'] == "yes") {
+                $parameters["t:text"] = $template['text'];
             }
         }
 
-        // save contents to a file
-        //Log::log("storeIfRequired - storing locally. failures={$failures} min_resubmit_failures={$min_resubmit_failures}",  'DEBUG');
-        $folder = $this->getFolder($event);
-        $file = new MailgunMimeFile();
-        $file->Name = $this->messageFileName();
-        $file->ParentID = $folder->ID;
-
-        // save string contents
-        $result = $file->setFromString($contents, $file->Name);
-        if ($result === false) {
-            throw new Exception("Failed to put contents into folder #{$folder->ID}/{$file->Name}");
+        // AMP HTML handling
+        if($amp_html = $this->getAmpHtml()) {
+            $parameters["amp-html"] = $amp_html;
         }
 
-        $file_id = $file->write();
-        if (empty($file_id)) {
-            // could not write the file
-            throw new Exception("Failed to write file {$file->Name} into folder #{$folder->ID}");
+        // HEADERS
+        $headers = $this->getCustomHeaders();
+        foreach($headers as $k=>$v) {
+            $parameters["h:{$k}"] = $v;
         }
 
-        $event->MimeMessageID = $file_id;
-        $event->write();
+        // RECIPIENT VARIABLES
+        if($recipient_variables = $this->getRecipientVariables()) {
+            $parameters["recipient-variables"] = json_encode($recipient_variables);
+        }
 
-        $length = strlen($contents);
-        //Log::log("storeIfRequired - event has file id {$file_id} length={$length}",  'DEBUG');
-
-        return $file;
     }
 
-    /**
-     * Get (and possibly create) a {@link Folder} for this event
-     */
-    protected function getFolder(MailgunEvent $event)
-    {
-        $secure_folder_name = $event->config()->secure_folder_name;
-        if (!$secure_folder_name) {
-            throw new Exception("No secure_folder_name configured on class MailgunEvent");
-        }
-        // containing folder
-        $container_folder_path = $secure_folder_name . '/mailgun-sync';
-        $container_folder = Folder::find_or_make($container_folder_path);
-        // set folder view permissions
-        if ($container_folder->hasExtension('SecureFileExtension')) {
-            $admin_group = Group::get()->filter('Code', 'administrators')->first();
-            if (empty($admin_group)) {
-                throw new Exception("No administrators group is present");
-            }
-            $container_folder->CanViewType = 'OnlyTheseUsers';
-            $container_folder->ViewerGroups()->add($admin_group);
-            $container_folder->write();
-        }
-        // path per event
-        $folder_path = $container_folder_path . '/event/' . $event->ID;
-        $folder = Folder::find_or_make($folder_path);
-        if (empty($folder->ID)) {
-            throw new Exception("Failed to create folder {$folder_path}");
-        }
-        return $folder;
-    }
-
-    /**
-     * Generate a non predictable filename for the downloaded message file
-     * @note while we are dealing with a MIME encoded message here, File::validate will block extensions like .eml, .mime by default
-     */
-    protected function messageFileName()
-    {
-        $rand = mt_rand(0, 1000000000);
-        $time = microtime(true);
-        $filename = hash("md5", $time . $rand) . ".txt";
-        return $filename;
-    }
 }

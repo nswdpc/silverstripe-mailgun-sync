@@ -27,6 +27,7 @@ class Bounce extends Base
         $response = $client->suppressions()->bounces()->delete($domain, $email_address);
         return $response;
     }
+
     /**
      * See: http://mailgun-documentation.readthedocs.io/en/latest/api-suppressions.html#add-a-single-bounce
      */
