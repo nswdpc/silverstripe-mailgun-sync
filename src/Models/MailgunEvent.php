@@ -169,7 +169,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     }
 
     /**
-     * Allow for easy visual matching between this and the Mailgin App Logs screen
+     * Allow for easy visual matching between this and the Mailgun App Logs screen
      */
     public function getTitle()
     {
