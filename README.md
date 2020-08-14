@@ -2,9 +2,9 @@
 
 This module provides functionality to send emails via the Mailgun API and store events related to messages using Mailgun's webhooks feature
 
-## Breaking changes in ^2
+## Breaking changes in upcoming ^2 release
 
-Version 2 removed unused features to reduce the complexity of this module. The core functionality is now:
+Version 2 will remove unused features to reduce the complexity of this module. The core functionality is now:
 
 + Send messages via the standard Email process in Silverstripe, with added Mailgun options
 + Send messages directly via the API
@@ -36,7 +36,7 @@ The module is not (yet) in Packagist, add:
 ```
 to your composer.json, then install:
 ```
-$ composer require nswdpc/silverstripe-mailgun-sync ^2
+$ composer require nswdpc/silverstripe-mailgun-sync
 ```
 
 ## Configuration
@@ -86,10 +86,62 @@ See [Detailed Configuration](./docs/en/005-detailed_configuration.md)
 
 ## Sending
 
-Sending of messages occurs via ```NSWDPC\Messaging\Mailgun\Connector\Message``` class using MailgunEmail & MailgunMailer.
+### Mailer
 
-MailgunEmail passes the setting of all options, variables, headers and the like to the Mailer, which in turn passes them to the API client.
+For a good example of this, look at the MailgunSyncTest class. Messages are sent using the default Silverstripe Email API:
 
+```php
+$email = Email::create();
+$email->setFrom($from);
+$email->setTo($to);
+$email->setSubject($subject);
+```
+To add custom parameters used by Mailgun you call:
+```php
+$email->setCustomParameters($args)
+```
+Where `$args` is an array of [your custom parameters](https://documentation.mailgun.com/en/latest/api-sending.html#sending). Calling setCustomParameters() multiple times will overwrite previous parameters.
+
+Send the message:
+```php
+$response = $email->send();
+```
+
+The response will either be a MailgUn message-id OR a QueuedJobDescriptor instance if you are sending via the queued job.
+
+### Via API connector
+
+You can send directly via the API connector, which handles client setup and the like based on configuration.
+For a good example of this, look at the MailgunMailer class
+
+```php
+use NSWDPC\Messaging\Mailgun\Connector\Message;
+...
+$parameters = [
+        'to' => ...,
+
+        'from' => ...,
+        'o:tag' => ['tag1','tag2']
+        // etc
+];
+$connector = Message::create();
+$response = $connector->send($parameters);
+```
+The response will either be a MailgUn message-id OR a QueuedJobDescriptor instance if you are sending via the queued job.
+
+### Direct to Mailgun PHP SDK
+
+If you like, you can use the Mailgun PHP SDK to send messages:
+
+```
+$client = Mailgun::create($api_key);
+// set things up then send
+$response = $client->messages()->send($domain, $parameters);
+```
+
+The response will be a `Mailgun\Model\Message\SendResponse` instance if successul.
+
+See the [Mailgun PHP SDK documentation](https://github.com/mailgun/mailgun-php) for examples.
 
 ## Queued Jobs
 
