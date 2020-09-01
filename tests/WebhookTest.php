@@ -76,8 +76,6 @@ class WebhookTest extends FunctionalTest
 
         $body = json_encode($data, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
 
-        print $body;
-
         $response = $this->post($url, $data, $headers, $session, $body, $cookies);
         $this->assertEquals(
             200,
