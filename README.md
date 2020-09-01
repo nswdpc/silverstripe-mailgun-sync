@@ -54,14 +54,16 @@ Add the following to your project's YML config:
 ```yml
 ---
 Name: local-mailgunsync-config
+After:
+  - '#mailgunsync'
 ---
 # API config
 NSWDPC\Messaging\Mailgun\Connector\Base:
   # your Mailgun mailing domain
   api_domain: 'configured.mailgun.domain'
-  # your API key
-  api_key: 'key-xxxx'
-  # this setting triggers o:test='yes' in messages
+  # your API key or Domain Sending Key
+  api_key: 'xxxx'
+  # this setting triggers o:testmode='yes' in messages
   api_testmode: true|false
   # You will probably want this as true, when false some clients will show 'Sent on behalf of' text
   always_set_sender: true
@@ -74,7 +76,12 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   # grab this from your Mailgun account control panel
   webhook_signing_key: ''
   # whether you want to store webhook requests
-  webhooks_enabled: true
+  webhooks_enabled: true|false
+---
+Name: local-mailer
+After:
+  - '#emailconfig'
+---
 # Send messages via the MailgunMailer
 SilverStripe\Core\Injector\Injector:
   SilverStripe\Control\Email\Email:
@@ -82,6 +89,8 @@ SilverStripe\Core\Injector\Injector:
   SilverStripe\Control\Email\Mailer:
     class: 'NSWDPC\Messaging\Mailgun\MailgunMailer'
 ```
+
+> Remember to flush configuration after a YML change.
 
 See [Detailed Configuration](./docs/en/005-detailed_configuration.md)
 
@@ -92,13 +101,46 @@ See [Detailed Configuration](./docs/en/005-detailed_configuration.md)
 For a good example of this, look at the MailgunSyncTest class. Messages are sent using the default Silverstripe Email API:
 
 ```php
+use SilverStripe\Control\Email\Email;
+
 $email = Email::create();
 $email->setFrom($from);
 $email->setTo($to);
 $email->setSubject($subject);
 ```
-To add custom parameters used by Mailgun you call:
+To add custom parameters used by Mailgun you call setCustomParameters():
 ```php
+
+// variables
+$variables = [
+    'test' => 'true',
+    'foo' => 'bar',
+];
+
+//options
+$options = [
+    'testmode' => 'yes',
+    'tag' => ['tag1','tag2','tag4'],
+    'tracking' => 'yes',
+    'require-tls' => 'yes'
+];
+
+// headers
+$headers = [
+    'X-Test-Header' => 'testing'
+];
+
+$recipient_variables = [
+    'someone@example.com' => ["unique_id" => "testing_123"]
+];
+
+$args = [
+    'options' => $options,
+    'variables' => $variables,
+    'headers' => $headers,
+    'recipient-variables' => $recipient_variables
+];
+
 $email->setCustomParameters($args)
 ```
 Where `$args` is an array of [your custom parameters](https://documentation.mailgun.com/en/latest/api-sending.html#sending). Calling setCustomParameters() multiple times will overwrite previous parameters.
@@ -108,7 +150,7 @@ Send the message:
 $response = $email->send();
 ```
 
-The response will either be a MailgUn message-id OR a QueuedJobDescriptor instance if you are sending via the queued job.
+The response will either be a Mailgun message-id OR a `Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor` instance if you are sending via the queued job.
 
 ### Via API connector
 
@@ -117,24 +159,26 @@ For a good example of this, look at the MailgunMailer class
 
 ```php
 use NSWDPC\Messaging\Mailgun\Connector\Message;
-...
-$parameters = [
-        'to' => ...,
 
-        'from' => ...,
-        'o:tag' => ['tag1','tag2']
-        // etc
+//set parameters
+$parameters = [
+    'to' => ...,
+    'from' => ...,
+    'o:tag' => ['tag1','tag2']
+    // etc
 ];
 $connector = Message::create();
 $response = $connector->send($parameters);
 ```
-The response will either be a MailgUn message-id OR a QueuedJobDescriptor instance if you are sending via the queued job.
+The response will either be a Mailgun message-id OR a `Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor` instance if you are sending via the queued job.
 
 ### Direct to Mailgun PHP SDK
 
-If you like, you can use the Mailgun PHP SDK to send messages:
+If you like, you can send messages and interact with the Mailgun API via the Mailgun PHP SDK:
 
-```
+```php
+use Mailgun\Mailgun;
+
 $client = Mailgun::create($api_key);
 // set things up then send
 $response = $client->messages()->send($domain, $parameters);
