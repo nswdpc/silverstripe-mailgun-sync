@@ -2,9 +2,9 @@
 
 This module provides functionality to send emails via the Mailgun API and store events related to messages using Mailgun's webhooks feature
 
-## Breaking changes in upcoming ^2 release
+## Breaking changes in upcoming ^1 release
 
-Version 2 will remove unused features to reduce the complexity of this module. The core functionality is now:
+Version 1 will remove unused features to reduce the complexity of this module. The core functionality is now:
 
 + Send messages via the standard Email process in Silverstripe, with added Mailgun options
 + Send messages directly via the API
