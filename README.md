@@ -25,19 +25,9 @@ and...
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
 
 ## Installing
-The module is not (yet) in Packagist, add:
 
-```yaml
-"repositories": [
-  {
-    "type" : "vcs",
-    "url": "https://github.com/nswdpc/silverstripe-mailgun-sync.git"
-  }
-]
 ```
-to your composer.json, then install:
-```
-$ composer require nswdpc/silverstripe-mailgun-sync
+composer require nswdpc/silverstripe-mailgun-sync dev-feature-ss4
 ```
 
 ## Configuration
