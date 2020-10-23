@@ -79,8 +79,11 @@ class MailgunWebHook extends Controller {
     public function submit(HTTPRequest $request = null) {
 
         try {
+
+            $connector = $this->getConnector();
+
             // turned off in configuration - but allow retry if config error
-            if(!$this->config()->get('webhooks_enabled')) {
+            if(!$connector->getWebhooksEnabled()) {
                 throw new WebhookServerException("Not enabled", 503);
             }
 
@@ -112,8 +115,25 @@ class MailgunWebHook extends Controller {
                 throw new WebhookClientException("Missing payload data - event-data");
             }
 
+            // verify the variable, if set, is in the payload, ignore submission
+            $variable = $this->getWebhookFilterVariable();
+            if($variable) {
+                $webhook_filter_ok = false;
+                $previous_variable = $this->getWebhookPreviousFilterVariable();
+                if(!empty($payload['event-data']['user-variables']['wfv'])) {
+                    if($payload['event-data']['user-variables']['wfv'] == $variable
+                        || $payload['event-data']['user-variables']['wfv'] == $previous_variable) {
+                        // the webhook submission equals the current or previous variable
+                        $webhook_filter_ok = true;
+                    }
+                }
+                if(!$webhook_filter_ok) {
+                    // respond with a 400 not a 406 (possible configuration error: allow time to fix)
+                    throw new WebhookClientException("Webhook filter variable mismatch", 400);
+                }
+            }
+
             // Not a valid signature - this could happen if the signing key is recycled
-            $connector = $this->getConnector();
             if(!$connector->verify_signature($payload['signature'])) {
                 throw new WebhookNotAcceptableException("Signature verification failed");
             }

@@ -8,6 +8,10 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   api_testmode: false
   webhooks_enabled: true
   webhook_signing_key: ''
+  # the current or new filter variable
+  webhook_filter_variable: ''
+  # the previous one, to allow variable rotation
+  webhook_previous_filter_variable: ''
   always_set_sender : true
   # yes|no|when-attachments
   send_via_job : 'when-attachments'

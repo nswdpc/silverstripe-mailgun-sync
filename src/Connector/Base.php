@@ -18,20 +18,64 @@ abstract class Base
 
     use Injectable;
 
+    /**
+     * The Mailgun API key or Domain Sending Key (recommended)
+     * @var string
+     */
     private static $api_key = '';
 
+    /**
+     * The Mailgun sending domain
+     * @var string
+     */
     private static $api_domain = '';
 
+    /**
+     * Whether to to enable testmode
+     * Mailgun will accept the message but will not send it. This is useful for testing purposes.
+     * You are charged for messages sent in test mode
+     * @var bool
+     */
     private static $api_testmode = false;// when true ALL emails are sent with o:testmode = 'yes'
 
+    /**
+     * Always set the sender header to be the same as the From header
+     * This assists with removing "on behalf of" in certain email clients
+     * @var bool
+     */
     private static $always_set_sender = true;
 
+    /**
+     * Send message via  queued job. Values are 'yes', 'no' and 'when-attachments'
+     * @var string
+     */
     private static $send_via_job = 'when-attachments';
 
+    /**
+     * Mailgun requires a "To" header, if none is provided, messages will go to this recipient
+     * Be aware of the privacy implications of setting this value
+     * @var string
+     */
     private static $default_recipient = '';
 
+    /**
+     * Your webook signing key, provided by Mailgun
+     * @var string
+     */
     private static $webhook_signing_key = '';
 
+    /**
+     * Messages with this variable set will be allowed when a webhook request is made back to the controller
+     * Messages without this variable will be ignored
+     * This is useful if you use one mailing domain across multiple sites
+     * @var string
+     */
+    private static $webhook_filter_variable = '';
+
+    /**
+     * Whether webhooks are enabled or not
+     * @var bool
+     */
     private static $webhooks_enabled = true;
 
     /**
@@ -65,6 +109,20 @@ abstract class Base
     public function getWebhookSigningKey()
     {
         return $this->config()->get('webhook_signing_key');
+    }
+
+    public function getWebhookFilterVariable()
+    {
+        return $this->config()->get('webhook_filter_variable');
+    }
+
+    public function getWebhookPreviousFilterVariable()
+    {
+        return $this->config()->get('webhook_previous_filter_variable');
+    }
+
+    public function getWebhooksEnabled() {
+        return $this->config()->get('webhooks_enabled');
     }
 
     public function getApiDomain()

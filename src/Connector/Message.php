@@ -111,6 +111,11 @@ class Message extends Base
         // a default recipient can be applied if the message has no "To" parameter
         $this->applyDefaultRecipient($parameters);
 
+        // apply the webhook_filter_variable, if webhooks are enabled
+        if($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
+            $parameters["v:wfv"] = $variable;
+        }
+
         // send options
         $send_via_job = $this->sendViaJob();
         $in = $this->getSendIn();// seconds
