@@ -27,7 +27,7 @@ and...
 ## Installing
 
 ```
-composer require nswdpc/silverstripe-mailgun-sync dev-feature-ss4
+composer require nswdpc/silverstripe-mailgun-sync
 ```
 
 ## Configuration
