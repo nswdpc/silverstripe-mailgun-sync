@@ -1,43 +1,54 @@
 # Documentation
 
-+ [webhooks](./100-webhooks.md)
-+ [more detailed configuration][./005-detailed_configuration.md]
++ [More detailed configuration](./005-detailed_configuration.md)
++ [Webhooks](./100-webhooks.md)
 
 
 ## MailgunEmail
 
-MailgunEmail extends Email and provides added features for use with Mailgun.
+MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters`
 
-> All method return the instance of MailgunEmail and can be chained
+These extra options, variables, headers and recipient variables are passed to the Mailgun API
 
-### sendIn
+```php
 
-Set the number of seconds into the future you would like the email sent. This is currently only used from the queued job start time.
+$variables = [
+    'test' => 'true',
+    'foo' => 'bar',
+];
 
-### setRecipientVariables
+$options = [
+    'testmode' => 'yes',
+    'tag' => ['tag1','tag2','tag4'],
+    'tracking' => 'yes', // test tracking turn on
+    'require-tls' => 'yes'
+];
 
-Set per-recipient variables, if you are doing batch sends
+$headers = [
+    'X-Test-Header' => 'testing'
+];
 
-### setAmpHtml
+$recipient_variables = [
+    $to_address => ["unique_id" => "testing_123"]
+];
 
-Set AMP (Accelerated Mobile Pages) HTML in the message
+$email->setCustomParameters([
+    'options' => $options,
+    'variables' => $variables,
+    'headers' => $headers,
+    'recipient-variables' => $recipient_variables
+]);
 
-### setTemplate
+$email->send();
+```
 
-Set template information - name, optional version and optional text (see Template documentation provided by Mailgun)
+## Future delivery
 
-### setOptions
+To send in the future, use [scheduled delivery](https://documentation.mailgun.com/en/latest/user_manual.html#scheduling-delivery)
 
-Set any "o:" prefixed parameters to the Mailgun API
-
-### setTestMode
-
-Specifically set "test mode" on (or off)
-
-### setCustomHeaders
-
-Set any custom headers you would like to include, added via the "h:" prefixed parameters to the API.
-
-### setVariables
-
-Set any variables you would like to include, added via the "v:" prefixed parameters to the API
+```php
+//send in the future example
+$options = [
+    'deliverytime' => 'Fri, 14 Oct 2032 06:30:00 +1100'
+];
+```
