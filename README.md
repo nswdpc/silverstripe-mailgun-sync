@@ -181,7 +181,7 @@ $client = Mailgun::create($api_key);
 $response = $client->messages()->send($domain, $parameters);
 ```
 
-The response will be a `Mailgun\Model\Message\SendResponse` instance if successul.
+The response will be a `Mailgun\Model\Message\SendResponse` instance if successful.
 
 See the [Mailgun PHP SDK documentation](https://github.com/mailgun/mailgun-php) for examples.
 
