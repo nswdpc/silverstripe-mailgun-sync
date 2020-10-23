@@ -2,6 +2,8 @@
 
 The module supports webhook submission handling in order to gain a record of events sent from your mailing domain.
 
+In the event that you use the same mailing domain for multiple websites, you can use the webhook filter variable configuration values to *filter out* submissions that do not contain those variables. See below for more.
+
 ## Configuration
 
 ### webhooks_enabled
@@ -13,6 +15,25 @@ Reject webhooks. Setting this will cause a 503 code to be returned to the Mailgu
 This is listed in your Mailgun account as your "HTTP webhook signing key", it's used to verify webhook requests.
 
 Treat this value like a private API key and password, if it is exposed then recycle it.
+
+### webhook_filter_variable
+
+A value unique for the website or websites  you wish to aggregate webhooks for.
+
+#### Example
+
+You have 2 websites all using the same mailing domain, with 2 webhook endpoints pointing at these sites configured in Mailgun settings.
+
+You can use this configuration value to filter out webhook submissions for the other site (provided the configuration value is different between the two sites).
+
+You can leave this empty and aggregate all webhook submissions on your mailing domain
+
+### webhook_previous_filter_variable
+
+Webhooks submit over time. If you change your webhook_filter_variable in configuration some valid webhooks may not be accepted.
+
+If this occurs, rotate your `webhook_filter_variable` into this configuration variable to catch these.
+
 
 ## Example
 

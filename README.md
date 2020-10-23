@@ -67,6 +67,10 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   webhook_signing_key: ''
   # whether you want to store webhook requests
   webhooks_enabled: true|false
+  # the current or new filter variable (see webhooks documentation in ./docs)
+  webhook_filter_variable: ''
+  # the previous one, to allow variable rotation
+  webhook_previous_filter_variable: ''
 ---
 Name: local-mailer
 After:
