@@ -13,6 +13,15 @@ use SilverStripe\Core\Config\Config;
 class WebhookTest extends FunctionalTest
 {
 
+    private $webhook_filter_variable = 'skjhgiehg943753-"';
+    private $webhook_previous_filter_variable = 'snsd875bslw[';
+
+    public function setUp() {
+        parent::setUp();
+        Config::inst()->set(Connector\Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
+        Config::inst()->set(Connector\Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
+    }
+
     /**
      * Get test data from disk
      */
@@ -56,6 +65,11 @@ class WebhookTest extends FunctionalTest
         return $decoded;
     }
 
+    protected function setWebhookFilterVariable($data, $value) {
+        $data['event-data']['user-variables']['wfv'] = $value;
+        return $data;
+    }
+
     /**
      * Given a type, which maps to an example JSON file in ./webhooks/, send a request that should succeed
      * and one that should fail
@@ -72,6 +86,7 @@ class WebhookTest extends FunctionalTest
         ];
         $session = null;
         $data = $this->setSignatureOnRequest($signing_key, $this->getWebhookRequestData($type));
+        $data = $this->setWebhookFilterVariable($data, $this->webhook_filter_variable);
         $cookies = null;
 
         $body = json_encode($data, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
@@ -80,7 +95,7 @@ class WebhookTest extends FunctionalTest
         $this->assertEquals(
             200,
             $response->getStatusCode(),
-            'Expected success response with correct signing_key failed: ' . $response->getStatusCode()
+            'Expected success response with correct signing_key failed: ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
         );
 
         $event = \Mailgun\Model\Event\Event::create($data['event-data']);
@@ -89,6 +104,30 @@ class WebhookTest extends FunctionalTest
 
         $this->assertTrue( $record && $record->exists() ,  "DB Mailgun event does not exist for event {$event->getId()}");
 
+        // change the webhook config variable to the previous var
+        $data = $this->setWebhookFilterVariable($data, $this->webhook_previous_filter_variable);
+        $response = $this->post($url, $data, $headers, $session, json_encode($data, JSON_UNESCAPED_SLASHES), $cookies);
+        $this->assertEquals(
+            200,
+            $response->getStatusCode(),
+            'Expected success response with correct signing_key failed: ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
+        );
+
+
+        // change the webhook variable to something else completely
+        $data = $this->setWebhookFilterVariable($data, 'not going to work');
+        $response = $this->post($url, $data, $headers, $session, json_encode($data, JSON_UNESCAPED_SLASHES), $cookies);
+        $this->assertEquals(
+            400,
+            $response->getStatusCode(),
+            'Expected failed response code 400 with incorrect webhook filter variable but got ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
+        );
+
+        // remove webhook variable and test
+        unset( $data['event-data']['user-variables']['wfv'] );
+        Config::inst()->set(Connector\Base::class, 'webhook_filter_variable', '');
+        Config::inst()->set(Connector\Base::class, 'webhook_previous_filter_variable', '');
+
         // change the signing key in config, it should fail now
         $signing_key = "YOU_SHALL_NOT_PASS";
         $this->setSigningKey($signing_key);
@@ -96,7 +135,7 @@ class WebhookTest extends FunctionalTest
         $this->assertEquals(
             406,
             $response->getStatusCode(),
-            'Expected failed response code 406 with incorrect signing_key but got ' . $response->getStatusCode()
+            'Expected failed response code 406 with incorrect signing_key but got ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
         );
 
     }

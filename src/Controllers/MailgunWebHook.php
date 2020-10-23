@@ -116,10 +116,10 @@ class MailgunWebHook extends Controller {
             }
 
             // verify the variable, if set, is in the payload, ignore submission
-            $variable = $this->getWebhookFilterVariable();
+            $variable = $connector->getWebhookFilterVariable();//from config
             if($variable) {
                 $webhook_filter_ok = false;
-                $previous_variable = $this->getWebhookPreviousFilterVariable();
+                $previous_variable = $connector->getWebhookPreviousFilterVariable();//from config
                 if(!empty($payload['event-data']['user-variables']['wfv'])) {
                     if($payload['event-data']['user-variables']['wfv'] == $variable
                         || $payload['event-data']['user-variables']['wfv'] == $previous_variable) {
