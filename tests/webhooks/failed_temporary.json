@@ -1,0 +1,64 @@
+{
+    "signature": {
+      "timestamp": "1597313584",
+      "token": "fae1a4e2d44c20566e8046e9de13d63f063c99645b054d3468",
+      "signature": "2cb96df2b9e1b166dad377020eb91397ac2c6ccbde398e3577a89e6ba78e896c"
+    },
+    "event-data": {
+      "severity": "temporary",
+      "tags": [
+        "my_tag_1",
+        "my_tag_2"
+      ],
+      "timestamp": 1521472262.908181,
+      "storage": {
+        "url": "https://se.api.mailgun.net/v3/domains/sandbox80e93ea8b9e2434f982ab4f01859633c.mailgun.org/messages/message_key",
+        "key": "message_key"
+      },
+      "log-level": "warn",
+      "event": "failed",
+      "campaigns": [],
+      "reason": "generic",
+      "user-variables": {
+        "my_var_1": "Mailgun Variable #1",
+        "my-var-2": "awesome"
+      },
+      "flags": {
+        "is-routed": false,
+        "is-authenticated": true,
+        "is-system-test": false,
+        "is-test-mode": false
+      },
+      "recipient-domain": "example.com",
+      "envelope": {
+        "sending-ip": "209.61.154.250",
+        "sender": "bob@sandbox80e93ea8b9e2434f982ab4f01859633c.mailgun.org",
+        "transport": "smtp",
+        "targets": "alice@example.com"
+      },
+      "message": {
+        "headers": {
+          "to": "Alice <alice@example.com>",
+          "message-id": "20130503182626.18666.16540@sandbox80e93ea8b9e2434f982ab4f01859633c.mailgun.org",
+          "from": "Bob <bob@sandbox80e93ea8b9e2434f982ab4f01859633c.mailgun.org>",
+          "subject": "Test delivered webhook"
+        },
+        "attachments": [],
+        "size": 111
+      },
+      "recipient": "alice@example.com",
+      "id": "Fs7-5t81S2ispqxqDw2U4Q",
+      "delivery-status": {
+        "tls": true,
+        "mx-host": "smtp-in.example.com",
+        "attempt-no": 1,
+        "description": "",
+        "session-seconds": 0.1281740665435791,
+        "utf8": true,
+        "retry-seconds": 600,
+        "code": 452,
+        "message": "4.2.2 The email account that you tried to reach is over quota. Please direct\n4.2.2 the recipient to\n4.2.2  https://support.example.com/mail/?p=422",
+        "certificate-verified": true
+      }
+    }
+}
