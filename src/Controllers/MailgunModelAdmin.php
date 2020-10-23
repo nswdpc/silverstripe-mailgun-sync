@@ -16,7 +16,7 @@ use SilverStripe\Forms\GridField\GridFieldDetailForm;
 /**
  * Admin for Mailgun
  */
-class MailgunModelaAdmin extends ModelAdmin
+class MailgunModelAdmin extends ModelAdmin
 {
     private static $url_segment = 'mailgun';
 
