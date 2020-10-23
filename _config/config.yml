@@ -6,6 +6,7 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   api_domain: ''
   api_key: ''
   api_testmode: false
+  api_endpoint_region: ''
   webhooks_enabled: true
   webhook_signing_key: ''
   # the current or new filter variable

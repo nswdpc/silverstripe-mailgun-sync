@@ -8,7 +8,13 @@ This is your custom mailing domain. It's recommended that your verify this in DN
 
 ### api_key
 
-This is your account api_key
+This is your Mailgun API key OR Domain sending key (the latter is recommended)
+
+### api_endpoint_region
+
+Leave empty ('') for the default region API endpoint provided by the Mailgun PHP SDK ('https://api.mailgun.net')
+
+To use the European Union (EU) endpoint for your Mailing domains in the Mailgun EU region, set this value to `API_ENDPOINT_EU`
 
 ### api_testmode
 

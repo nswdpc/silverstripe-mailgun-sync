@@ -53,6 +53,9 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   api_domain: 'configured.mailgun.domain'
   # your API key or Domain Sending Key
   api_key: 'xxxx'
+  # the endpoint region, if you use EU set this value to 'API_ENDPOINT_EU'
+  # for the default region, leave empty
+  api_endpoint_region: ''
   # this setting triggers o:testmode='yes' in messages
   api_testmode: true|false
   # You will probably want this as true, when false some clients will show 'Sent on behalf of' text

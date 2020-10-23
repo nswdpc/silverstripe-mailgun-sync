@@ -18,6 +18,8 @@ abstract class Base
 
     use Injectable;
 
+    const API_ENDPOINT_EU = 'https://api.eu.mailgun.net';
+
     /**
      * The Mailgun API key or Domain Sending Key (recommended)
      * @var string
@@ -79,6 +81,12 @@ abstract class Base
     private static $webhooks_enabled = true;
 
     /**
+     * This is populated in client() and allows tests to check the current API endpoint set
+     * @var bool
+     */
+    private $api_endpoint_url = '';
+
+    /**
      * Returns an RFC2822 datetime in the format accepted by Mailgun
      * @param string $relative a strtotime compatible format e.g 'now -4 weeks'
      */
@@ -96,8 +104,22 @@ abstract class Base
         if (!$api_key) {
             $api_key = $this->getApiKey();
         }
-        $client = Mailgun::create($api_key);
+        $api_endpoint = $this->config()->get('api_endpoint_region');
+        $this->api_endpoint_url = '';
+        switch($api_endpoint) {
+            case 'API_ENDPOINT_EU':
+                $this->api_endpoint_url = self::API_ENDPOINT_EU;
+                $client = Mailgun::create($api_key, $this->api_endpoint_url);
+                break;
+            default:
+                $client = Mailgun::create($api_key);
+                break;
+        }
         return $client;
+    }
+
+    public function getApiEndpointRegion() {
+        return $this->api_endpoint_url;
     }
 
     public function getApiKey()

@@ -71,6 +71,24 @@ class MailgunSyncTest extends SapphireTest
         return true;
     }
 
+    public function testApiEndpoint() {
+
+        $value = 'API_ENDPOINT_EU';
+        Config::inst()->update(Base::class, 'api_endpoint_region', $value);
+        $connector = MessageConnector::create();
+        $domains = $connector->getClient();
+        // assert that the expected URL value is what was set on the client
+        $this->assertEquals(constant(Base::class . "::{$value}"), $connector->getApiEndpointRegion());
+
+        // switch to default region
+        $value = '';
+        Config::inst()->update(Base::class, 'api_endpoint_region', $value);
+        $connector = MessageConnector::create();
+        $domains = $connector->getClient();
+        // when no value is set, the default region URL is used
+        $this->assertEquals('', $connector->getApiEndpointRegion());
+    }
+
     /**
      * test mailer delivery only, no sync or event checking, just that we get the expected response
      */
