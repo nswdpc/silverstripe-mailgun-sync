@@ -11,6 +11,13 @@ MailgunEmail extends Email and provides added features for use with Mailgun via 
 These extra options, variables, headers and recipient variables are passed to the Mailgun API
 
 ```php
+use SilverStripe\Control\Email\Email;
+
+$email = Email::create();
+
+// add standard email to, cc etc
+
+// add custom params for Mailgun:
 
 $variables = [
     'test' => 'true',
