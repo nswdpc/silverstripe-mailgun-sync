@@ -9,7 +9,6 @@ use SilverStripe\Core\Config\Config;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use DateTime;
 use DateTimeZone;
-use Exception;
 
 /**
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
@@ -18,6 +17,8 @@ use Exception;
 class SendJob extends AbstractQueuedJob
 {
     protected $totalSteps = 1;
+
+    protected $connector;
 
     public function getJobType()
     {
@@ -39,20 +40,20 @@ class SendJob extends AbstractQueuedJob
         return md5($this->domain . ":" . serialize($this->parameters));
     }
 
+    /**
+     * Create the job
+     * @param string domain DEPRECATED
+     * @param array parameters for Mailgun API
+     */
     public function __construct($domain = "", $parameters = [])
     {
-        if (!$domain) {
-            return;
-        }
-        if (empty($parameters)) {
-            return;
-        }
-        $this->domain = $domain;
+        $this->connector = new MessageConnector;
+        $this->domain = $this->connector->getApiDomain();
         $this->parameters = $parameters;
     }
 
     /**
-     * polls for 'failed' events in the last day and tries to resubmit them
+     * Attempt to send the message via the Mailgun API
      */
     public function process()
     {
@@ -63,41 +64,44 @@ class SendJob extends AbstractQueuedJob
 
         $this->currentStep += 1;
 
-        $connector = new MessageConnector;
-        $client = $connector->getClient();
+        $client = $this->connector->getClient();
+        $domain = $this->connector->getApiDomain();
 
-        $domain = $this->domain;
-        $parameters = $this->parameters;
-
-        if (!$domain || empty($parameters)) {
-            $msg = "SendJob is missing either the domain or parameters properties";
+        if (!$domain) {
+            $msg = "Mailgun SendJob is missing the Mailgun API domain value";
             $this->messages[] = $msg;
-            throw new Exception($msg);
+            throw new \Exception($msg);
+        }
+
+        if(empty($this->parameters)) {
+            $msg = "Mailgun SendJob was called with empty parameters";
+            $this->messages[] = $msg;
+            throw new \Exception($msg);
         }
 
         $msg = "Unknown error";
         try {
             // if required, apply the default recipient
-            $connector->applyDefaultRecipient($parameters);
+            $this->connector->applyDefaultRecipient($this->parameters);
             // decode all attachments
-            $connector->decodeAttachments($parameters);
+            $this->connector->decodeAttachments($this->parameters);
             // send directly via the API client
-            $response = $client->messages()->send($domain, $parameters);
+            $response = $client->messages()->send($domain, $this->parameters);
             $message_id = "";
             if ($response && ($response instanceof SendResponse) && ($message_id = $response->getId())) {
-                $message_id = $connector::cleanMessageId($message_id);
+                $message_id = MessageConnector::cleanMessageId($message_id);
                 $this->parameters = [];//remove all params
                 $msg = "OK {$message_id}";
                 $this->messages[] = $msg;
                 $this->isComplete = true;
                 return;
             }
-            throw new Exception("SendJob invalid response or no message.id returned");
+            throw new \Exception("SendJob invalid response or no message.id returned");
         } catch (Exception $e) {
             // API level errors caught here
             $msg = $e->getMessage();
         }
         $this->messages[] = $msg;
-        throw new Exception($msg);
+        throw new \Exception($msg);
     }
 }
