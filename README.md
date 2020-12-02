@@ -184,11 +184,25 @@ This is a queued job that can be used to send emails depending on the ```send_vi
 + 'when-attachments' - only when attachments are present, or
 + 'no' - never (in which case messages will never send via a Queued Job)
 
-Relevant messages are handed off to the queued job, which is configured to send after one minute. Once delivered, the message parameters are cleared to reduce space used by large messages.
+Messages are handed off to this queued job, which is configured to send after one minute. Once delivered, the message parameters are cleared to reduce space used by large messages.
+
+This job is marked as 'broken' immediately upon an API or other general error.
 
 ### TruncateJob
 
-Use this job to clear out older MailgunEvent records.
+Use this job to clear out older MailgunEvent webhook records.
+
+### RequeueJob
+
+Use this job to kick broken SendJob instances, which happen from time-to-time due to API or connectivity issues.
+
+This job will:
+1. Take all job descriptor records for SendJob that are Broken
+1. Reset their status, processing counts and worker value to default initial values
+1. Set them to start after a minute
+1. Save the record
+
+On the next queue run, these jobs will attempt to send again.
 
 ## Manual Resubmission
 
