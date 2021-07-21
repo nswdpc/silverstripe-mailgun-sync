@@ -6,6 +6,7 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
+use NSWDPC\Notifications\Taggable\Taggable;
 
 /**
  * Email class to handle Mailgun smarts for Email sending
@@ -19,6 +20,11 @@ class MailgunEmail extends Email {
 
     use Injectable;
 
+    use Taggable;
+
+    /**
+     * @var NSWDPC\Messaging\Mailgun\Connector\Message
+     */
     private $connector;
 
     /**
@@ -26,8 +32,13 @@ class MailgunEmail extends Email {
      * @return NSWDPC\Messaging\Mailgun\Connector\Message
      */
     public function getConnector() {
-        if(!$this->connector) {
-            $this->connector = Injector::inst()->create( Message::class );
+        $this->connector = Injector::inst()->get( Message::class );
+        // Set tags on connector, if not already set
+        $options = $this->connector->getOptions();
+        if(empty($options['tag'])) {
+            // No tags set, set from notification tags
+            $options['tag'] = $this->getNotificationTags();
+            $this->connector->setOptions($options);
         }
         return $this->connector;
     }

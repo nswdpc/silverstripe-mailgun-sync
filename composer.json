@@ -26,6 +26,7 @@
         "mailgun/mailgun-php": "^3",
         "kriswallsmith/buzz" : "^1.1",
         "nyholm/psr7" : "^1.3",
-        "silverstripe/framework" : "^4"
+        "silverstripe/framework" : "^4",
+        "nswdpc/silverstripe-taggable-notifications": "dev-master"
     }
 }
