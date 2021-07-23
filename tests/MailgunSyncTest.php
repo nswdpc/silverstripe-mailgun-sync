@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
@@ -12,6 +12,7 @@ use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\Email\Email;
 use NSWDPC\Messaging\Mailgun\MailgunMailer;
 use NSWDPC\Messaging\Mailgun\MailgunEmail;
+use NSWDPC\Messaging\Taggable\ProjectTags;
 use SilverStripe\Assets\File;
 use SilverStripe\Assets\Folder;
 use SilverStripe\Core\Config\Configurable;
@@ -45,6 +46,10 @@ class MailgunSyncTest extends SapphireTest
 
     public function setUp()
     {
+        if(!$this->canSend()) {
+            throw new \Exception("Cannot test sandbox delivery");
+        }
+
         parent::setUp();
         // Avoid using TestMailer for this test
         $this->mailer = MailgunMailer::create();
@@ -54,6 +59,8 @@ class MailgunSyncTest extends SapphireTest
         // modify some config values for tests
         // never send via a job
         Config::inst()->update(Base::class, 'send_via_job', 'no');
+        // set test mode to ON for tests
+        Config::inst()->update(Base::class, 'api_testmode', true);
     }
 
     /**
@@ -94,9 +101,7 @@ class MailgunSyncTest extends SapphireTest
      */
     public function testMailerDelivery($subject = "test_mailer_delivery")
     {
-        if(!$this->canSend()) {
-            throw new \Exception("Cannot test sandbox delivery");
-        }
+
         $to_address = $this->config()->get('to_address');
         $to_name = $this->config()->get('to_name');
         $this->assertNotEmpty($to_address);
@@ -178,9 +183,6 @@ class MailgunSyncTest extends SapphireTest
      */
     public function testAPIDelivery()
     {
-        if(!$this->canSend()) {
-            throw new \Exception("Cannot test sandbox delivery");
-        }
 
         Config::inst()->update(Base::class, 'send_via_job', 'no');
 
@@ -234,6 +236,59 @@ class MailgunSyncTest extends SapphireTest
             // fail the test
             $this->assertTrue(false, $e->getMessage());
         }
+    }
+
+    /**
+     * Test that tags can be set via Taggable
+     */
+    public function testTaggableEmail() {
+
+        $limit = 3;
+
+        Config::inst()->update(ProjectTags::class, 'tag', '');
+        Config::inst()->update(ProjectTags::class, 'tag_limit', $limit);
+
+        $to_address = $this->config()->get('to_address');
+        $to_name = $this->config()->get('to_name');
+        $this->assertNotEmpty($to_address);
+
+        $from_address = $this->config()->get('from_address');
+        $from_name = $this->config()->get('from_name');
+        $this->assertNotEmpty($from_address);
+
+        $from = [
+            $from_address => $from_name,
+        ];
+        $to = [
+            $to_address => $to_name,
+        ];
+
+        $subject = "test_taggable_email";
+
+        $email = Email::create();
+        $this->assertTrue($email instanceof MailgunEmail, "Email needs to be an instance of MailgunEmail");
+        $email->setFrom($from);
+        $email->setTo($to);
+        $email->setSubject($subject);
+        if ($cc = $this->config()->get('cc_address')) {
+            $email->setCc($cc);
+        }
+        $email->setBody($this->config()->get('test_body'));
+        $tags = ['tagheader1','tagheader2','tagheader3'];
+        $email->setNotificationTags($tags);
+
+        $tags = $email->getNotificationTags();
+        $this->assertEquals( $limit, count($tags) );
+
+        $options = $email->getConnector()->getOptions();
+        $this->assertEquals( $tags, $options['tag']);
+
+        $tooManyTags = ['tagheader1','tagheader2','tagheader3', 'tagheader4'];
+        $email->setNotificationTags($tooManyTags);
+        $this->assertEquals( $tags, $options['tag']);
+
+        $tooManyTagsResult = $email->getNotificationTags();
+        $this->assertEquals( $limit, count($tooManyTagsResult) );
     }
 
 }

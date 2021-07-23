@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Config\Config;
