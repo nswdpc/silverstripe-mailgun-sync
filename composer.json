@@ -21,6 +21,16 @@
     "support" : {
         "issues" : "https://github.com/nswdpc/silverstripe-mailgun-sync/issues"
     },
+    "autoload": {
+        "psr-4": {
+            "NSWDPC\\Messaging\\Mailgun\\Tests": [
+                "tests/"
+            ],
+            "NSWDPC\\Messaging\\Mailgun\\": [
+                "src/"
+            ]
+        }
+    },
     "require": {
         "symbiote/silverstripe-queuedjobs": "^4.5",
         "mailgun/mailgun-php": "^3",
