@@ -1,0 +1,12 @@
+---
+Name: 'mailgun-taggable-notifications'
+After:
+  - '#nswdpc-taggable-notifications'
+---
+NSWDPC\Messaging\Taggable\ProjectTags:
+  tag: ''
+  tag_limit: 3
+  tag_email_header_name: 'X-Mailgun-Tag'
+  tag_email_header_serialisation: 'multi'
+  tag_email_header_value_delimiter: ''
+---
