@@ -12,6 +12,7 @@ use Mailgun\Mailgun;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 use Swift_Message;
@@ -30,6 +31,11 @@ class MailgunMailer implements Mailer
      * Allow configuration via API
      */
     use Configurable;
+
+    /**
+     * Injector
+     */
+    use Injectable;
 
     // configured in project
     private static $always_from = "";

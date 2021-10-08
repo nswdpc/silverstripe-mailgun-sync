@@ -3,6 +3,7 @@ namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
@@ -24,6 +25,11 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
      * Allow configuration via API
      */
     use Configurable;
+
+    /**
+     * Injector
+     */
+    use Injectable;
 
     /**
      * Custom parameters for the mailer, if it is supported
