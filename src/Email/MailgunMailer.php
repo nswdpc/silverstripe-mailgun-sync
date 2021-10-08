@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
@@ -9,7 +10,6 @@ use Mailgun\Mailgun;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
-use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 use Swift_Message;
@@ -23,8 +23,11 @@ use Swift_Mime_SimpleHeaderSet;
  */
 class MailgunMailer implements Mailer
 {
+
+    /**
+     * Allow configuration via API
+     */
     use Configurable;
-    use Injectable;
 
     // configured in project
     private static $always_from = "";
@@ -51,60 +54,84 @@ class MailgunMailer implements Mailer
     }
 
     /**
-     * @returns string the mailgun message id
+     * Retrieve and set custom parameters on the API connector
+     * @param EmailWithCustomParameters $email
+     * @param MessageConnector connector instance for this send attempt
+     * @return MessageConnector
+     */
+    protected function assignCustomParameters(EmailWithCustomParameters &$email, MessageConnector &$connector) : MessageConnector {
+        $customParameters = $email->getCustomParameters();
+        $email->clearCustomParameters();
+        $connector->setVariables( $customParameters['variables'] ?? [] )
+                ->setOptions( $customParameters['options'] ?? [] )
+                ->setCustomHeaders( $customParameters['headers'] ?? [] )
+                ->setRecipientVariables( $customParameters['recipient-variables'] ?? [] )
+                ->setSendIn($customParameters['send-in'] ?? 0)
+                ->setAmpHtml($customParameters['amp-html'] ?? '')
+                ->setTemplate($customParameters['template'] ?? []);
+        return $connector;
+    }
+
+    /**
+     * @param Email
+     * @returns mixed
      */
     public function send($email)
     {
-        /**
-         * @var Swift_Message
-         */
-        $message = $email->getSwiftMessage();
-
-        if (!$message instanceof Swift_Message) {
-            throw new InvalidRequestException("There is no message associated with this request");
-        }
-
-        $recipients = $senders = [];
-
-        // Handle 'From' headers from Swift_Message
-        $message_from = $message->getFrom();
-        if (empty($message_from) || !is_array($message_from)) {
-            // Mailgun requires a from header
-            throw new InvalidRequestException("At least one 'From' entry in a mailbox spec is required");
-        }
-        foreach ($message_from as $from_email => $from_name) {
-            if (!empty($from_name)) {
-                $senders[] = $from_name . " <" . $from_email . ">";
-            } else {
-                $senders[] = $from_email;
-            }
-        }
-
-        // Handle 'To' headers from Swift_Message
-        $message_to = $message->getTo();
-        if (empty($message_to) || !is_array($message_to)) {
-            // Mailgun requires a from header
-            throw new InvalidRequestException("At least one 'To' entry in a mailbox spec is required");
-        }
-        foreach ($message_to as $to_email => $to_name) {
-            if (!empty($to_name)) {
-                $recipients[] = $to_name . " <" . $to_email . ">";
-            } else {
-                $recipients[] = $to_email;
-            }
-        }
-
-        // handle the message subject
-        $subject = $message->getSubject();
-
-        $to = implode(",", $recipients);
-        $from = implode(",", $senders);
-
-
         try {
 
-            // API client
-            $connector = $email->getConnector();
+            // API client for this send attempt
+            $connector = new MessageConnector();
+
+            /**
+             * @var Swift_Message
+             */
+            $message = $email->getSwiftMessage();
+
+            if (!$message instanceof Swift_Message) {
+                throw new InvalidRequestException("There is no message associated with this request");
+            }
+
+            $recipients = $senders = [];
+
+            // Handle 'From' headers from Swift_Message
+            $message_from = $message->getFrom();
+            if (empty($message_from) || !is_array($message_from)) {
+                // Mailgun requires a from header
+                throw new InvalidRequestException("At least one 'From' entry in a mailbox spec is required");
+            }
+            foreach ($message_from as $from_email => $from_name) {
+                if (!empty($from_name)) {
+                    $senders[] = $from_name . " <" . $from_email . ">";
+                } else {
+                    $senders[] = $from_email;
+                }
+            }
+
+            // Handle 'To' headers from Swift_Message
+            $message_to = $message->getTo();
+            if (empty($message_to) || !is_array($message_to)) {
+                // Mailgun requires a from header
+                throw new InvalidRequestException("At least one 'To' entry in a mailbox spec is required");
+            }
+            foreach ($message_to as $to_email => $to_name) {
+                if (!empty($to_name)) {
+                    $recipients[] = $to_name . " <" . $to_email . ">";
+                } else {
+                    $recipients[] = $to_email;
+                }
+            }
+
+            // If the email supports custom parameters
+            if($email instanceof EmailWithCustomParameters) {
+                $this->assignCustomParameters($email, $connector);
+            }
+
+            // handle the message subject
+            $subject = $message->getSubject();
+
+            $to = implode(",", $recipients);
+            $from = implode(",", $senders);
 
             // process attachments
             if (!empty($attachments)) {

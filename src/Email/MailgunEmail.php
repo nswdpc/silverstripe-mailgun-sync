@@ -3,10 +3,11 @@ namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Core\Config\Configurable;
-use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
+use NSWDPC\StructuredEmail\CustomParameters;
+use NSWDPC\StructuredEmail\EmailWithCustomParameters;
 
 /**
  * Email class to handle Mailgun smarts for Email sending
@@ -17,20 +18,28 @@ use NSWDPC\Messaging\Taggable\TaggableEmail;
  *
  * @author James <james.ellis@dpc.nsw.gov.au>
  */
-class MailgunEmail extends TaggableEmail {
+class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
 
+    /**
+     * Allow configuration via API
+     */
     use Configurable;
 
-    use Injectable;
+    /**
+     * Custom parameters for the mailer, if it is supported
+     */
+    use CustomParameters;
 
     /**
      * @var NSWDPC\Messaging\Mailgun\Connector\Message|null
+     * @deprecated
      */
     private $connector = null;
 
     /**
      * Retrieve the connector sent
      * @return NSWDPC\Messaging\Mailgun\Connector\Message
+     * @deprecated
      */
     public function getConnector() : Message {
         $this->connector = Injector::inst()->get( Message::class );
@@ -38,40 +47,24 @@ class MailgunEmail extends TaggableEmail {
     }
 
     /**
-     * Set tags as options on the API
+     * Set tags as options on the Mailgun API
+     * This will replace any tags set via setCustomParameters already set on this instance
      * @return self
      */
     public function setNotificationTags(array $tags) {
-
         $this->setTaggableNotificationTags( $tags );
-
         $tags = $this->getNotificationTags();
         if(empty($tags)) {
             return $this;
         }
-        $connector = $this->getConnector();
-        // get all options
-        $options = $connector->getOptions();
-        // set tag option
-        $options['tag'] = $tags;
-        // set all options again
-        $connector->setOptions( $options );
-        return $this;
-    }
 
-    /**
-     * Set custom parameters on the message connector, overrides any current options set
-     * @return NSWDPC\Messaging\Mailgun\MailgunEmail
-     */
-    public function setCustomParameters($args) {
-        return $this->getConnector()
-                        ->setVariables( $args['variables'] ?? [] )
-                        ->setOptions( $args['options'] ?? [] )
-                        ->setCustomHeaders( $args['headers'] ?? [] )
-                        ->setRecipientVariables( $args['recipient-variables'] ?? [] )
-                        ->setSendIn($args['send-in'] ?? 0)
-                        ->setAmpHtml($args['amp-html'] ?? '')
-                        ->setTemplate($args['template'] ?? []);
+        // apply custom parameters
+        $customParameters = $this->getCustomParameters();
+        if(empty($customParameters['options'])) {
+            $customParameters['options'] = [];
+        }
+        $customParameters['options']['tag'] = $tags;
+        $this->setCustomParameters($customParameters);
         return $this;
     }
 
