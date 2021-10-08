@@ -4,6 +4,8 @@ namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Taggable\TaggableEmail;
+use NSWDPC\StructuredEmail\EmailWithCustomParameters;
 use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\Email\Email;
 use Mailgun\Mailgun;
@@ -73,6 +75,30 @@ class MailgunMailer implements Mailer
     }
 
     /**
+     * Taggable: retrieve tags set via setNotificationTags()
+     * Doing so will replace any tags assigned through setCustomParameters
+     * @param TaggableEmail $email
+     * @param MessageConnector connector instance for this send attempt
+     * @return MessageConnector
+     */
+    protected function assignNotificationTags(TaggableEmail &$email, MessageConnector &$connector) : MessageConnector {
+        $tags = $email->getNotificationTags();
+        if(empty($tags)) {
+            return $connector;
+        }
+
+        // Tags are assigned via custom parameters / option
+        $customParameters = $email->getCustomParameters();
+        if(empty($customParameters['options'])) {
+            $customParameters['options'] = [];
+        }
+        // 'tag' translates to 'o:tag'
+        $customParameters['options']['tag'] = $tags;
+        $connector->setOptions($customParameters['options']);
+        return $connector;
+    }
+
+    /**
      * @param Email
      * @returns mixed
      */
@@ -126,6 +152,9 @@ class MailgunMailer implements Mailer
             if($email instanceof EmailWithCustomParameters) {
                 $this->assignCustomParameters($email, $connector);
             }
+
+            // assign tags, if any
+            $this->assignNotificationTags($email, $connector);
 
             // handle the message subject
             $subject = $message->getSubject();
