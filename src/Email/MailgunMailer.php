@@ -113,7 +113,7 @@ class MailgunMailer implements Mailer
         try {
 
             // API client for this send attempt
-            $connector = new MessageConnector();
+            $connector = MessageConnector::create();
 
             /**
              * @var Swift_Message
