@@ -68,14 +68,25 @@ class MailgunSyncTest extends SapphireTest
      */
     protected function canSend() {
         $connector = MessageConnector::create();
-        $api_key = $connector->config()->get('api_key');
+        $api_domain = $connector->getApiDomain();
+        $api_key = $connector->getApiKey();
         if(!$api_key) {
-            return false;
+            throw new \Exception("Cannot test sandbox delivery for domain '{$api_domain}' - no api_key specified");
         }
         if(!$connector->isSandbox()) {
-            return false;
+            throw new \Exception("Cannot test sandbox delivery for domain '{$api_domain}' - not a sandbox api_domain");
         }
         return true;
+    }
+
+    public function testApiDomain() {
+        $currentValue = Config::inst()->get(Base::class, 'api_domain');
+        $value = "testing.example.org";
+        Config::inst()->update(Base::class, 'api_domain', $value);
+        $connector = MessageConnector::create();
+        $result = $connector->getApiDomain();
+        $this->assertEquals($value, $result);
+        Config::inst()->update(Base::class, 'api_domain', $currentValue);
     }
 
     public function testApiEndpoint() {
