@@ -168,7 +168,7 @@ abstract class Base
     }
 
     /**
-     * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\Messaging\Mailgun\Mailer::setSender()} to set the Sender header as required
+     * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\Messaging\Mailgun\MailgunMailer::setSender()} to set the Sender header as required
      */
     final protected function alwaysSetSender()
     {
