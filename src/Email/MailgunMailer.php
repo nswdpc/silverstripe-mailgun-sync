@@ -171,14 +171,6 @@ class MailgunMailer implements Mailer
 
         $recipients = $senders = [];
 
-        // Handle 'From' headers from Swift_Message
-        $message_from = $message->getFrom();
-        if (empty($message_from) || !is_array($message_from)) {
-            // Mailgun requires a from header
-            throw new InvalidRequestException("At least one 'From' entry in a mailbox spec is required");
-        }
-        $senders = $this->processEmailDisplayName($message_from);
-
         // Handle 'To' headers from Swift_Message
         $message_to = $message->getTo();
         if (empty($message_to) || !is_array($message_to)) {
