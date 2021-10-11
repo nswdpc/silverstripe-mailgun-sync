@@ -172,12 +172,16 @@ class MailgunMailer implements Mailer
         $recipients = $senders = [];
 
         // Handle 'To' headers from Swift_Message
-        $message_to = $message->getTo();
-        if (empty($message_to) || !is_array($message_to)) {
-            // Mailgun requires a from header
-            throw new InvalidRequestException("At least one 'To' entry in a mailbox spec is required");
+        $message_from = $message->getFrom();
+        if (!empty($message_from)) {
+            $senders = $this->processEmailDisplayName($message_from);
         }
-        $recipients = $this->processEmailDisplayName($message_to);
+
+        // Handle 'To' headers from Swift_Message
+        $message_to = $message->getTo();
+        if (!empty($message_to)) {
+            $recipients = $this->processEmailDisplayName($message_to);
+        }
 
         // If the email supports custom parameters
         if($email instanceof EmailWithCustomParameters) {
@@ -255,8 +259,8 @@ class MailgunMailer implements Mailer
         // Finally: handle always from, which is our legacy handling
         if ($always_from = $this->getAlwaysFrom()) {
             $parameters['h:Reply-To'] = $from;// set the from as a replyto
-            $from = $always_from;// replace 'from'
-            $headers['Sender'] = $from;// set in addCustomParameters below
+            $parameters['from'] = $always_from;// set from header
+            $parameters['h:Sender'] = $parameters['from'];// set Send header as new from
         }
 
         return $parameters;
@@ -270,64 +274,71 @@ class MailgunMailer implements Mailer
 
         // Override send all emails to
         $sendAllEmailsTo = Email::getSendAllEmailsTo();
-        if(is_string($sendAllEmailsTo)) {
-            $parameters['to'] = $sendAllEmailsTo;
-        } else if(is_array($sendAllEmailsTo)) {
-            $sendAllEmailsTo = $this->processEmailDisplayName($sendAllEmailsTo);
-            $parameters['to'] = implode(",", $sendAllEmailsTo);
-        } else {
-            throw new \Exception("Email::getSendAllEmailsTo should be a string or array");
+        if($sendAllEmailsTo) {
+            if(is_string($sendAllEmailsTo)) {
+                $parameters['to'] = $sendAllEmailsTo;
+            } else if(is_array($sendAllEmailsTo)) {
+                $sendAllEmailsTo = $this->processEmailDisplayName($sendAllEmailsTo);
+                $parameters['to'] = implode(",", $sendAllEmailsTo);
+            } else {
+                throw new \Exception("Email::getSendAllEmailsTo should be a string or array");
+            }
         }
 
         // Override from address, note always_from overrides this
         $sendAllEmailsFrom = Email::getSendAllEmailsFrom();
-        if(is_string($sendAllEmailsFrom)) {
-            $parameters['from'] = $sendAllEmailsFrom;
-        } else if(is_array($sendAllEmailsFrom)) {
-            $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
-            $parameters['from'] = implode(",",$sendAllEmailsFrom);
-        } else {
-            throw new \Exception("Email::getSendAllEmailsFrom should be a string or array");
+        if($sendAllEmailsFrom) {
+            if(is_string($sendAllEmailsFrom)) {
+                $parameters['from'] = $sendAllEmailsFrom;
+            } else if(is_array($sendAllEmailsFrom)) {
+                $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
+                $parameters['from'] = implode(",",$sendAllEmailsFrom);
+            } else {
+                throw new \Exception("Email::getSendAllEmailsFrom should be a string or array");
+            }
         }
 
         // Add or set CC defaults
         $ccAllEmailsTo = Email::getCCAllEmailsTo();
-
-        $cc = '';
-        if(is_string($ccAllEmailsTo)) {
-            $cc = $ccAllEmailsTo;
-        } else if(is_array($ccAllEmailsTo)) {
-            $ccAllEmailsTo = $this->processEmailDisplayName($ccAllEmailsTo);
-            $cc = implode(",", $ccAllEmailsTo);
-        } else {
-            throw new \Exception("Email::getCCAllEmailsTo should be a string or array");
-        }
-
-        if($cc) {
-            if(isset($parameters['cc'])) {
-                $parameters['cc'] .= "," . $cc;
+        if($ccAllEmailsTo) {
+            $cc = '';
+            if(is_string($ccAllEmailsTo)) {
+                $cc = $ccAllEmailsTo;
+            } else if(is_array($ccAllEmailsTo)) {
+                $ccAllEmailsTo = $this->processEmailDisplayName($ccAllEmailsTo);
+                $cc = implode(",", $ccAllEmailsTo);
             } else {
-                $parameters['cc'] = $cc;
+                throw new \Exception("Email::getCCAllEmailsTo should be a string or array");
+            }
+
+            if($cc) {
+                if(isset($parameters['cc'])) {
+                    $parameters['cc'] .= "," . $cc;
+                } else {
+                    $parameters['cc'] = $cc;
+                }
             }
         }
 
         // Add or set BCC defaults
         $bccAllEmailsTo = Email::getBCCAllEmailsTo();
-        $bcc = '';
-        if(is_string($bccAllEmailsTo)) {
-            $bcc = $bccAllEmailsTo;
-        } else if(is_array($bccAllEmailsTo)) {
-            $bccAllEmailsTo = $this->processEmailDisplayName($bccAllEmailsTo);
-            $bcc = implode(",", $bccAllEmailsTo);
-        } else {
-            throw new \Exception("Email::getBCCAllEmailsTo should be a string or array");
-        }
-
-        if($bcc) {
-            if(isset($parameters['bcc'])) {
-                $parameters['bcc'] .= "," . $bcc;
+        if($bccAllEmailsTo) {
+            $bcc = '';
+            if(is_string($bccAllEmailsTo)) {
+                $bcc = $bccAllEmailsTo;
+            } else if(is_array($bccAllEmailsTo)) {
+                $bccAllEmailsTo = $this->processEmailDisplayName($bccAllEmailsTo);
+                $bcc = implode(",", $bccAllEmailsTo);
             } else {
-                $parameters['bcc'] = $bcc;
+                throw new \Exception("Email::getBCCAllEmailsTo should be a string or array");
+            }
+
+            if($bcc) {
+                if(isset($parameters['bcc'])) {
+                    $parameters['bcc'] .= "," . $bcc;
+                } else {
+                    $parameters['bcc'] = $bcc;
+                }
             }
         }
 
