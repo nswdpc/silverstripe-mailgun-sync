@@ -6,7 +6,7 @@
 
 ## MailgunEmail
 
-MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters`
+MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters` and `setNotificationTags`
 
 These extra options, variables, headers and recipient variables are passed to the Mailgun API
 

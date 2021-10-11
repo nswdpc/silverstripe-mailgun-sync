@@ -9,7 +9,6 @@ These are installed via Composer when you install the module:
 + silverstripe/framework ^4
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
 + Mailgun PHP SDK ^3, kriswallsmith/buzz, nyholm/psr7
-+ Our taggable notifications trait module
 
 and...
 
@@ -230,9 +229,9 @@ See [dmarc.org](https://dmarc.org) for more information on the importance of DMA
 
 ## Tests
 
-See ./tests
+See [./tests](./tests)
 
-When testing this module, you probably want to avoid emails going out to the internet.
+When acceptance testing this module, you probably want to avoid emails going to non-approved recipients.
 
 Ensure you use a Mailgun sandbox domain with approved recipients to avoid this.
 
