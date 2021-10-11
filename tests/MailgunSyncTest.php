@@ -302,4 +302,54 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals( $limit, count($tooManyTagsResult) );
     }
 
+    /**
+     * Test sending with default values set
+     */
+    public function testSendWithDefaultConfiguration() {
+
+        $overrideTo = 'allemails@example.com';
+        $overrideFrom = 'allemailsfrom@example.com';
+        $overrideCc = 'ccallemailsto@example.com';
+        $overrideBcc = 'bccallemailsto@example.com';
+        $overrideBccName = 'bcc person';
+
+        Config::inst()->update(Email::class, 'send_all_emails_to', $overrideTo);
+        Config::inst()->update(Email::class, 'send_all_emails_from', $overrideFrom);
+        Config::inst()->update(Email::class, 'cc_all_emails_to', $overrideCc);
+        Config::inst()->update(Email::class, 'bcc_all_emails_to', [ $overrideBcc => $overrideBccName ]);
+
+        $to_address = $this->config()->get('to_address');
+        $to_name = $this->config()->get('to_name');
+        $this->assertNotEmpty($to_address);
+
+        $from_address = $this->config()->get('from_address');
+        $from_name = $this->config()->get('from_name');
+        $this->assertNotEmpty($from_address);
+
+        $from = [
+            $from_address => $from_name,
+        ];
+        $to = [
+            $to_address => $to_name,
+        ];
+
+        $messageConnector = MessageConnector::create();
+        $email = Email::create();
+        $email->setFrom($from);
+        $email->setTo($to);
+        $email->setCc(['cctest1@example.com' => 'cctest 1']);
+        $email->setBcc(['bcctest1@example.com' => 'bcctest 1', 'bcctest2@example.com' => 'bcctest 2']);
+        $email->setSubject("Email with default configuration set");
+
+        $mailer = Injector::inst()->get(MailgunMailer::class);
+
+        $parameters = $mailer->prepareParameters($email, $messageConnector);
+
+        $this->assertEquals($overrideTo, $parameters['to']);
+        $this->assertEquals($overrideFrom, $parameters['from']);
+        $this->assertContains( $overrideCc, explode(",", $parameters['cc']) );
+        $this->assertContains( "{$overrideBccName} <{$overrideBcc}>", explode(",", $parameters['bcc']) );
+
+    }
+
 }
