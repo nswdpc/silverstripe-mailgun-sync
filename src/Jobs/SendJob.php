@@ -76,7 +76,7 @@ class SendJob extends AbstractQueuedJob
      */
     public function __construct($domain = "", $parameters = [])
     {
-        $this->connector = new MessageConnector;
+        $this->connector = MessageConnector::create();
         $this->domain = $this->connector->getApiDomain();
         if(!empty($parameters)) {
             $this->parameters = $parameters;
