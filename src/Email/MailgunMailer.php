@@ -315,7 +315,7 @@ class MailgunMailer implements Mailer
             if(isset($parameters['cc'])) {
                 $parameters['cc'] .= "," . $cc;
             } else {
-                $parameters['cc'] .= $cc;
+                $parameters['cc'] = $cc;
             }
         }
 
@@ -335,7 +335,7 @@ class MailgunMailer implements Mailer
             if(isset($parameters['bcc'])) {
                 $parameters['bcc'] .= "," . $bcc;
             } else {
-                $parameters['bcc'] .= $bcc;
+                $parameters['bcc'] = $bcc;
             }
         }
 
