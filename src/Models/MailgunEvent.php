@@ -146,7 +146,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Set permission groups
      */
-    final private function createGroupsAndPermissions()
+    private function createGroupsAndPermissions()
     {
         $manager_code = 'mailgun-managers';
         $manager_group = Group::get()->filter('Code', $manager_code)->first();
