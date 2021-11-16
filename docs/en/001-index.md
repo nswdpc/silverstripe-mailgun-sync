@@ -8,9 +8,7 @@
 
 MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters`
 
-These extra options, variables, headers and recipient variables are passed to the Mailgun API
-
-[Mailgun places a limit of 3 tags per message](https://documentation.mailgun.com/en/latest/user_manual.html#tagging)
+These extra options, variables, headers and recipient variables are passed to the Mailgun API.
 
 ```php
 use SilverStripe\Control\Email\Email;
@@ -59,6 +57,8 @@ $email->setTo($person->Email)
 ## Tagging
 
 To set tags on a message, include them in the `$parameters['options']['tag']` array.
+
+[Mailgun places a limit of 3 tags per message](https://documentation.mailgun.com/en/latest/user_manual.html#tagging).
 
 ## Future delivery
 
