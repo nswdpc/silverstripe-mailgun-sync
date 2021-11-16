@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
