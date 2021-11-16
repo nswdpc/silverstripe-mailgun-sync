@@ -4,13 +4,15 @@ This module provides functionality to send emails via the Mailgun API and store 
 
 ## Requirements
 
-These are installed via Composer when you install the module:
+See [composer.json](./composer.json)
 
 + silverstripe/framework ^4
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
 + Mailgun PHP SDK ^3, kriswallsmith/buzz, nyholm/psr7
 
-and...
+### Mailgun configuration
+
+You need:
 
 * A Mailgun account
 * At least one non-sandbox Mailgun mailing domain ([verified is best](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain)) in your choice of region
@@ -19,7 +21,7 @@ and...
 
 ## Installing
 
-```
+```shell
 composer require nswdpc/silverstripe-mailgun-sync
 ```
 
@@ -258,3 +260,23 @@ Synchronisation of events is now handled by the [webhooks controller](./docs/en/
 BSD-3-Clause
 
 See [LICENSE](./LICENSE.md)
+
+## Maintainers
+
++ [dpcdigital@NSWDPC:~$](https://dpc.nsw.gov.au)
+
+## Bugtracker
+
+We welcome bug reports, pull requests and feature requests on the Github Issue tracker for this project.
+
+Please review the [code of conduct](./code-of-conduct.md) prior to opening a new issue.
+
+## Security
+
+If you have found a security issue with this module, please email digital[@]dpc.nsw.gov.au in the first instance, detailing your findings.
+
+## Development and contribution
+
+If you would like to make contributions to the module please ensure you raise a pull request and discuss with the module maintainers.
+
+Please review the [code of conduct](./code-of-conduct.md) prior to completing a pull request.
