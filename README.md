@@ -217,7 +217,7 @@ On the next queue run, these jobs will attempt to send again.
 
 ## Manual Resubmission
 
-Messages can be resent from the Mailgun control panel
+Messages can be resent from the Mailgun control panel. This depends on your Message Retention setting for the relevant mailing domain in Mailgun.
 
 ## DMARC considerations
 
