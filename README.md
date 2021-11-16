@@ -232,11 +232,14 @@ See [dmarc.org](https://dmarc.org) for more information on the importance of DMA
 
 ## Tests
 
-See [./tests](./tests)
+Unit tests: [./tests](./tests). Tests use the [TestMessage](./tests/TestMessage.php) connector.
 
-When acceptance testing this module, you probably want to avoid emails going out to the Internet.
+### Sending emails using sandbox/testmode
 
-Ensure you use a Mailgun sandbox domain with approved recipients to avoid this and/or switch the `api_testmode` configuration value to `true`
+For acceptance testing, you can use a combination of the Mailgun sandbox domain and API testmode.
+
++ Sandbox domain: set the `api_domain` value in configuration to the sandbox domain provided by Mailgun. Remember to list approved recipients in the sandbox domain settings in the Mailgun control panel.
++ Test mode: set the `api_testmode` value to true. In testmode, Mailgun accepts but does not deliver messages.
 
 ## Breaking changes in 1.0 release
 
