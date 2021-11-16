@@ -15,7 +15,7 @@ and...
 * A Mailgun account
 * At least one non-sandbox Mailgun mailing domain ([verified is best](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain)) in your choice of region
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
-* MailgunEmail and MailgunMailer configured in your project (see below)
+* MailgunEmail and MailgunMailer are configured in your project (see below)
 
 ## Installing
 
@@ -228,11 +228,11 @@ See [dmarc.org](https://dmarc.org) for more information on the importance of DMA
 
 ## Tests
 
-See ./tests
+See [./tests](./tests)
 
-When testing this module, you probably want to avoid emails going out to the internet.
+When acceptance testing this module, you probably want to avoid emails going out to the Internet.
 
-Ensure you use a Mailgun sandbox domain with approved recipients to avoid this.
+Ensure you use a Mailgun sandbox domain with approved recipients to avoid this and/or switch the `api_testmode` configuration value to `true`
 
 ## Breaking changes in 1.0 release
 

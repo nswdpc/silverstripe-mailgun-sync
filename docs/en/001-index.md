@@ -62,7 +62,7 @@ To set tags on a message, include them in the `$parameters['options']['tag']` ar
 
 ## Future delivery
 
-To send in the future, use [scheduled delivery](https://documentation.mailgun.com/en/latest/user_manual.html#scheduling-delivery)
+To send in the future, use [scheduled delivery](https://documentation.mailgun.com/en/latest/user_manual.html#scheduling-delivery) with an RFC2822 formatted datetime.
 
 ```php
 //send in the future example
