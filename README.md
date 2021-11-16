@@ -13,7 +13,7 @@ These are installed via Composer when you install the module:
 and...
 
 * A Mailgun account
-* At least one non-sandbox Mailgun mailing domain ([verified is best](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain)) in your choice of region
+* At least one non-sandbox Mailgun mailing domain ([verified is best](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain)) in your choice of region
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
 * MailgunEmail and MailgunMailer are configured in your project (see below)
 
@@ -29,7 +29,7 @@ composer require nswdpc/silverstripe-mailgun-sync
 
 Configuration of your Mailgun domain and account is beyond the scope of this document but is straightforward.
 
-You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain). 
+You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain). 
 
 MXToolBox.com is a useful tool to check your mailing domain has valid DMARC records.
 
