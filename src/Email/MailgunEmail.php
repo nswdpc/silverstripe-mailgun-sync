@@ -40,7 +40,7 @@ class MailgunEmail extends Email {
      * @return NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
-    public function getConnector() {
+    public function getConnector() : Message {
         $this->connector = Injector::inst()->get( Message::class );
         return $this->connector;
     }
