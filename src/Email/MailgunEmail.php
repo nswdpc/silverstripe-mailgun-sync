@@ -15,36 +15,62 @@ use NSWDPC\Messaging\Mailgun\Connector\Message;
  */
 class MailgunEmail extends Email {
 
+    /**
+     * Allow configuration via API
+     */
     use Configurable;
 
+    /**
+     * Injector
+     */
     use Injectable;
 
+    /**
+     * @deprecated
+     */
     private $connector;
 
     /**
-     * Retrieve the connector sent
+     * @var array
+     */
+    private $customParameters = [];
+
+    /**
+     * Retrieve the connector instance
      * @return NSWDPC\Messaging\Mailgun\Connector\Message
+     * @deprecated
      */
     public function getConnector() {
-        if(!$this->connector) {
-            $this->connector = Injector::inst()->create( Message::class );
-        }
+        $this->connector = Injector::inst()->get( Message::class );
         return $this->connector;
     }
 
     /**
-     * Set custom parameters on the message connector
-     * @return NSWDPC\Messaging\Mailgun\MailgunEmail
+     * Get the custom parameters for this particular message
+     * Custom parameters are retrievable once to avoid replaying them across
+     * multiple messages
      */
-    public function setCustomParameters($args) {
-        return $this->getConnector()
-                        ->setVariables( $args['variables'] ?? [] )
-                        ->setOptions( $args['options'] ?? [] )
-                        ->setCustomHeaders( $args['headers'] ?? [] )
-                        ->setRecipientVariables( $args['recipient-variables'] ?? [] )
-                        ->setSendIn($args['send-in'] ?? 0)
-                        ->setAmpHtml($args['amp-html'] ?? '')
-                        ->setTemplate($args['template'] ?? []);
+    public function getCustomParameters() : array {
+        $customParameters = $this->customParameters;
+        $this->clearCustomParameters();
+        return $customParameters;
+    }
+
+    /**
+     * Clear custom parameters
+     * @return self
+     */
+    public function clearCustomParameters() {
+        $this->customParameters = [];
+        return $this;
+    }
+
+    /**
+     * Set custom parameters on the message connector
+     * @return self
+     */
+    public function setCustomParameters(array $args) {
+        $this->customParameters = $args;
         return $this;
     }
 

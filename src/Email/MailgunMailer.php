@@ -23,7 +23,14 @@ use Swift_Mime_SimpleHeaderSet;
  */
 class MailgunMailer implements Mailer
 {
+    /**
+     * Allow configuration via API
+     */
     use Configurable;
+
+    /**
+     * Injector
+     */
     use Injectable;
 
     // configured in project
@@ -51,121 +58,39 @@ class MailgunMailer implements Mailer
     }
 
     /**
-     * @returns string the mailgun message id
+     * Retrieve and set custom parameters on the API connector
+     * @param MailgunEmail $email
+     * @param MessageConnector connector instance for this send attempt
+     * @return MessageConnector
+     */
+    protected function assignCustomParameters(MailgunEmail &$email, MessageConnector &$connector) : MessageConnector {
+        $customParameters = $email->getCustomParameters();
+        $email->clearCustomParameters();
+        $connector->setVariables( $customParameters['variables'] ?? [] )
+                ->setOptions( $customParameters['options'] ?? [] )
+                ->setCustomHeaders( $customParameters['headers'] ?? [] )
+                ->setRecipientVariables( $customParameters['recipient-variables'] ?? [] )
+                ->setSendIn($customParameters['send-in'] ?? 0)
+                ->setAmpHtml($customParameters['amp-html'] ?? '')
+                ->setTemplate($customParameters['template'] ?? []);
+        return $connector;
+    }
+
+    /**
+     * @param Email
+     * @returns mixed
      */
     public function send($email)
     {
-        /**
-         * @var Swift_Message
-         */
-        $message = $email->getSwiftMessage();
-
-        if (!$message instanceof Swift_Message) {
-            throw new InvalidRequestException("There is no message associated with this request");
-        }
-
-        $recipients = $senders = [];
-
-        // Handle 'From' headers from Swift_Message
-        $message_from = $message->getFrom();
-        if (empty($message_from) || !is_array($message_from)) {
-            // Mailgun requires a from header
-            throw new InvalidRequestException("At least one 'From' entry in a mailbox spec is required");
-        }
-        foreach ($message_from as $from_email => $from_name) {
-            if (!empty($from_name)) {
-                $senders[] = $from_name . " <" . $from_email . ">";
-            } else {
-                $senders[] = $from_email;
-            }
-        }
-
-        // Handle 'To' headers from Swift_Message
-        $message_to = $message->getTo();
-        if (empty($message_to) || !is_array($message_to)) {
-            // Mailgun requires a from header
-            throw new InvalidRequestException("At least one 'To' entry in a mailbox spec is required");
-        }
-        foreach ($message_to as $to_email => $to_name) {
-            if (!empty($to_name)) {
-                $recipients[] = $to_name . " <" . $to_email . ">";
-            } else {
-                $recipients[] = $to_email;
-            }
-        }
-
-        // handle the message subject
-        $subject = $message->getSubject();
-
-        $to = implode(",", $recipients);
-        $from = implode(",", $senders);
-
-
         try {
 
-            // API client
-            $connector = $email->getConnector();
+            // API client for this send attempt
+            $connector = MessageConnector::create();
 
-            // process attachments
-            $attachments = $this->prepareAttachments($message->getChildren());
+            // Prepare  all parameters for sending
+            $parameters = $this->prepareParameters($email, $connector);
 
-            // process headers
-            $headers = $message->getHeaders();
-            if ($headers instanceof Swift_Mime_SimpleHeaderSet) {
-                $headers = $this->prepareHeaders( $headers );
-            } else {
-                // ensure empty array
-                $headers = [];
-            }
-
-            // parameters for the API
-            $parameters = [];
-
-            // check if $always_from is set
-            if ($always_from = $this->getAlwaysFrom()) {
-                $parameters['h:Reply-To'] = $from;// set the from as a replyto
-                $from = $always_from;// replace 'from'
-                $headers['Sender'] = $from;// set in addCustomParameters below
-            }
-
-            /**
-             * Message parts
-             */
-            $plain_body = "";
-            try {
-                $plain_body = $email->findPlainPart()->getBody();
-            } catch (\Exception $e) {
-                // TODO convert nicer-ly
-                $plain_body = Convert::xml2raw($content);
-            }
-
-            $parameters = array_merge($parameters, [
-                    'from' => $from,
-                    'to' => $to,
-                    'subject' => $subject,
-                    'text' => $plain_body,
-                    'html' => $email->getBody()
-            ]);
-
-            // HEADERS: these generic headers override anything passed in or added as a custom parameter
-
-            // if Cc and Bcc have been provided
-            if (isset($headers['Cc'])) {
-                $parameters['cc'] = $headers['Cc'];
-                unset($parameters['h:Cc']);//avoid double Cc header
-            }
-            if (isset($headers['Bcc'])) {
-                $parameters['bcc'] = $headers['Bcc'];
-                unset($parameters['h:Bcc']);//avoid sending double Bcc header
-            }
-
-            // Provide Mailgun the Attachments. Keys are 'fileContent' (the bytes) and filename (the file name)
-            // If the key filename is not provided, Mailgun will use the name of the file, which may not be what you want displayed
-            // TODO inline attchment disposition
-            if (!empty($attachments) && is_array($attachments)) {
-                $parameters['attachment'] = $attachments;
-            }
-
+            // Send the payload
             $response = $connector->send($parameters);
             if($response instanceof SendResponse) {
                 // get a message.id from the response
@@ -182,6 +107,214 @@ class MailgunMailer implements Mailer
             Log::log('Mailgun-Sync / Mailgun error: ' . $e->getMessage(), \Psr\Log\LogLevel::NOTICE);
         }
         return false;
+    }
+
+    /**
+     * Process to, from, cc, bcc recipient headers that are in a email => displayName format
+     * Returns a flattened array of values being recipients understandable to the Mailgun API
+     * @return array
+     */
+    public function processEmailDisplayName(array $data) {
+        $list = [];
+        foreach ($data as $email => $displayName) {
+            if (!empty($displayName)) {
+                $list[] = $displayName . " <" . $email . ">";
+            } else {
+                $list[] = $email;
+            }
+        }
+        return $list;
+    }
+
+    /**
+     * Given a Swift_Message, prepare parameters for the API send
+     * @param Email $email a SilverStripe Email instance
+     * @param MessageConnector $connector the connector to the Mailgun PHP SDK client
+     * @return array of parameters for the Mailgun API
+     */
+    public function prepareParameters(Email $email, MessageConnector $connector) : array {
+
+        /**
+         * @var Swift_Message
+         */
+        $message = $email->getSwiftMessage();
+
+        if (!$message instanceof Swift_Message) {
+            throw new InvalidRequestException("There is no message associated with this request");
+        }
+
+        $recipients = $senders = [];
+
+        // Handle 'From' headers from Swift_Message
+        $message_from = $message->getFrom();
+        if (!empty($message_from)) {
+            $senders = $this->processEmailDisplayName($message_from);
+        }
+
+        // Handle 'To' headers from Swift_Message
+        $message_to = $message->getTo();
+        if (!empty($message_to)) {
+            $recipients = $this->processEmailDisplayName($message_to);
+        }
+
+        // handle the message subject
+        $subject = $message->getSubject();
+
+        $to = implode(",", $recipients);
+        $from = implode(",", $senders);
+
+        // Assign custom parameters to the connector
+        if($email instanceof MailgunEmail) {
+            $this->assignCustomParameters($email, $connector);
+        }
+
+        // process attachments
+        $attachments = $this->prepareAttachments($message->getChildren());
+
+        // process headers
+        $headers = $message->getHeaders();
+        if ($headers instanceof Swift_Mime_SimpleHeaderSet) {
+            $headers = $this->prepareHeaders( $headers );
+        } else {
+            // ensure empty array
+            $headers = [];
+        }
+
+        // parameters for the API
+        $parameters = [];
+
+        // check if $always_from is set
+        if ($always_from = $this->getAlwaysFrom()) {
+            $parameters['h:Reply-To'] = $from;// set the from as a replyto
+            $from = $always_from;// replace 'from'
+            $headers['Sender'] = $from;// set in addCustomParameters below
+        }
+
+        /**
+         * Message parts
+         */
+        $plain = $email->findPlainPart();
+        $plain_body = '';
+        if($plain) {
+            $plain_body = $plain->getBody();
+        }
+
+        $parameters = array_merge($parameters, [
+                'from' => $from,
+                'to' => $to,
+                'subject' => $subject,
+                'text' => $plain_body,
+                'html' => $email->getBody()
+        ]);
+
+        // HEADERS: these generic headers override anything passed in or added as a custom parameter
+
+        // if Cc and Bcc have been provided
+        if (isset($headers['Cc'])) {
+            $parameters['cc'] = $headers['Cc'];
+            unset($parameters['h:Cc']);//avoid double Cc header
+        }
+        if (isset($headers['Bcc'])) {
+            $parameters['bcc'] = $headers['Bcc'];
+            unset($parameters['h:Bcc']);//avoid sending double Bcc header
+        }
+
+        // Provide Mailgun the Attachments. Keys are 'fileContent' (the bytes) and filename (the file name)
+        // If the key filename is not provided, Mailgun will use the name of the file, which may not be what you want displayed
+        // TODO inline attchment disposition
+        if (!empty($attachments) && is_array($attachments)) {
+            $parameters['attachment'] = $attachments;
+        }
+
+        // Assign default parameters
+        $this->assignDefaultParameters($parameters);
+
+        // Finally: handle always from, which is our legacy handling
+        if ($always_from = $this->getAlwaysFrom()) {
+            $parameters['h:Reply-To'] = $from;// set the from as a replyto
+            $parameters['from'] = $always_from;// set from header
+            $parameters['h:Sender'] = $parameters['from'];// set Send header as new from
+        }
+
+        return $parameters;
+    }
+
+    /**
+     * Given {@link \SilverStripe\Control\Email\Email} configuration, apply relevant values
+     * @param array
+     */
+    public function assignDefaultParameters(&$parameters) {
+
+        // Override send all emails to
+        $sendAllEmailsTo = Email::getSendAllEmailsTo();
+        if($sendAllEmailsTo) {
+            if(is_string($sendAllEmailsTo)) {
+                $parameters['to'] = $sendAllEmailsTo;
+            } else if(is_array($sendAllEmailsTo)) {
+                $sendAllEmailsTo = $this->processEmailDisplayName($sendAllEmailsTo);
+                $parameters['to'] = implode(",", $sendAllEmailsTo);
+            } else {
+                throw new \Exception("Email::getSendAllEmailsTo should be a string or array");
+            }
+        }
+
+        // Override from address, note always_from overrides this
+        $sendAllEmailsFrom = Email::getSendAllEmailsFrom();
+        if($sendAllEmailsFrom) {
+            if(is_string($sendAllEmailsFrom)) {
+                $parameters['from'] = $sendAllEmailsFrom;
+            } else if(is_array($sendAllEmailsFrom)) {
+                $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
+                $parameters['from'] = implode(",",$sendAllEmailsFrom);
+            } else {
+                throw new \Exception("Email::getSendAllEmailsFrom should be a string or array");
+            }
+        }
+
+        // Add or set CC defaults
+        $ccAllEmailsTo = Email::getCCAllEmailsTo();
+        if($ccAllEmailsTo) {
+            $cc = '';
+            if(is_string($ccAllEmailsTo)) {
+                $cc = $ccAllEmailsTo;
+            } else if(is_array($ccAllEmailsTo)) {
+                $ccAllEmailsTo = $this->processEmailDisplayName($ccAllEmailsTo);
+                $cc = implode(",", $ccAllEmailsTo);
+            } else {
+                throw new \Exception("Email::getCCAllEmailsTo should be a string or array");
+            }
+
+            if($cc) {
+                if(isset($parameters['cc'])) {
+                    $parameters['cc'] .= "," . $cc;
+                } else {
+                    $parameters['cc'] = $cc;
+                }
+            }
+        }
+
+        // Add or set BCC defaults
+        $bccAllEmailsTo = Email::getBCCAllEmailsTo();
+        if($bccAllEmailsTo) {
+            $bcc = '';
+            if(is_string($bccAllEmailsTo)) {
+                $bcc = $bccAllEmailsTo;
+            } else if(is_array($bccAllEmailsTo)) {
+                $bccAllEmailsTo = $this->processEmailDisplayName($bccAllEmailsTo);
+                $bcc = implode(",", $bccAllEmailsTo);
+            } else {
+                throw new \Exception("Email::getBCCAllEmailsTo should be a string or array");
+            }
+
+            if($bcc) {
+                if(isset($parameters['bcc'])) {
+                    $parameters['bcc'] .= "," . $bcc;
+                } else {
+                    $parameters['bcc'] = $bcc;
+                }
+            }
+        }
+
     }
 
     /**

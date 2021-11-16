@@ -4,6 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Core\Config\Config;
@@ -30,6 +31,9 @@ class MailgunSyncTest extends SapphireTest
 
     protected $usesDatabase = false;
 
+    protected $test_api_key = 'the_api_key';
+    protected $test_api_domain = 'testing.example.net';
+
     // In your sandbox domains settings, set the To address to an address you can authorise
     private static $to_address = "test@example.com";// an email address
     private static $to_name = "Test Tester";// optional the recipient name
@@ -51,26 +55,34 @@ class MailgunSyncTest extends SapphireTest
         Injector::inst()->registerService($this->mailer, Mailer::class);
         // use MailgunEmail
         Injector::inst()->registerService(MailgunEmail::create(), Email::class);
+
+        // use TestMessage
+        Injector::inst()->registerService(TestMessage::create(), MessageConnector::class);
+
         // modify some config values for tests
         // never send via a job
+        Config::inst()->update(Base::class, 'api_domain', $this->test_api_domain);
+        Config::inst()->update(Base::class, 'api_key', $this->test_api_key);
         Config::inst()->update(Base::class, 'send_via_job', 'no');
+        Config::inst()->update(Base::class, 'api_testmode', true);
     }
 
     /**
-     * Check if can send prior to attempting
+     * Test that the API domain configured is maintained
      */
-    protected function canSend() {
+    public function testApiDomain() {
+        $currentValue = Config::inst()->get(Base::class, 'api_domain');
+        $value = "testing.example.org";
+        Config::inst()->update(Base::class, 'api_domain', $value);
         $connector = MessageConnector::create();
-        $api_key = $connector->config()->get('api_key');
-        if(!$api_key) {
-            return false;
-        }
-        if(!$connector->isSandbox()) {
-            return false;
-        }
-        return true;
+        $result = $connector->getApiDomain();
+        $this->assertEquals($value, $result);
+        Config::inst()->update(Base::class, 'api_domain', $currentValue);
     }
 
+    /**
+     * Test that the API endpoint configured is maintained
+     */
     public function testApiEndpoint() {
 
         $value = 'API_ENDPOINT_EU';
@@ -94,9 +106,7 @@ class MailgunSyncTest extends SapphireTest
      */
     public function testMailerDelivery($subject = "test_mailer_delivery")
     {
-        if(!$this->canSend()) {
-            throw new \Exception("Cannot test sandbox delivery");
-        }
+
         $to_address = $this->config()->get('to_address');
         $to_name = $this->config()->get('to_name');
         $this->assertNotEmpty($to_address);
@@ -114,15 +124,16 @@ class MailgunSyncTest extends SapphireTest
 
         $email = Email::create();
 
-        $this->assertTrue($email instanceof MailgunEmail, "Email needs to be an instance of MailgunEmail");
-
         $email->setFrom($from);
         $email->setTo($to);
+        $email->setCc(["cc@example.com" => "Cc Person"]);
+        $email->setBcc(["bcc@example.com" => "Bcc Person"]);
         $email->setSubject($subject);
         if ($cc = $this->config()->get('cc_address')) {
             $email->setCc($cc);
         }
-        $email->setBody($this->config()->get('test_body'));
+        $htmlBody = $this->config()->get('test_body');
+        $email->setBody( $htmlBody );
 
         $variables = [
             'test' => 'true',
@@ -151,26 +162,109 @@ class MailgunSyncTest extends SapphireTest
             'recipient-variables' => $recipient_variables
         ]);
 
-
-        $this->assertEquals($options, $email->getConnector()->getOptions());
-        $this->assertEquals($variables, $email->getConnector()->getVariables());
-        $this->assertEquals($headers, $email->getConnector()->getCustomHeaders());
-        $this->assertEquals($recipient_variables, $email->getConnector()->getRecipientVariables());
-        $this->assertTrue(Injector::inst()->get(Mailer::class) instanceof MailgunMailer, "Mailer is not the MailgunMailer");
-
         // send the email, returns a message_id if delivered
-        $result = $email->send();
+        $response = $email->send();
 
-        $this->assertNotEmpty($result, "Email send result is empty");
+        $this->assertEquals(TestMessage::MSG_ID, $response);
 
-        return $result;
+        $sendData = TestMessage::getSendData();
+
+        $this->assertEquals(
+            "{$from_name} <{$from_address}>",
+            $sendData['parameters']['from'] ,
+            "From: mismatch"
+        );
+
+        $this->assertEquals(
+            "{$to_name} <{$to_address}>",
+            $sendData['parameters']['to'],
+            "To: mismatch"
+        );
+
+        $this->assertEquals(
+            "Cc Person <cc@example.com>",
+            $sendData['parameters']['cc'],
+            "Cc: mismatch"
+        );
+
+        $this->assertEquals(
+            "Bcc Person <bcc@example.com>",
+            $sendData['parameters']['bcc'],
+            "Bcc: mismatch"
+        );
+
+        foreach($options as $k=>$v) {
+            $this->assertEquals( $sendData['parameters']["o:{$k}"], $v, "Option $k failed");
+        }
+
+        foreach($variables as $k=>$v) {
+            $this->assertEquals( $sendData['parameters']["v:{$k}"], $v , "Variable $k failed");
+        }
+
+        foreach($headers as $k=>$v) {
+            $this->assertEquals( $sendData['parameters']["h:{$k}"], $v , "Header $k failed");
+        }
+
+        $this->assertEquals( json_encode($recipient_variables), $sendData['parameters']['recipient-variables'] );
+
+        $this->assertEquals($htmlBody, $sendData['parameters']['html'] );
+
+        return $sendData;
     }
 
-    public function testMailerDeliveryViaJob() {
+    /**
+     * Test delivery via a Job
+     */
+    public function testJobMailerDelivery() {
         Config::inst()->update(Base::class, 'send_via_job', 'yes');
         // send message
-        $result = $this->testMailerDelivery("test_mailer_delivery_job");
-        $this->assertTrue($result instanceof QueuedJobDescriptor && $result->Implementation == SendJob::class);
+        $subject = "test_mailer_delivery_job";
+        $sendData = $this->testMailerDelivery($subject);
+        $this->assertEquals($subject, $sendData['parameters']['subject']);
+        $this->assertEquals('job', $sendData['sentVia']);
+    }
+
+    /**
+     * Test always from setting
+     */
+    public function testAlwaysFrom() {
+
+        $alwaysFromEmail = 'alwaysfrom@example.com';
+        Config::inst()->update(MailgunMailer::class, 'always_from', $alwaysFromEmail);
+
+        $to_address = $this->config()->get('to_address');
+        $to_name = $this->config()->get('to_name');
+        $this->assertNotEmpty($to_address);
+
+        $from_address = $this->config()->get('from_address');
+        $from_name = $this->config()->get('from_name');
+        $this->assertNotEmpty($from_address);
+
+        $from = [
+            $from_address => $from_name,
+        ];
+        $to = [
+            $to_address => $to_name,
+        ];
+        $subject = "always from email";
+
+        $email = Email::create();
+
+        $email->setFrom($from);
+        $email->setTo($to);
+        $email->setSubject($subject);
+
+        $response = $email->send();
+
+        $this->assertEquals(TestMessage::MSG_ID, $response);
+
+        $sendData = TestMessage::getSendData();
+
+        $this->assertEquals(
+            $alwaysFromEmail,
+            $sendData['parameters']['from'],
+            "From: mismatch - should be alwaysFrom value"
+        );
     }
 
     /**
@@ -178,9 +272,6 @@ class MailgunSyncTest extends SapphireTest
      */
     public function testAPIDelivery()
     {
-        if(!$this->canSend()) {
-            throw new \Exception("Cannot test sandbox delivery");
-        }
 
         Config::inst()->update(Base::class, 'send_via_job', 'no');
 
@@ -213,26 +304,152 @@ class MailgunSyncTest extends SapphireTest
             'html' => $this->config()->get('test_body')
         ];
 
-        /*
-        // same as o:* options above
-        $connector->setOptions([
-            'testmode' => 'yes',
-            'tag' => ['api_test'],
-        ])
-        */
-
         if ($cc = $this->config()->get('cc_address')) {
             $parameters['cc'] = $cc;
         }
 
-        try {
-            $response = $connector->send($parameters);
-            $this->assertTrue($response && ($response instanceof SendResponse));
-            $message_id = $response->getId();
-            $this->assertNotEmpty($message_id, "Response has no message id");
-        } catch (\Exception $e) {
-            // fail the test
-            $this->assertTrue(false, $e->getMessage());
+        $response = $connector->send($parameters);
+        $this->assertTrue($response && ($response instanceof SendResponse));
+        $message_id = $response->getId();
+        $this->assertNotEmpty($message_id, "Response has no message id");
+        $this->assertEquals(TestMessage::MSG_ID, $response->getId());
+        $sendData = TestMessage::getSendData();
+
+        $this->arrayHasKey('parameters', $sendData);
+
+        foreach(['o:testmode','o:tag','from','to','subject','text','html'] as $key) {
+            $this->assertEquals($parameters[ $key ], $sendData['parameters'][ $key ]);
+        }
+    }
+
+    /**
+     * Test sending with default values set
+     */
+    public function testSendWithDefaultConfiguration() {
+
+        $overrideTo = 'allemails@example.com';
+        $overrideFrom = 'allemailsfrom@example.com';
+        $overrideCc = 'ccallemailsto@example.com';
+        $overrideBcc = 'bccallemailsto@example.com';
+        $overrideBccName = 'bcc person';
+
+        Config::inst()->update(Email::class, 'send_all_emails_to', $overrideTo);
+        Config::inst()->update(Email::class, 'send_all_emails_from', $overrideFrom);
+        Config::inst()->update(Email::class, 'cc_all_emails_to', $overrideCc);
+        Config::inst()->update(Email::class, 'bcc_all_emails_to', [ $overrideBcc => $overrideBccName ]);
+
+        $to_address = $this->config()->get('to_address');
+        $to_name = $this->config()->get('to_name');
+        $this->assertNotEmpty($to_address);
+
+        $from_address = $this->config()->get('from_address');
+        $from_name = $this->config()->get('from_name');
+        $this->assertNotEmpty($from_address);
+
+        $from = [
+            $from_address => $from_name,
+        ];
+        $to = [
+            $to_address => $to_name,
+        ];
+
+        $email = Email::create();
+        $email->setFrom($from);
+        $email->setTo($to);
+        $email->setCc(['cctest1@example.com' => 'cctest 1']);
+        $email->setBcc(['bcctest1@example.com' => 'bcctest 1', 'bcctest2@example.com' => 'bcctest 2']);
+        $email->setSubject("Email with default configuration set");
+
+        $response = $email->send();
+
+        $this->assertEquals(TestMessage::MSG_ID, $response);
+
+        $sendData = TestMessage::getSendData();
+
+        foreach(['domain','parameters','sentVia','client','in'] as $key) {
+            $this->arrayHasKey($key, $sendData);
+        }
+
+        $this->assertEquals($this->test_api_domain, $sendData['domain']);
+        $this->assertEquals(0, $sendData['in']);
+        $this->assertEquals('direct-to-api', $sendData['sentVia']);
+        $this->assertInstanceOf(Mailgun::class, $sendData['client']);
+
+        $this->assertEquals($overrideTo, $sendData['parameters']['to']);
+        $this->assertEquals($overrideFrom, $sendData['parameters']['from']);
+        $this->assertContains( $overrideCc, explode(",", $sendData['parameters']['cc']) );
+        $this->assertContains( "{$overrideBccName} <{$overrideBcc}>", explode(",", $sendData['parameters']['bcc']) );
+
+    }
+
+    /**
+     * test a message with attachments
+     */
+    public function testAttachmentDelivery() {
+        $to_address = $this->config()->get('to_address');
+        $to_name = $this->config()->get('to_name');
+        $this->assertNotEmpty($to_address);
+
+        $from_address = $this->config()->get('from_address');
+        $from_name = $this->config()->get('from_name');
+        $this->assertNotEmpty($from_address);
+
+        $from = [
+            $from_address => $from_name,
+        ];
+        $to = [
+            $to_address => $to_name,
+        ];
+
+        $subject = "test_attachment_delivery";
+
+        $email = Email::create();
+
+        $email->setFrom($from);
+        $email->setTo($to);
+        $email->setSubject($subject);
+        $htmlBody = $this->config()->get('test_body');
+        $email->setBody( $htmlBody );
+
+        $files = [
+            "test_attachment.pdf" => 'application/pdf',
+            "test_attachment.txt" => 'text/plain'
+        ];
+        $f = 1;
+        foreach($files as $file => $mimetype) {
+            $email->addAttachment(
+                dirname(__FILE__) . "/attachments/{$file}",
+                $file,
+                $mimetype
+            );
+            $f++;
+        }
+
+        $response = $email->send();
+
+        $sendData = TestMessage::getSendData();
+
+        $this->arrayHasKey('parameters', $sendData);
+        $this->arrayHasKey('attachment', $sendData['parameters']);
+        $attachments = $sendData['parameters']['attachment'];
+
+        $f = 1;
+        $this->assertEquals(count($files), count($attachments));
+        foreach($attachments as $attachment) {
+            $this->arrayHasKey( 'filename', $attachment );
+            $this->arrayHasKey( 'mimetype', $attachment );
+            $this->arrayHasKey( 'fileContent', $attachment );
+            foreach($files as $file => $mimetype) {
+                if($file == $attachment['filename']) {
+                    $this->assertEquals($mimetype, $attachment['mimetype']);
+                    $this->assertNotEmpty($attachment['fileContent']);
+                    $this->assertEquals(
+                        file_get_contents( dirname(__FILE__) . "/attachments/{$file}" ),
+                        $attachment['fileContent']
+                    );
+                }
+            }
+            $f++;
         }
     }
 

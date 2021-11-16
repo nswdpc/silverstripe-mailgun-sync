@@ -6,7 +6,7 @@ There are also webhook tests that use sample POSTed values retrieved from actual
 
 ## Running
 
-+ Use your sandbox mailing domain for tests
++ `TestMessage` is registered as the connector service between the Mailer and the Mailgun PHP SDK
 + Submissions from tests set o:testmode='yes' in the request to avoid message leakage
 
 ## Configuration

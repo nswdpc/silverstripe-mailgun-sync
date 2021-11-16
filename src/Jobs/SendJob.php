@@ -58,7 +58,15 @@ class SendJob extends AbstractQueuedJob
      */
     public function getSignature()
     {
-        return md5($this->domain . ":" . serialize($this->parameters));
+        $params = [];
+        // these simple message params
+        $parts = ['to','from','cc','bcc','subject'];
+        foreach($parts as $part) {
+            $params[ $part ] = isset($parameters[ $part ])  ? $parameters[ $part ] :  '';
+        }
+        // at this time
+        $params['sendtime'] = microtime(true);
+        return md5($this->domain . ":" . serialize($params));
     }
 
     /**
@@ -68,7 +76,7 @@ class SendJob extends AbstractQueuedJob
      */
     public function __construct($domain = "", $parameters = [])
     {
-        $this->connector = new MessageConnector;
+        $this->connector = MessageConnector::create();
         $this->domain = $this->connector->getApiDomain();
         if(!empty($parameters)) {
             $this->parameters = $parameters;
