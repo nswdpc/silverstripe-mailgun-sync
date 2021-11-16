@@ -4,15 +4,18 @@ This module provides functionality to send emails via the Mailgun API and store 
 
 ## Requirements
 
+These are installed via Composer when you install the module:
+
 + silverstripe/framework ^4
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
-+ Mailgun PHP SDK ^3 and its recommended dependencies
++ Mailgun PHP SDK ^3, kriswallsmith/buzz, nyholm/psr7
 
 and...
 
 * A Mailgun account
 * At least one non-sandbox Mailgun mailing domain ([verified is best](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain)) in your choice of region
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
+* MailgunEmail and MailgunMailer configured in your project (see below)
 
 ## Installing
 
@@ -26,11 +29,13 @@ composer require nswdpc/silverstripe-mailgun-sync
 
 Configuration of your Mailgun domain and account is beyond the scope of this document but is straightforward.
 
-The best starting point is [Verifying a Domain](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain).
+You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain). 
+
+MXToolBox.com is a useful tool to check your mailing domain has valid DMARC records.
 
 ### Module
 
-Add the following to your project's YML config:
+Add the following to your project's yaml config:
 ```yml
 ---
 Name: local-mailgunsync-config
@@ -65,8 +70,10 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   # the previous one, to allow variable rotation
   webhook_previous_filter_variable: ''
 ---
+# Configure the mailer
 Name: local-mailer
 After:
+  # Override core email configuration
   - '#emailconfig'
 ---
 # Send messages via the MailgunMailer
@@ -77,9 +84,9 @@ SilverStripe\Core\Injector\Injector:
     class: 'NSWDPC\Messaging\Mailgun\MailgunMailer'
 ```
 
-> Remember to flush configuration after a YML change.
+> Remember to flush configuration after a configuration change.
 
-See [Detailed Configuration](./docs/en/005-detailed_configuration.md)
+See [detailed configuration, including project tags](./docs/en/005-detailed_configuration.md)
 
 ## Sending
 
