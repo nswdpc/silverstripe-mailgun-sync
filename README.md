@@ -184,6 +184,10 @@ See the [Mailgun PHP SDK documentation](https://github.com/mailgun/mailgun-php) 
 
 ## Queued Jobs
 
+The module uses the [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module to deliver email at a later time.
+
+This way, a website request that involves delivering an email will not be held up by API issues.
+
 ### SendJob
 
 This is a queued job that can be used to send emails depending on the ```send_via_job``` config value -
@@ -193,11 +197,11 @@ This is a queued job that can be used to send emails depending on the ```send_vi
 
 Messages are handed off to this queued job, which is configured to send after one minute. Once delivered, the message parameters are cleared to reduce space used by large messages.
 
-This job is marked as 'broken' immediately upon an API or other general error.
+This job is marked as 'broken' immediately upon an API or other general error. Please read the Queued Jobs Health Check documentation to get assistance with Broken job reporting.
 
 ### TruncateJob
 
-Use this job to clear out older MailgunEvent webhook records.
+Use this job to clear out older MailgunEvent webhook records. If you don't use webhooks to store events, this job can remain unused.
 
 ### RequeueJob
 
