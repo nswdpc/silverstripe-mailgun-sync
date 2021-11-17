@@ -1,7 +1,10 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Tests;
 
+use NSWDPC\Messaging\Mailgun\Connector\Base;
+use NSWDPC\Messaging\Mailgun\Connector\Webhook;
+use NSWDPC\Messaging\Mailgun\MailgunEvent;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Config\Config;
 
@@ -16,10 +19,13 @@ class WebhookTest extends FunctionalTest
     private $webhook_filter_variable = 'skjhgiehg943753-"';
     private $webhook_previous_filter_variable = 'snsd875bslw[';
 
+    protected $usesDatabase = true;
+
     public function setUp() {
         parent::setUp();
-        Config::inst()->set(Connector\Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
-        Config::inst()->set(Connector\Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
+        Config::inst()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
+        Config::inst()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
+        Config::inst()->set(Base::class, 'webhooks_enabled', true);
     }
 
     /**
@@ -40,7 +46,7 @@ class WebhookTest extends FunctionalTest
      * Webhook Mailgun API connector
      */
     protected function getConnector() {
-        return Connector\Webhook::create();
+        return Webhook::create();
     }
 
     /**
@@ -48,7 +54,7 @@ class WebhookTest extends FunctionalTest
      * @param string
      */
     protected function setSigningKey($signing_key) {
-        Config::inst()->set(Connector\Base::class, 'webhook_signing_key', $signing_key);
+        Config::inst()->set(Base::class, 'webhook_signing_key', $signing_key);
     }
 
     /**
@@ -125,8 +131,8 @@ class WebhookTest extends FunctionalTest
 
         // remove webhook variable and test
         unset( $data['event-data']['user-variables']['wfv'] );
-        Config::inst()->set(Connector\Base::class, 'webhook_filter_variable', '');
-        Config::inst()->set(Connector\Base::class, 'webhook_previous_filter_variable', '');
+        Config::inst()->set(Base::class, 'webhook_filter_variable', '');
+        Config::inst()->set(Base::class, 'webhook_previous_filter_variable', '');
 
         // change the signing key in config, it should fail now
         $signing_key = "YOU_SHALL_NOT_PASS";

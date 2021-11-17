@@ -2,6 +2,12 @@
 
 More detailed configuration information is as follows
 
+```yml
+NSWDPC\Messaging\Mailgun\Connector\Base:
+  api_domain: ''
+  ...
+```
+
 ### api_domain
 
 This is your custom mailing domain. It's recommended that your verify this in DNS
@@ -43,6 +49,13 @@ With a value of 'when-attachments' set, message delivery attempts without attach
 Mailgun requires a 'to' parameter. If your system sends messages with Bcc/Cc but no 'To' then you will need to specify a default_recipient (one that you control).
 
 ### always_from
+
+> This setting will be replaced with `Email.send_all_emails_from` in the future. You can use that instead, now.
+
+```yml
+NSWDPC\Messaging\Mailgun\MailgunMailer:
+   always_from: ''
+```
 
 If you wish to have all emails sent from a single address by default, regardless of the From header set then add the relevant value here.
 This is off by default but can come in handy if your application is sending emails from random addresses, which will cause you to fall foul of DMARC rules.

@@ -82,14 +82,13 @@ class Message extends Base
     /**
      * Send a message with parameters
      * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
-     * @returns SendResponse
+     * @return SendResponse|QueuedJobDescriptor|null
      * @param array $parameters an array of parameters for the Mailgun API
      * @param string $in a strtotime value added to 'now' being the time that the message will be sent via a queued job, if enabled
      */
     public function send($parameters)
     {
-        $client = $this->getClient();
-        $domain = $this->getApiDomain();
+
         // If configured and not already specified, set the Sender hader
         if ($this->alwaysSetSender() && !empty($parameters['from']) && empty($parameters['h:Sender'])) {
             $parameters['h:Sender'] = $parameters['from'];
@@ -115,6 +114,26 @@ class Message extends Base
         if($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
             $parameters["v:wfv"] = $variable;
         }
+
+        // Send a message defined by the parameters provided
+        return $this->sendMessage($parameters);
+
+    }
+
+    /**
+     * Sends a message
+     * @param array $parameters
+     */
+    protected function sendMessage(array $parameters) {
+
+        /**
+         * @var Mailgun\Mailgun
+         */
+        $client = $this->getClient();
+        /**
+         * @var string
+         */
+        $domain = $this->getApiDomain();
 
         // send options
         $send_via_job = $this->sendViaJob();
