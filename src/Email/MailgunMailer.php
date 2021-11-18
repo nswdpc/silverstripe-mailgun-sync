@@ -198,12 +198,7 @@ class MailgunMailer implements Mailer
         $from = implode(",", $senders);
 
         // process attachments
-        if (!empty($attachments)) {
-            $attachments = $this->prepareAttachments($message->getChildren());
-        } else {
-            // eensure empty array
-            $attachments = [];
-        }
+        $attachments = $this->prepareAttachments($message->getChildren());
 
         // process headers
         $headers = $message->getHeaders();
