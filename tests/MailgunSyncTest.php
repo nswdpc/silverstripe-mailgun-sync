@@ -213,7 +213,10 @@ class MailgunSyncTest extends SapphireTest
         return $sendData;
     }
 
-    public function testMailerDeliveryViaJob() {
+    /**
+     * Test delivery via a Job
+     */
+    public function testJobMailerDelivery() {
         Config::inst()->update(Base::class, 'send_via_job', 'yes');
         // send message
         $subject = "test_mailer_delivery_job";
@@ -222,6 +225,9 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals('job', $sendData['sentVia']);
     }
 
+    /**
+     * Test always from setting
+     */
     public function testAlwaysFrom() {
 
         $alwaysFromEmail = 'alwaysfrom@example.com';

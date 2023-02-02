@@ -19,10 +19,13 @@ class WebhookTest extends FunctionalTest
     private $webhook_filter_variable = 'skjhgiehg943753-"';
     private $webhook_previous_filter_variable = 'snsd875bslw[';
 
+    protected $usesDatabase = true;
+
     public function setUp() {
         parent::setUp();
         Config::inst()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
         Config::inst()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
+        Config::inst()->set(Base::class, 'webhooks_enabled', true);
     }
 
     /**

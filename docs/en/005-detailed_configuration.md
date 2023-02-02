@@ -50,6 +50,8 @@ Mailgun requires a 'to' parameter. If your system sends messages with Bcc/Cc but
 
 ### always_from
 
+> This setting will be replaced with `Email.send_all_emails_from` in the future. You can use that instead, now.
+
 ```yml
 NSWDPC\Messaging\Mailgun\MailgunMailer:
    always_from: ''

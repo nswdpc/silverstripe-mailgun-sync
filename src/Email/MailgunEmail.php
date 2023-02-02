@@ -14,10 +14,6 @@ use NSWDPC\StructuredEmail\EmailWithCustomParameters;
  * Email class to handle Mailgun smarts for Email sending
  * For a description of the properties represented here see
  * https://documentation.mailgun.com/en/latest/api-sending.html#sending
- *
- *
- *
- * @author James <james.ellis@dpc.nsw.gov.au>
  */
 class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
 

@@ -1,5 +1,4 @@
 <?php
-
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
@@ -171,7 +170,7 @@ class MailgunMailer implements Mailer
 
         $recipients = $senders = [];
 
-        // Handle 'To' headers from Swift_Message
+        // Handle 'From' headers from Swift_Message
         $message_from = $message->getFrom();
         if (!empty($message_from)) {
             $senders = $this->processEmailDisplayName($message_from);

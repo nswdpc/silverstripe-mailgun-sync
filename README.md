@@ -4,22 +4,24 @@ This module provides functionality to send emails via the Mailgun API and store 
 
 ## Requirements
 
-These are installed via Composer when you install the module:
+See [composer.json](./composer.json)
 
 + silverstripe/framework ^4
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
 + Mailgun PHP SDK ^3, kriswallsmith/buzz, nyholm/psr7
 
-and...
+### Mailgun configuration
+
+You need:
 
 * A Mailgun account
-* At least one non-sandbox Mailgun mailing domain ([verified is best](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain)) in your choice of region
+* At least one non-sandbox Mailgun mailing domain ([verified is best](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain)) in your choice of region
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
-* The MailgunEmail and MailgunMailer configured in your project (see below)
+* MailgunEmail and MailgunMailer configured in your project (see below)
 
 ## Installing
 
-```
+```shell
 composer require nswdpc/silverstripe-mailgun-sync
 ```
 
@@ -29,7 +31,7 @@ composer require nswdpc/silverstripe-mailgun-sync
 
 Configuration of your Mailgun domain and account is beyond the scope of this document but is straightforward.
 
-You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](http://mailgun-documentation.readthedocs.io/en/latest/quickstart-sending.html#verify-your-domain). 
+You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain).
 
 MXToolBox.com is a useful tool to check your mailing domain has valid DMARC records.
 
@@ -80,7 +82,7 @@ After:
 ---
 SilverStripe\Core\Injector\Injector:
   SilverStripe\Control\Email\Email:
-    class: 'NSWDPC\Messaging\Mailgun\MailgunEmail'  
+    class: 'NSWDPC\Messaging\Mailgun\MailgunEmail'
   SilverStripe\Control\Email\Mailer:
     class: 'NSWDPC\Messaging\Mailgun\MailgunMailer'
 ```
@@ -185,6 +187,10 @@ See the [Mailgun PHP SDK documentation](https://github.com/mailgun/mailgun-php) 
 
 ## Queued Jobs
 
+The module uses the [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module to deliver email at a later time.
+
+This way, a website request that involves delivering an email will not be held up by API issues.
+
 ### SendJob
 
 This is a queued job that can be used to send emails depending on the ```send_via_job``` config value -
@@ -194,11 +200,11 @@ This is a queued job that can be used to send emails depending on the ```send_vi
 
 Messages are handed off to this queued job, which is configured to send after one minute. Once delivered, the message parameters are cleared to reduce space used by large messages.
 
-This job is marked as 'broken' immediately upon an API or other general error.
+This job is marked as 'broken' immediately upon an API or other general error. Please read the Queued Jobs Health Check documentation to get assistance with Broken job reporting.
 
 ### TruncateJob
 
-Use this job to clear out older MailgunEvent webhook records.
+Use this job to clear out older MailgunEvent webhook records. If you don't use webhooks to store events, this job can remain unused.
 
 ### RequeueJob
 
@@ -214,7 +220,7 @@ On the next queue run, these jobs will attempt to send again.
 
 ## Manual Resubmission
 
-Messages can be resent from the Mailgun control panel
+Messages can be resent from the Mailgun control panel. This depends on your Message Retention setting for the relevant mailing domain in Mailgun.
 
 ## DMARC considerations
 
@@ -229,11 +235,14 @@ See [dmarc.org](https://dmarc.org) for more information on the importance of DMA
 
 ## Tests
 
-See [./tests](./tests)
+Unit tests: [./tests](./tests). Tests use the [TestMessage](./tests/TestMessage.php) connector.
 
-When acceptance testing this module, you probably want to avoid emails going to non-approved recipients.
+### Sending emails using sandbox/testmode
 
-Ensure you use a Mailgun sandbox domain with approved recipients to avoid this.
+For acceptance testing, you can use a combination of the Mailgun sandbox domain and API testmode.
+
++ Sandbox domain: set the `api_domain` value in configuration to the sandbox domain provided by Mailgun. Remember to list approved recipients in the sandbox domain settings in the Mailgun control panel.
++ Test mode: set the `api_testmode` value to true. In testmode, Mailgun accepts but does not deliver messages.
 
 ## Breaking changes in 1.0 release
 
@@ -252,3 +261,23 @@ Synchronisation of events is now handled by the [webhooks controller](./docs/en/
 BSD-3-Clause
 
 See [LICENSE](./LICENSE.md)
+
+## Maintainers
+
++ [dpcdigital@NSWDPC:~$](https://dpc.nsw.gov.au)
+
+## Bugtracker
+
+We welcome bug reports, pull requests and feature requests on the Github Issue tracker for this project.
+
+Please review the [code of conduct](./code-of-conduct.md) prior to opening a new issue.
+
+## Security
+
+If you have found a security issue with this module, please email digital[@]dpc.nsw.gov.au in the first instance, detailing your findings.
+
+## Development and contribution
+
+If you would like to make contributions to the module please ensure you raise a pull request and discuss with the module maintainers.
+
+Please review the [code of conduct](./code-of-conduct.md) prior to completing a pull request.
