@@ -21,7 +21,7 @@ class WebhookTest extends FunctionalTest
 
     protected $usesDatabase = true;
 
-    public function setUp() {
+    public function setUp() : void {
         parent::setUp();
         Config::inst()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
         Config::inst()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);

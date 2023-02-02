@@ -48,7 +48,7 @@ class MailgunSyncTest extends SapphireTest
                             . "<p>consulting support conversation advertisements policy promotional request.</p>"
                             . "<p>Option purpose programming</p>";
 
-    public function setUp()
+    public function setUp() : void
     {
 
         parent::setUp();
