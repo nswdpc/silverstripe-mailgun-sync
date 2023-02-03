@@ -9,9 +9,7 @@ use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Config\Config;
 
 /**
- * Tests for RequestHandler and HTTPRequest.
- * We've set up a simple URL handling model based on
- * https://36ca20005a6091432f680c4bff2191a4.m.pipedream.net
+ * Tests for RequestHandler and HTTPRequest
  */
 class WebhookTest extends FunctionalTest
 {

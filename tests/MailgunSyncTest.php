@@ -16,7 +16,6 @@ use NSWDPC\Messaging\Mailgun\MailgunEmail;
 use NSWDPC\Messaging\Taggable\ProjectTags;
 use SilverStripe\Assets\File;
 use SilverStripe\Assets\Folder;
-use SilverStripe\Core\Config\Configurable;
 use Exception;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 
@@ -24,27 +23,24 @@ use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
  * Tests for mailgun-sync, see README.md for more
  * @author James Ellis <james.ellis@dpc.nsw.gov.au>
  */
-
 class MailgunSyncTest extends SapphireTest
 {
-
-    use Configurable;
 
     protected $usesDatabase = false;
 
     protected $test_api_key = 'the_api_key';
     protected $test_api_domain = 'testing.example.net';
 
-    // In your sandbox domains settings, set the To address to an address you can authorise
-    private static $to_address = "test@example.com";// an email address
-    private static $to_name = "Test Tester";// optional the recipient name
+
+    protected $to_address = "test@example.com";// an email address
+    protected $to_name = "Test Tester";// optional the recipient name
     // Ditto if testing cc
-    private static $cc_address = "";
+    protected $cc_address = "";
     // From header
-    private static $from_address = "from@example.com";
-    private static $from_name = "From Tester";// option the from name (e.g for 'Joe <joe@example.com>' formatting)
+    protected $from_address = "from@example.com";
+    protected $from_name = "From Tester";// option the from name (e.g for 'Joe <joe@example.com>' formatting)
     // Test body HTML
-    private static $test_body = "<h1>Header provider strategic</h1>"
+    protected $test_body = "<h1>Header provider strategic</h1>"
                             . "<p>consulting support conversation advertisements policy promotional request.</p>"
                             . "<p>Option purpose programming</p>";
 
@@ -108,12 +104,12 @@ class MailgunSyncTest extends SapphireTest
     public function testMailerDelivery($subject = "test_mailer_delivery")
     {
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = $this->to_address;
+        $to_name = $this->to_name;
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = $this->from_address;
+        $from_name = $this->from_name;
         $this->assertNotEmpty($from_address);
 
         $from = [
@@ -130,10 +126,10 @@ class MailgunSyncTest extends SapphireTest
         $email->setCc(["cc@example.com" => "Cc Person"]);
         $email->setBcc(["bcc@example.com" => "Bcc Person"]);
         $email->setSubject($subject);
-        if ($cc = $this->config()->get('cc_address')) {
+        if ($cc = $this->cc_address) {
             $email->setCc($cc);
         }
-        $htmlBody = $this->config()->get('test_body');
+        $htmlBody = $this->test_body;
         $email->setBody( $htmlBody );
 
         $variables = [
@@ -233,12 +229,12 @@ class MailgunSyncTest extends SapphireTest
         $alwaysFromEmail = 'alwaysfrom@example.com';
         Config::inst()->update(MailgunMailer::class, 'always_from', $alwaysFromEmail);
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = $this->to_address;
+        $to_name = $this->to_name;
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = $this->from_address;
+        $from_name = $this->from_name;
         $this->assertNotEmpty($from_address);
 
         $from = [
@@ -277,14 +273,14 @@ class MailgunSyncTest extends SapphireTest
         Config::inst()->update(Base::class, 'send_via_job', 'no');
 
         $connector = MessageConnector::create();
-        $to = $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to = $to_address = $this->to_address;
+        $to_name = $this->to_name;
         if ($to_name) {
             $to = $to_name . ' <' . $to_address . '>';
         }
         $this->assertNotEmpty($to_address);
-        $from = $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from = $from_address = $this->from_address;
+        $from_name = $this->from_name;
         if ($from_name) {
             $from = $from_name . ' <' . $from_address . '>';
         }
@@ -302,10 +298,10 @@ class MailgunSyncTest extends SapphireTest
             'to' => $to,
             'subject' => $subject,
             'text' => '',
-            'html' => $this->config()->get('test_body')
+            'html' => $this->test_body
         ];
 
-        if ($cc = $this->config()->get('cc_address')) {
+        if ($cc = $this->cc_address) {
             $parameters['cc'] = $cc;
         }
 
@@ -333,12 +329,12 @@ class MailgunSyncTest extends SapphireTest
         Config::inst()->update(ProjectTags::class, 'tag', '');
         Config::inst()->update(ProjectTags::class, 'tag_limit', $limit);
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = $this->to_address;
+        $to_name = $this->to_name;
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = $this->from_address;
+        $from_name = $this->from_name;
         $this->assertNotEmpty($from_address);
 
         $from = [
@@ -355,10 +351,10 @@ class MailgunSyncTest extends SapphireTest
         $email->setFrom($from);
         $email->setTo($to);
         $email->setSubject($subject);
-        if ($cc = $this->config()->get('cc_address')) {
+        if ($cc = $this->cc_address) {
             $email->setCc($cc);
         }
-        $email->setBody($this->config()->get('test_body'));
+        $email->setBody($this->test_body);
         $tags = ['tagheader1','tagheader2','tagheader3'];
         $email->setNotificationTags($tags);
 
@@ -412,12 +408,12 @@ class MailgunSyncTest extends SapphireTest
         Config::inst()->update(Email::class, 'cc_all_emails_to', $overrideCc);
         Config::inst()->update(Email::class, 'bcc_all_emails_to', [ $overrideBcc => $overrideBccName ]);
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = $this->to_address;
+        $to_name = $this->to_name;
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = $this->from_address;
+        $from_name = $this->from_name;
         $this->assertNotEmpty($from_address);
 
         $from = [
