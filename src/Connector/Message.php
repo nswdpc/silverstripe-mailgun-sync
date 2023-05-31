@@ -24,7 +24,7 @@ class Message extends Base
 
     /**
      * Delay sending (via queued job)
-     * @var float
+     * @var int
      */
     protected $send_in_seconds = 0;
 
@@ -137,7 +137,7 @@ class Message extends Base
 
         // send options
         $send_via_job = $this->sendViaJob();
-        $in = $this->getSendIn();// seconds
+        $in = $this->getSendIn();// seconds (int)
         switch ($send_via_job) {
             case 'yes':
                 return $this->queueAndSend($domain, $parameters, $in);
@@ -185,13 +185,16 @@ class Message extends Base
     /**
      * Returns a DateTime being when the queued job should be started after
      * @returns DateTime
-     * @param string $in See:http://php.net/manual/en/datetime.formats.relative.php
+     * @param mixed $in See:http://php.net/manual/en/datetime.formats.relative.php
      */
     private function getSendDateTime($in)
     {
         $default_in = '1 minute';
         if ($in == '') {
             $in = $default_in;
+        } else if((is_int($in) || is_float($in)) && $in > 0) {
+            // if a float value is passed in, this value is in seconds (see getSendIn())
+            $in = $in . " second";
         }
 
         try {
@@ -207,7 +210,7 @@ class Message extends Base
      * Send via the queued job
      * @param string $domain the Mailgun API domain e.g sandboxXXXXXX.mailgun.org
      * @param array $parameters Mailgun API parameters
-     * @param string $in
+     * @param mixed $in
      * @return QueuedJobDescriptor|false
      */
     private function queueAndSend($domain, $parameters, $in)
@@ -268,7 +271,7 @@ class Message extends Base
      * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
      * To set "deliverytime" set it as an option to setOptions()
      */
-    public function setSendIn(float $seconds) {
+    public function setSendIn(int $seconds) {
         $this->send_in_seconds = $seconds;
         return $this;
     }
