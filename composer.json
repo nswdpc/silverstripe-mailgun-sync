@@ -27,6 +27,11 @@
                 "tests/"
             ],
             "NSWDPC\\Messaging\\Mailgun\\": [
+                "src/Controllers/",
+                "src/Email/",
+                "src/Exceptions/",
+                "src/Jobs/",
+                "src/Models/",
                 "src/"
             ]
         }
