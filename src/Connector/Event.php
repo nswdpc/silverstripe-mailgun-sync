@@ -17,7 +17,7 @@ class Event extends Base
     /**
      * @param string $begin an RFC 2822 formatted UTC datetime OR empty string for no begin datetime
      * @param string $event_filter see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also be a filter expression e.g "failed OR rejected"
-     * @param boolean $resubmit whether to resubmit events if possible
+     * @param array $extra_params extra parameters for API request
      * @return array
      */
     public function pollEvents($begin = null, $event_filter = "", $extra_params = array())

@@ -60,7 +60,7 @@ class MailgunMailer implements Mailer
     /**
      * Retrieve and set custom parameters on the API connector
      * @param MailgunEmail $email
-     * @param MessageConnector connector instance for this send attempt
+     * @param MessageConnector $connector instance for this send attempt
      * @return MessageConnector
      */
     protected function assignCustomParameters(MailgunEmail &$email, MessageConnector &$connector) : MessageConnector {
@@ -77,7 +77,7 @@ class MailgunMailer implements Mailer
     }
 
     /**
-     * @param Email
+     * @param Email $email
      * @returns mixed
      */
     public function send($email)
@@ -103,7 +103,7 @@ class MailgunMailer implements Mailer
             } else {
                 throw new \Exception("Tried to send, expected a SendResponse or a QueuedJobDescriptor but got type=" . gettype($response));
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             Log::log('Mailgun-Sync / Mailgun error: ' . $e->getMessage(), \Psr\Log\LogLevel::NOTICE);
         }
         return false;
@@ -212,11 +212,9 @@ class MailgunMailer implements Mailer
         // if Cc and Bcc have been provided
         if (isset($headers['Cc'])) {
             $parameters['cc'] = $headers['Cc'];
-            unset($parameters['h:Cc']);//avoid double Cc header
         }
         if (isset($headers['Bcc'])) {
             $parameters['bcc'] = $headers['Bcc'];
-            unset($parameters['h:Bcc']);//avoid sending double Bcc header
         }
 
         // Provide Mailgun the Attachments. Keys are 'fileContent' (the bytes) and filename (the file name)
@@ -241,7 +239,7 @@ class MailgunMailer implements Mailer
 
     /**
      * Given {@link \SilverStripe\Control\Email\Email} configuration, apply relevant values
-     * @param array
+     * @param array $parameters
      */
     public function assignDefaultParameters(&$parameters) {
 
@@ -348,7 +346,7 @@ class MailgunMailer implements Mailer
      *		 'contents' => $data,
      *		 'filename' => $filename,
      *		 'mimetype' => $mimetype,
-     * @param array $attachements Each value is a {@link Swift_Attachment}
+     * @param array $attachments Each value is a {@link Swift_Attachment}
      */
     protected function prepareAttachments(array $attachments)
     {

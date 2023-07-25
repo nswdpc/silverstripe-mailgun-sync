@@ -34,7 +34,7 @@ class DBLongText extends DBText
             $charset = Config::inst()->get(MySQLDatabase::class, 'charset');
             $collation = Config::inst()->get(MySQLDatabase::class, 'collation');
             $values = "longtext character set {$charset} collate {$collation}";
-            DB::require_field($this->tableName, $this->name, $values, $this->default);
+            DB::require_field($this->tableName, $this->name, $values);
         } else {
             // different manager e.g SQLite3 TEXT = 2^31 - 1 length
             parent::requireField();

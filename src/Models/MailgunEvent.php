@@ -262,7 +262,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Events that are sibling to this event (sharing the smae MessageId)
-     * @return DataList
+     * @return \SilverStripe\ORM\DataList
      */
     public function getSiblingEvents()
     {
@@ -428,7 +428,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Given a Mailgun\Model\Event\Event, store if possible
-     * @param Mailgun\Model\Event\Event $event
+     * @param MailgunEventModel $event
      * @return MailgunEvent|boolean
      */
     public function storeEvent(MailgunEventModel $event)

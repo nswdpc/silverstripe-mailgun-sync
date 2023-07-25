@@ -47,12 +47,11 @@ class MailgunSyncTest extends SapphireTest
                             . "<p>consulting support conversation advertisements policy promotional request.</p>"
                             . "<p>Option purpose programming</p>";
 
-    public function setUp()
+    public function setUp() : void
     {
         parent::setUp();
         // Avoid using TestMailer for this test
-        $this->mailer = MailgunMailer::create();
-        Injector::inst()->registerService($this->mailer, Mailer::class);
+        Injector::inst()->registerService(new MailgunMailer(), Mailer::class);
         // use MailgunEmail
         Injector::inst()->registerService(MailgunEmail::create(), Email::class);
 
@@ -61,10 +60,10 @@ class MailgunSyncTest extends SapphireTest
 
         // modify some config values for tests
         // never send via a job
-        Config::inst()->update(Base::class, 'api_domain', $this->test_api_domain);
-        Config::inst()->update(Base::class, 'api_key', $this->test_api_key);
-        Config::inst()->update(Base::class, 'send_via_job', 'no');
-        Config::inst()->update(Base::class, 'api_testmode', true);
+        Config::modify()->set(Base::class, 'api_domain', $this->test_api_domain);
+        Config::modify()->set(Base::class, 'api_key', $this->test_api_key);
+        Config::modify()->set(Base::class, 'send_via_job', 'no');
+        Config::modify()->set(Base::class, 'api_testmode', true);
     }
 
     /**
@@ -73,11 +72,11 @@ class MailgunSyncTest extends SapphireTest
     public function testApiDomain() {
         $currentValue = Config::inst()->get(Base::class, 'api_domain');
         $value = "testing.example.org";
-        Config::inst()->update(Base::class, 'api_domain', $value);
+        Config::modify()->set(Base::class, 'api_domain', $value);
         $connector = MessageConnector::create();
         $result = $connector->getApiDomain();
         $this->assertEquals($value, $result);
-        Config::inst()->update(Base::class, 'api_domain', $currentValue);
+        Config::modify()->set(Base::class, 'api_domain', $currentValue);
     }
 
     /**
@@ -86,7 +85,7 @@ class MailgunSyncTest extends SapphireTest
     public function testApiEndpoint() {
 
         $value = 'API_ENDPOINT_EU';
-        Config::inst()->update(Base::class, 'api_endpoint_region', $value);
+        Config::modify()->set(Base::class, 'api_endpoint_region', $value);
         $connector = MessageConnector::create();
         $domains = $connector->getClient();
         // assert that the expected URL value is what was set on the client
@@ -94,7 +93,7 @@ class MailgunSyncTest extends SapphireTest
 
         // switch to default region
         $value = '';
-        Config::inst()->update(Base::class, 'api_endpoint_region', $value);
+        Config::modify()->set(Base::class, 'api_endpoint_region', $value);
         $connector = MessageConnector::create();
         $domains = $connector->getClient();
         // when no value is set, the default region URL is used
@@ -216,7 +215,7 @@ class MailgunSyncTest extends SapphireTest
      * Test delivery via a Job
      */
     public function testJobMailerDelivery() {
-        Config::inst()->update(Base::class, 'send_via_job', 'yes');
+        Config::modify()->set(Base::class, 'send_via_job', 'yes');
         // send message
         $subject = "test_mailer_delivery_job";
         $sendData = $this->testMailerDelivery($subject);
@@ -230,7 +229,7 @@ class MailgunSyncTest extends SapphireTest
     public function testAlwaysFrom() {
 
         $alwaysFromEmail = 'alwaysfrom@example.com';
-        Config::inst()->update(MailgunMailer::class, 'always_from', $alwaysFromEmail);
+        Config::modify()->set(MailgunMailer::class, 'always_from', $alwaysFromEmail);
 
         $to_address = $this->config()->get('to_address');
         $to_name = $this->config()->get('to_name');
@@ -273,7 +272,7 @@ class MailgunSyncTest extends SapphireTest
     public function testAPIDelivery()
     {
 
-        Config::inst()->update(Base::class, 'send_via_job', 'no');
+        Config::modify()->set(Base::class, 'send_via_job', 'no');
 
         $connector = MessageConnector::create();
         $to = $to_address = $this->config()->get('to_address');
@@ -315,7 +314,7 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals(TestMessage::MSG_ID, $response->getId());
         $sendData = TestMessage::getSendData();
 
-        $this->arrayHasKey('parameters', $sendData);
+        $this->assertArrayHasKey('parameters', $sendData);
 
         foreach(['o:testmode','o:tag','from','to','subject','text','html'] as $key) {
             $this->assertEquals($parameters[ $key ], $sendData['parameters'][ $key ]);
@@ -333,10 +332,10 @@ class MailgunSyncTest extends SapphireTest
         $overrideBcc = 'bccallemailsto@example.com';
         $overrideBccName = 'bcc person';
 
-        Config::inst()->update(Email::class, 'send_all_emails_to', $overrideTo);
-        Config::inst()->update(Email::class, 'send_all_emails_from', $overrideFrom);
-        Config::inst()->update(Email::class, 'cc_all_emails_to', $overrideCc);
-        Config::inst()->update(Email::class, 'bcc_all_emails_to', [ $overrideBcc => $overrideBccName ]);
+        Config::modify()->set(Email::class, 'send_all_emails_to', $overrideTo);
+        Config::modify()->set(Email::class, 'send_all_emails_from', $overrideFrom);
+        Config::modify()->set(Email::class, 'cc_all_emails_to', $overrideCc);
+        Config::modify()->set(Email::class, 'bcc_all_emails_to', [ $overrideBcc => $overrideBccName ]);
 
         $to_address = $this->config()->get('to_address');
         $to_name = $this->config()->get('to_name');
@@ -367,7 +366,7 @@ class MailgunSyncTest extends SapphireTest
         $sendData = TestMessage::getSendData();
 
         foreach(['domain','parameters','sentVia','client','in'] as $key) {
-            $this->arrayHasKey($key, $sendData);
+            $this->assertArrayHasKey($key, $sendData);
         }
 
         $this->assertEquals($this->test_api_domain, $sendData['domain']);
@@ -429,16 +428,16 @@ class MailgunSyncTest extends SapphireTest
 
         $sendData = TestMessage::getSendData();
 
-        $this->arrayHasKey('parameters', $sendData);
-        $this->arrayHasKey('attachment', $sendData['parameters']);
+        $this->assertArrayHasKey('parameters', $sendData);
+        $this->assertArrayHasKey('attachment', $sendData['parameters']);
         $attachments = $sendData['parameters']['attachment'];
 
         $f = 1;
         $this->assertEquals(count($files), count($attachments));
         foreach($attachments as $attachment) {
-            $this->arrayHasKey( 'filename', $attachment );
-            $this->arrayHasKey( 'mimetype', $attachment );
-            $this->arrayHasKey( 'fileContent', $attachment );
+            $this->assertArrayHasKey( 'filename', $attachment );
+            $this->assertArrayHasKey( 'mimetype', $attachment );
+            $this->assertArrayHasKey( 'fileContent', $attachment );
             foreach($files as $file => $mimetype) {
                 if($file == $attachment['filename']) {
                     $this->assertEquals($mimetype, $attachment['mimetype']);
