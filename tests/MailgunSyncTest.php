@@ -4,6 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\SendJob;
 use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
 use SilverStripe\Dev\SapphireTest;
@@ -100,40 +101,8 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals('', $connector->getApiEndpointRegion());
     }
 
-    /**
-     * test mailer delivery only, no sync or event checking, just that we get the expected response
-     */
-    public function testMailerDelivery($subject = "test_mailer_delivery")
-    {
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
-        $this->assertNotEmpty($to_address);
-
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
-        $this->assertNotEmpty($from_address);
-
-        $from = [
-            $from_address => $from_name,
-        ];
-        $to = [
-            $to_address => $to_name,
-        ];
-
-        $email = Email::create();
-
-        $email->setFrom($from);
-        $email->setTo($to);
-        $email->setCc(["cc@example.com" => "Cc Person"]);
-        $email->setBcc(["bcc@example.com" => "Bcc Person"]);
-        $email->setSubject($subject);
-        if ($cc = $this->config()->get('cc_address')) {
-            $email->setCc($cc);
-        }
-        $htmlBody = $this->config()->get('test_body');
-        $email->setBody( $htmlBody );
-
+    protected function getCustomParameters($to_address, $send_in) : array {
         $variables = [
             'test' => 'true',
             'foo' => 'bar',
@@ -154,17 +123,64 @@ class MailgunSyncTest extends SapphireTest
             $to_address => ["unique_id" => "testing_123"]
         ];
 
-        $email->setCustomParameters([
+        $customParameters = [
             'options' => $options,
             'variables' => $variables,
             'headers' => $headers,
             'recipient-variables' => $recipient_variables
-        ]);
+        ];
+        if($send_in > 0) {
+            $customParameters['send-in'] = $send_in;
+        }
+        return $customParameters;
+    }
+
+    /**
+     * test mailer delivery only, no sync or event checking, just that we get the expected response
+     */
+    public function testMailerDelivery($subject = "test_mailer_delivery", $send_in = 0)
+    {
+
+        $to_address = self::config()->get('to_address');
+        $to_name = self::config()->get('to_name');
+        $this->assertNotEmpty($to_address);
+
+        $from_address = self::config()->get('from_address');
+        $from_name = self::config()->get('from_name');
+        $this->assertNotEmpty($from_address);
+
+        $from = [
+            $from_address => $from_name,
+        ];
+        $to = [
+            $to_address => $to_name,
+        ];
+
+        $email = Email::create();
+
+        $email->setFrom($from);
+        $email->setTo($to);
+        $email->setCc(["cc@example.com" => "Cc Person"]);
+        $email->setBcc(["bcc@example.com" => "Bcc Person"]);
+        $email->setSubject($subject);
+        if ($cc = self::config()->get('cc_address')) {
+            $email->setCc($cc);
+        }
+        $htmlBody = self::config()->get('test_body');
+        $email->setBody( $htmlBody );
+
+        $customParameters = $this->getCustomParameters($to_address, $send_in);
+        $email->setCustomParameters($customParameters);
 
         // send the email, returns a message_id if delivered
-        $response = $email->send();
 
-        $this->assertEquals(TestMessage::MSG_ID, $response);
+        $response = $email->send();
+        if(Config::inst()->get(Base::class, 'send_via_job') == 'no') {
+            $this->assertEquals($response, TestMessage::MSG_ID);
+        } else {
+            // via job
+            $this->assertInstanceOf(QueuedJobDescriptor::class, $response);
+        }
 
         $sendData = TestMessage::getSendData();
 
@@ -192,19 +208,19 @@ class MailgunSyncTest extends SapphireTest
             "Bcc: mismatch"
         );
 
-        foreach($options as $k=>$v) {
+        foreach($customParameters['options'] as $k=>$v) {
             $this->assertEquals( $sendData['parameters']["o:{$k}"], $v, "Option $k failed");
         }
 
-        foreach($variables as $k=>$v) {
+        foreach($customParameters['variables'] as $k=>$v) {
             $this->assertEquals( $sendData['parameters']["v:{$k}"], $v , "Variable $k failed");
         }
 
-        foreach($headers as $k=>$v) {
+        foreach($customParameters['headers'] as $k=>$v) {
             $this->assertEquals( $sendData['parameters']["h:{$k}"], $v , "Header $k failed");
         }
 
-        $this->assertEquals( json_encode($recipient_variables), $sendData['parameters']['recipient-variables'] );
+        $this->assertEquals( json_encode($customParameters['recipient-variables']), $sendData['parameters']['recipient-variables'] );
 
         $this->assertEquals($htmlBody, $sendData['parameters']['html'] );
 
@@ -221,6 +237,73 @@ class MailgunSyncTest extends SapphireTest
         $sendData = $this->testMailerDelivery($subject);
         $this->assertEquals($subject, $sendData['parameters']['subject']);
         $this->assertEquals('job', $sendData['sentVia']);
+        $this->assertInstanceOf(QueuedJobDescriptor::class, $sendData['response']);
+        $this->checkJobData($sendData['response'], $subject, 0);
+    }
+
+    /**
+     * Test delivery via a Job
+     */
+    public function testJobMailerDeliveryInFuture() {
+        Config::modify()->set(Base::class, 'send_via_job', 'yes');
+        // send message
+        $subject = "test_mailer_delivery_job_future";
+        $in = 300;
+        $sendData = $this->testMailerDelivery($subject, $in);
+        $this->assertEquals($subject, $sendData['parameters']['subject']);
+        $this->assertEquals('job', $sendData['sentVia']);
+        $this->assertEquals($in, $sendData['in']);
+        $this->assertInstanceOf(QueuedJobDescriptor::class, $sendData['response']);
+        $this->checkJobData($sendData['response'], $subject, $in);
+    }
+
+
+    protected function checkJobData(QueuedJobDescriptor $job, $subject, $send_in) {
+
+
+        $this->assertEquals(SendJob::class, $job->Implementation);
+
+        $data = @unserialize($job->SavedJobData ?? '');
+
+        $this->assertEquals(
+            Config::inst()->get(Base::class, 'api_domain'),
+            $data->domain
+        );
+
+        $to = self::config()->get('to_name') . " <" . self::config()->get('to_address') . ">";
+        $this->assertEquals($to, $data->parameters['to']);
+
+        $from = self::config()->get('from_name') . " <" . self::config()->get('from_address') . ">";
+        $this->assertEquals($from, $data->parameters['from']);
+
+        $cc = "Cc Person <cc@example.com>";
+        $this->assertEquals($cc, $data->parameters['cc']);
+
+        $bcc = "Bcc Person <bcc@example.com>";
+        $this->assertEquals($bcc, $data->parameters['bcc']);
+
+        $this->assertEquals($subject, $data->parameters['subject']);
+
+        $this->assertEquals(self::config()->get('test_body'), $data->parameters['html']);
+
+
+        $customParameters = $this->getCustomParameters(self::config()->get('to_address'), $send_in);
+
+
+        foreach($customParameters['options'] as $k=>$v) {
+            $this->assertEquals( $data->parameters["o:{$k}"], $v, "Option $k failed");
+        }
+
+        foreach($customParameters['variables'] as $k=>$v) {
+            $this->assertEquals( $data->parameters["v:{$k}"], $v , "Variable $k failed");
+        }
+
+        foreach($customParameters['headers'] as $k=>$v) {
+            $this->assertEquals( $data->parameters["h:{$k}"], $v , "Header $k failed");
+        }
+
+        $this->assertEquals( json_encode($customParameters['recipient-variables']), $data->parameters['recipient-variables'] );
+
     }
 
     /**
@@ -231,12 +314,12 @@ class MailgunSyncTest extends SapphireTest
         $alwaysFromEmail = 'alwaysfrom@example.com';
         Config::modify()->set(MailgunMailer::class, 'always_from', $alwaysFromEmail);
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = self::config()->get('to_address');
+        $to_name = self::config()->get('to_name');
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = self::config()->get('from_address');
+        $from_name = self::config()->get('from_name');
         $this->assertNotEmpty($from_address);
 
         $from = [
@@ -275,14 +358,14 @@ class MailgunSyncTest extends SapphireTest
         Config::modify()->set(Base::class, 'send_via_job', 'no');
 
         $connector = MessageConnector::create();
-        $to = $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to = $to_address = self::config()->get('to_address');
+        $to_name = self::config()->get('to_name');
         if ($to_name) {
             $to = $to_name . ' <' . $to_address . '>';
         }
         $this->assertNotEmpty($to_address);
-        $from = $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from = $from_address = self::config()->get('from_address');
+        $from_name = self::config()->get('from_name');
         if ($from_name) {
             $from = $from_name . ' <' . $from_address . '>';
         }
@@ -300,10 +383,10 @@ class MailgunSyncTest extends SapphireTest
             'to' => $to,
             'subject' => $subject,
             'text' => '',
-            'html' => $this->config()->get('test_body')
+            'html' => self::config()->get('test_body')
         ];
 
-        if ($cc = $this->config()->get('cc_address')) {
+        if ($cc = self::config()->get('cc_address')) {
             $parameters['cc'] = $cc;
         }
 
@@ -337,12 +420,12 @@ class MailgunSyncTest extends SapphireTest
         Config::modify()->set(Email::class, 'cc_all_emails_to', $overrideCc);
         Config::modify()->set(Email::class, 'bcc_all_emails_to', [ $overrideBcc => $overrideBccName ]);
 
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = self::config()->get('to_address');
+        $to_name = self::config()->get('to_name');
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = self::config()->get('from_address');
+        $from_name = self::config()->get('from_name');
         $this->assertNotEmpty($from_address);
 
         $from = [
@@ -385,12 +468,12 @@ class MailgunSyncTest extends SapphireTest
      * test a message with attachments
      */
     public function testAttachmentDelivery() {
-        $to_address = $this->config()->get('to_address');
-        $to_name = $this->config()->get('to_name');
+        $to_address = self::config()->get('to_address');
+        $to_name = self::config()->get('to_name');
         $this->assertNotEmpty($to_address);
 
-        $from_address = $this->config()->get('from_address');
-        $from_name = $this->config()->get('from_name');
+        $from_address = self::config()->get('from_address');
+        $from_name = self::config()->get('from_name');
         $this->assertNotEmpty($from_address);
 
         $from = [
@@ -407,7 +490,7 @@ class MailgunSyncTest extends SapphireTest
         $email->setFrom($from);
         $email->setTo($to);
         $email->setSubject($subject);
-        $htmlBody = $this->config()->get('test_body');
+        $htmlBody = self::config()->get('test_body');
         $email->setBody( $htmlBody );
 
         $files = [
