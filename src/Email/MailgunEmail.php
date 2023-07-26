@@ -37,7 +37,7 @@ class MailgunEmail extends Email {
 
     /**
      * Retrieve the connector instance
-     * @return NSWDPC\Messaging\Mailgun\Connector\Message
+     * @return \NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
     public function getConnector() : Message {

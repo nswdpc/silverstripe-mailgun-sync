@@ -62,7 +62,7 @@ class SendJob extends AbstractQueuedJob
         // these simple message params
         $parts = ['to','from','cc','bcc','subject'];
         foreach($parts as $part) {
-            $params[ $part ] = isset($parameters[ $part ])  ? $parameters[ $part ] :  '';
+            $params[ $part ] = isset($this->parameters[ $part ])  ? $this->parameters[ $part ] :  '';
         }
         // at this time
         $params['sendtime'] = microtime(true);
@@ -71,8 +71,8 @@ class SendJob extends AbstractQueuedJob
 
     /**
      * Create the job
-     * @param string domain DEPRECATED
-     * @param array parameters for Mailgun API
+     * @param string $domain DEPRECATED
+     * @param array $parameters for Mailgun API
      */
     public function __construct($domain = "", $parameters = [])
     {

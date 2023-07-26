@@ -4,6 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Connector;
 use Mailgun\Mailgun;
 use NSWDPC\Messaging\Mailgun\Log;
 use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
+use Mailgun\Model\Message\SendResponse;
 use Mailgun\Model\Message\ShowResponse;
 use NSWDPC\Messaging\Mailgun\SendJob;
 use NSWDPC\Messaging\Mailgun\MailgunEvent;
@@ -84,7 +85,6 @@ class Message extends Base
      * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
      * @return SendResponse|QueuedJobDescriptor|null
      * @param array $parameters an array of parameters for the Mailgun API
-     * @param string $in a strtotime value added to 'now' being the time that the message will be sent via a queued job, if enabled
      */
     public function send($parameters)
     {
@@ -127,7 +127,7 @@ class Message extends Base
     protected function sendMessage(array $parameters) {
 
         /**
-         * @var Mailgun\Mailgun
+         * @var \Mailgun\Mailgun
          */
         $client = $this->getClient();
         /**
@@ -245,8 +245,7 @@ class Message extends Base
             'recipient' => $event->Recipient,// match against the recipient of the event
         ];
 
-        // calling pollEvents will store  matching local MailgunEvent record(s)
-        $events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
+        $events = $connector->pollEvents($begin, $event_filter, $extra_params);
 
         $is_delivered = !empty($events);
         return $is_delivered;
@@ -255,7 +254,7 @@ class Message extends Base
     /**
      * Trim < and > from message id
      * @return string
-     * @param string
+     * @param string $message_id
      */
     public static function cleanMessageId($message_id)
     {
@@ -356,7 +355,6 @@ class Message extends Base
 
     /**
      * Based on options set in {@link NSWDPC\Messaging\Mailgun\MailgunEmail} set Mailgun options, params, headers and variables
-     * @param NSWDPC\Messaging\Mailgun\MailgunEmail $email
      * @param array $parameters
      */
     protected function addCustomParameters(&$parameters)
