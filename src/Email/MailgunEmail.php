@@ -11,7 +11,7 @@ use NSWDPC\Messaging\Mailgun\Connector\Message;
  * Email class to handle Mailgun smarts for Email sending
  * For a description of the properties represented here see
  * https://documentation.mailgun.com/en/latest/api-sending.html#sending
- * @author James <james.ellis@dpc.nsw.gov.au>
+ * @author James
  */
 class MailgunEmail extends Email {
 

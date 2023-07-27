@@ -81,7 +81,7 @@ class Message extends Base
 
     /**
      * Send a message with parameters
-     * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
+     * See: https://documentation.mailgun.com/en/latest/api-sending.html#sending
      * @return SendResponse|QueuedJobDescriptor|null
      * @param array $parameters an array of parameters for the Mailgun API
      */

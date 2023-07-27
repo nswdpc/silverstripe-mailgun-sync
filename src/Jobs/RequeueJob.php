@@ -8,7 +8,7 @@ use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 
 /**
- * @author James Ellis <james.ellis@dpc.nsw.gov.au>
+ * @author James
  * Job used to requeue SendJob descriptors marked broken
  * This is helpful if you have high mail traffic and have many broken {@link SendJob} records sitting in the queue
  */

@@ -78,7 +78,7 @@ class MailgunMailer implements Mailer
 
     /**
      * @param Email $email
-     * @returns mixed
+     * @return mixed
      */
     public function send($email)
     {
@@ -316,7 +316,7 @@ class MailgunMailer implements Mailer
     }
 
     /**
-     * @returns array
+     * @return array
      * Prepare headers for use in Mailgun
      */
     protected function prepareHeaders(Swift_Mime_SimpleHeaderSet $header_set)

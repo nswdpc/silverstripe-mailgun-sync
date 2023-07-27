@@ -18,14 +18,27 @@ use SilverStripe\Forms\GridField\GridFieldDetailForm;
  */
 class MailgunModelAdmin extends ModelAdmin
 {
+
+    /**
+     * @var string
+     */
     private static $url_segment = 'mailgun';
 
+    /**
+     * @var string
+     */
     private static $menu_title = 'Mailgun';
 
+    /**
+     * @var array
+     */
     private static $managed_models = [
         MailgunEvent::class,
     ];
 
+    /**
+     * @inheritdoc
+     */
     public function getEditForm($id = null, $fields = null)
     {
 

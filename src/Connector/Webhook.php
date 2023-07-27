@@ -14,7 +14,7 @@ class Webhook extends Base {
 
     /**
      * verify signature
-     * @return true returns true if signature is valid
+     * @return bool returns true if signature is valid
      * @param array $signature
      */
     public function verify_signature($signature)
