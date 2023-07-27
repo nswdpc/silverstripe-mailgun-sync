@@ -15,7 +15,6 @@ use SilverStripe\Security\Group;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 use Exception;
-use DateTime;
 
 /**
  * Bottles up common message related requeste to Mailgun via the mailgun-php API client
@@ -184,23 +183,18 @@ class Message extends Base
 
     /**
      * Returns a DateTime being when the queued job should be started after
-     * @returns DateTime
      * @param string $in See:http://php.net/manual/en/datetime.formats.relative.php
      */
-    private function getSendDateTime($in)
+    private function getSendDateTime($in) : ?\DateTime
     {
-        $default_in = '1 minute';
-        if ($in == '') {
-            $in = $default_in;
-        }
-
         try {
-            $dt = new DateTime("now +{$in}");
+            $dt = $default = null;
+            if($in > 0) {
+                $dt = new \DateTime("now +{$in} seconds");
+            }
         } catch (\Exception $e) {
-            // if $in results in a non-valid time parameter to DateTime, use the default
-            $dt = new DateTime("now +{$default_in}");
         }
-        return $dt;
+        return $dt ? $dt : $default;
     }
 
     /**
@@ -210,12 +204,15 @@ class Message extends Base
      * @param string $in
      * @return QueuedJobDescriptor|false
      */
-    private function queueAndSend($domain, $parameters, $in)
+    protected function queueAndSend($domain, $parameters, $in)
     {
         $this->encodeAttachments($parameters);
-        $start = $this->getSendDateTime($in);
+        $startAfter = null;
+        if($start = $this->getSendDateTime($in)) {
+            $startAfter = $start->format('Y-m-d H:i:s');
+        }
         $job  = new SendJob($domain, $parameters);
-        if($job_id = QueuedJobService::singleton()->queueJob($job, $start->format('Y-m-d H:i:s'))) {
+        if($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
             return QueuedJobDescriptor::get()->byId($job_id);
         }
         return false;
