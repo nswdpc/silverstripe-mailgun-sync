@@ -4,6 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Connector;
 use Mailgun\Mailgun;
 use NSWDPC\Messaging\Mailgun\Log;
 use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
+use Mailgun\Model\Message\SendResponse;
 use Mailgun\Model\Message\ShowResponse;
 use NSWDPC\Messaging\Mailgun\SendJob;
 use NSWDPC\Messaging\Mailgun\MailgunEvent;
@@ -14,7 +15,6 @@ use SilverStripe\Security\Group;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 use Exception;
-use DateTime;
 
 /**
  * Bottles up common message related requeste to Mailgun via the mailgun-php API client
@@ -84,7 +84,6 @@ class Message extends Base
      * See: http://mailgun-documentation.readthedocs.io/en/latest/api-sending.html#sending
      * @return SendResponse|QueuedJobDescriptor|null
      * @param array $parameters an array of parameters for the Mailgun API
-     * @param string $in a strtotime value added to 'now' being the time that the message will be sent via a queued job, if enabled
      */
     public function send($parameters)
     {
@@ -127,7 +126,7 @@ class Message extends Base
     protected function sendMessage(array $parameters) {
 
         /**
-         * @var Mailgun\Mailgun
+         * @var \Mailgun\Mailgun
          */
         $client = $this->getClient();
         /**
@@ -184,26 +183,18 @@ class Message extends Base
 
     /**
      * Returns a DateTime being when the queued job should be started after
-     * @returns DateTime
      * @param mixed $in See:http://php.net/manual/en/datetime.formats.relative.php
      */
-    private function getSendDateTime($in)
+    private function getSendDateTime($in) : ?\DateTime
     {
-        $default_in = '1 minute';
-        if ($in == '') {
-            $in = $default_in;
-        } else if((is_int($in) || is_float($in)) && $in > 0) {
-            // if a float value is passed in, this value is in seconds (see getSendIn())
-            $in = $in . " second";
-        }
-
         try {
-            $dt = new DateTime("now +{$in}");
+            $dt = $default = null;
+            if((is_int($in) || is_float($in)) && $in > 0) {
+                $dt = new \DateTime("now +{$in} seconds");
+            }
         } catch (\Exception $e) {
-            // if $in results in a non-valid time parameter to DateTime, use the default
-            $dt = new DateTime("now +{$default_in}");
         }
-        return $dt;
+        return $dt ? $dt : $default;
     }
 
     /**
@@ -213,12 +204,15 @@ class Message extends Base
      * @param mixed $in
      * @return QueuedJobDescriptor|false
      */
-    private function queueAndSend($domain, $parameters, $in)
+    protected function queueAndSend($domain, $parameters, $in)
     {
         $this->encodeAttachments($parameters);
-        $start = $this->getSendDateTime($in);
+        $startAfter = null;
+        if($start = $this->getSendDateTime($in)) {
+            $startAfter = $start->format('Y-m-d H:i:s');
+        }
         $job  = new SendJob($domain, $parameters);
-        if($job_id = QueuedJobService::singleton()->queueJob($job, $start->format('Y-m-d H:i:s'))) {
+        if($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
             return QueuedJobDescriptor::get()->byId($job_id);
         }
         return false;
@@ -248,8 +242,7 @@ class Message extends Base
             'recipient' => $event->Recipient,// match against the recipient of the event
         ];
 
-        // calling pollEvents will store  matching local MailgunEvent record(s)
-        $events = $connector->pollEvents($begin, $event_filter, $resubmit, $extra_params);
+        $events = $connector->pollEvents($begin, $event_filter, $extra_params);
 
         $is_delivered = !empty($events);
         return $is_delivered;
@@ -258,7 +251,7 @@ class Message extends Base
     /**
      * Trim < and > from message id
      * @return string
-     * @param string
+     * @param string $message_id
      */
     public static function cleanMessageId($message_id)
     {
@@ -359,7 +352,6 @@ class Message extends Base
 
     /**
      * Based on options set in {@link NSWDPC\Messaging\Mailgun\MailgunEmail} set Mailgun options, params, headers and variables
-     * @param NSWDPC\Messaging\Mailgun\MailgunEmail $email
      * @param array $parameters
      */
     protected function addCustomParameters(&$parameters)

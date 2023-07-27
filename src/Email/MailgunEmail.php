@@ -39,8 +39,8 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
     private $connector = null;
 
     /**
-     * Retrieve the connector sent
-     * @return NSWDPC\Messaging\Mailgun\Connector\Message
+     * Retrieve the connector instance
+     * @return \NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
     public function getConnector() : Message {

@@ -21,9 +21,9 @@ class WebhookTest extends FunctionalTest
 
     public function setUp() : void {
         parent::setUp();
-        Config::inst()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
-        Config::inst()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
-        Config::inst()->set(Base::class, 'webhooks_enabled', true);
+        Config::modify()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
+        Config::modify()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
+        Config::modify()->set(Base::class, 'webhooks_enabled', true);
     }
 
     /**
@@ -49,10 +49,10 @@ class WebhookTest extends FunctionalTest
 
     /**
      * Set a signing key in Configuration
-     * @param string
+     * @param string $signing_key
      */
     protected function setSigningKey($signing_key) {
-        Config::inst()->set(Base::class, 'webhook_signing_key', $signing_key);
+        Config::modify()->set(Base::class, 'webhook_signing_key', $signing_key);
     }
 
     /**
@@ -129,8 +129,8 @@ class WebhookTest extends FunctionalTest
 
         // remove webhook variable and test
         unset( $data['event-data']['user-variables']['wfv'] );
-        Config::inst()->set(Base::class, 'webhook_filter_variable', '');
-        Config::inst()->set(Base::class, 'webhook_previous_filter_variable', '');
+        Config::modify()->set(Base::class, 'webhook_filter_variable', '');
+        Config::modify()->set(Base::class, 'webhook_previous_filter_variable', '');
 
         // change the signing key in config, it should fail now
         $signing_key = "YOU_SHALL_NOT_PASS";

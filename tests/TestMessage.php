@@ -28,11 +28,6 @@ class TestMessage extends Message
     protected $sentVia = '';
 
     /**
-     * @var int
-     */
-    protected $sendIn = 0;
-
-    /**
      * @var array
      */
     protected $finalParameters = [];
@@ -50,37 +45,43 @@ class TestMessage extends Message
 
         self::$sendData = [];
 
+        // Test API domain
+        $domain = $this->getApiDomain();
+
         // store what would be sent
         $this->finalParameters = $parameters;
-        $this->sendIn = $this->getSendIn();
+        $in = $this->getSendIn();
 
         // send options
         $send_via_job = $this->sendViaJob();
         switch ($send_via_job) {
             case 'yes':
                 $this->sentVia = 'job';
+                $response = $this->queueAndSend($domain, $parameters, $in);
                 break;
             case 'when-attachments':
                 if (!empty($parameters['attachment'])) {
                     $this->sentVia = 'job-as-attachments';
+                    $response = $this->queueAndSend($domain, $parameters, $in);
                     break;
                 }
             case 'no':
             default:
                 $this->sentVia = 'direct-to-api';
+                $response = SendResponse::create(['id' => self::MSG_ID, 'message' => self::MSG_MESSAGE]);
                 break;
         }
 
         // Store message info
         self::setSendData([
-            'in' => $this->sendIn,
+            'in' => $in,
             'parameters' => $this->finalParameters,
             'sentVia' => $this->sentVia,
             'client' => $this->getClient(),
             'domain' => $this->getApiDomain(),
+            'response' => $response
         ]);
 
-        $response = SendResponse::create(['id' => self::MSG_ID, 'message' => self::MSG_MESSAGE]);
         return $response;
     }
 

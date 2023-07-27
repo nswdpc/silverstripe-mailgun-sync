@@ -32,14 +32,16 @@ class MailgunModelAdmin extends ModelAdmin
         $form = parent::getEditForm($id, $fields);
 
         $grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
-        $config = $grid->getConfig();
+        if($grid instanceof GridField) {
+            $config = $grid->getConfig();
 
-        $config->removeComponentsByType(GridFieldAddNewButton::class);
-        $config->removeComponentsByType(GridFieldPrintButton::class);
+            $config->removeComponentsByType(GridFieldAddNewButton::class);
+            $config->removeComponentsByType(GridFieldPrintButton::class);
 
-        if(! Permission::check( MailgunEvent::PERMISSIONS_DELETE, 'any', Member::currentUser()) ) {
-            $config->removeComponentsByType(GridFieldEditButton::class);
-            $config->removeComponentsByType(GridFieldDeleteAction::class);
+            if(! Permission::check( MailgunEvent::PERMISSIONS_DELETE, 'any', Member::currentUser()) ) {
+                $config->removeComponentsByType(GridFieldEditButton::class);
+                $config->removeComponentsByType(GridFieldDeleteAction::class);
+            }
         }
 
         return $form;

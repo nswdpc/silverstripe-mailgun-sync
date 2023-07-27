@@ -15,7 +15,7 @@ class Webhook extends Base {
     /**
      * verify signature
      * @return true returns true if signature is valid
-     * @param array
+     * @param array $signature
      */
     public function verify_signature($signature)
     {
@@ -27,7 +27,7 @@ class Webhook extends Base {
 
     /**
      * Sign the token based on timestamp and signature in request
-     * @param array
+     * @param array $signature
      */
     public function sign_token($signature) {
         $webhook_signing_key = $this->getWebhookSigningKey();
@@ -39,7 +39,7 @@ class Webhook extends Base {
 
     /**
      * Based on Mailgun docs, determine if the signature is correct
-     * @param array
+     * @param array $signature
      */
     public function is_valid_signature($signature) {
         return isset($signature['timestamp'])
