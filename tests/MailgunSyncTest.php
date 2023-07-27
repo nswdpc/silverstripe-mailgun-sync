@@ -22,7 +22,7 @@ use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 
 /**
  * Tests for mailgun-sync, see README.md for more
- * @author James Ellis <james.ellis@dpc.nsw.gov.au>
+ * @author James
  */
 class MailgunSyncTest extends SapphireTest
 {

@@ -29,7 +29,7 @@ class Bounce extends Base
     }
 
     /**
-     * See: http://mailgun-documentation.readthedocs.io/en/latest/api-suppressions.html#add-a-single-bounce
+     * See: https://documentation.mailgun.com/en/latest/api-suppressions.html#add-a-single-bounce
      */
     public function add($email_address, $code = 550, $error = "", $created_at = "")
     {

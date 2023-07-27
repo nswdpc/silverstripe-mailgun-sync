@@ -10,7 +10,7 @@ use SilverStripe\Core\Injector\Injectable;
 
 /**
  * Base connector to the Mailgun API
- * Read the Docs at http://mailgun-documentation.readthedocs.io/en/latest/api_reference.html for reference implementations
+ * Read the Docs at https://documentation.mailgun.com/en/latest/api_reference.html for reference implementations
  */
 abstract class Base
 {
@@ -160,7 +160,7 @@ abstract class Base
     }
 
     /**
-     * Whether to send via a queued job or
+     * Get send via job option value
      */
     final protected function sendViaJob()
     {

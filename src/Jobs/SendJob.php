@@ -9,7 +9,7 @@ use SilverStripe\Core\Config\Config;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 /**
- * @author James Ellis <james.ellis@dpc.nsw.gov.au>
+ * @author James
  * Queued Job for sending messages to the Mailgun API
  */
 class SendJob extends AbstractQueuedJob

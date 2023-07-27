@@ -11,12 +11,18 @@ use Mailgun\Model\Event\Event as MailgunEventModel;
 /**
  * Controller for handling webhook submissions from Mailgun.
  * @see https://documentation.mailgun.com/en/latest/user_manual.html#webhooks
- * @author James <james.ellis@dpc.nsw.gov.au>
+ * @author James
  */
 class MailgunWebHook extends Controller {
 
+    /**
+     * @var bool
+     */
     private static $webhooks_enabled = true;
 
+    /**
+     * @var array
+     */
     private static $allowed_actions = [
         'submit' => true
     ];
@@ -28,6 +34,9 @@ class MailgunWebHook extends Controller {
         return Webhook::create();
     }
 
+    /**
+     * Return JSON encoded response body
+     */
     protected function getResponseBody($success = true) {
         $data = [
             'success' => $success
