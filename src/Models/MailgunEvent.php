@@ -22,19 +22,32 @@ use DateTimeZone;
 use Exception;
 
 /**
- * @author James Ellis
+ * @author James
  * @note each record is an event linked to a submission
- * @note refer to http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-structure for information about the uniqueness of Event Ids
+ * @note refer to https://documentation.mailgun.com/en/latest/api-events.html#event-structure for information about the uniqueness of Event Ids
  * @see https://mailgun.uservoice.com/forums/156243-general/suggestions/5511691-add-a-unique-id-to-every-event-api-entry
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
 
+    /**
+     * @var string
+     */
     private static $default_sort = "Timestamp DESC";// try to sort by most recent event first
 
+    /**
+     * @var string
+     */
     private static $singular_name = "Event";
+
+    /**
+     * @var string
+     */
     private static $plural_name = "Events";
 
+    /**
+     * @var string
+     */
     private static $table_name = "MailgunEvent";
 
     const ACCEPTED = 'accepted';
@@ -55,6 +68,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
     const PERMISSIONS_VIEW = 'MAILGUNEVENT_VIEW';
     const PERMISSIONS_DELETE = 'MAILGUNEVENT_DELETE';
 
+    /**
+     * @var array
+     */
     private static $db = [
         /**
          * @note Mailgun says "Event id. It is guaranteed to be unique within a day.
@@ -64,7 +80,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'EventId' => 'Varchar(255)',
         'MessageId' => 'Varchar(255)',// remote message id for event
         'Severity' => 'Varchar(16)',// permanent or temporary, for failures
-        'EventType' => 'Varchar(32)',// Mailgun event string see http://mailgun-documentation.readthedocs.io/en/latest/api-events.html#event-types
+        'EventType' => 'Varchar(32)',// Mailgun event string see https://documentation.mailgun.com/en/latest/api-events.html#event-types
         'UTCEventDate' => 'Date',// based on timestamp returned, the UTC Y-m-d date
         'Timestamp' => 'Decimal(16,6)',// The time when the event was generated in the system provided as Unix epoch seconds.
         'Recipient' => 'Varchar(255)', // the Recipient value is used to re-send the message, an email address
@@ -82,6 +98,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'DecodedStorageKey' => 'Text',  // JSON encoded storage key
     ];
 
+    /**
+     * @var array
+     */
     private static $summary_fields = [
         'ID' => '#',
         'EventType' => 'Event',
@@ -106,6 +125,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'MessageId',
     ];
 
+    /**
+     * @var array
+     */
     private static $indexes = [
         'Created' => true,
         'LastEdited' => true,

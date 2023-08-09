@@ -12,7 +12,7 @@ use DateTimeZone;
 use Exception;
 
 /**
- * @author James Ellis <james.ellis@dpc.nsw.gov.au>
+ * @author James
  * Truncate Job can run once per day and by default removes events/submissions > 90 (default) days old
  */
 class TruncateJob extends AbstractQueuedJob
