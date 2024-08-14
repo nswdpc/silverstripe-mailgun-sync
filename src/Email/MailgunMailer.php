@@ -64,7 +64,6 @@ class MailgunMailer implements Mailer
 
     /**
      * Retrieve and set custom parameters on the API connector
-     * @param EmailWithCustomParameters $email
      * @param MessageConnector $connector instance for this send attempt
      */
     protected function assignCustomParameters(EmailWithCustomParameters &$email, MessageConnector &$connector): MessageConnector
@@ -84,16 +83,15 @@ class MailgunMailer implements Mailer
     /**
      * Taggable: retrieve tags set via setNotificationTags()
      * Doing so will replace any tags assigned through setCustomParameters
-     * @param TaggableEmail $email
      * @param MessageConnector $connector connector instance for this send attempt
-     * @return MessageConnector
      */
     protected function assignNotificationTags(TaggableEmail &$email, MessageConnector &$connector): MessageConnector
     {
         $tags = $email->getNotificationTags();
-        if (empty($tags)) {
+        if ($tags === []) {
             return $connector;
         }
+
         return $connector->setOption('tag', $tags);
     }
 
@@ -147,7 +145,6 @@ class MailgunMailer implements Mailer
 
     /**
      * Given a Swift_Message, prepare parameters for the API send
-     * @param Email $email
      * @return array of parameters for the Mailgun API
      */
     public function prepareParameters(Email $email, MessageConnector $connector): array

@@ -32,13 +32,18 @@ class MailgunSyncTest extends SapphireTest
 
     protected $test_api_domain = 'testing.example.net';
 
+    // an email address
+    protected $to_address = "test@example.com";
 
-    protected $to_address = "test@example.com";// an email address
-    protected $to_name = "Test Tester";// optional the recipient name
+    // optional the recipient name
+    protected $to_name = "Test Tester";
+
     // Ditto if testing cc
     protected $cc_address = "";
+
     // From header
     protected $from_address = "from@example.com";
+
     protected $from_name = "From Tester";// option the from name (e.g for 'Joe <joe@example.com>' formatting)
     // Test body HTML
     protected $test_body = "<h1>Header provider strategic</h1>"
@@ -168,6 +173,7 @@ class MailgunSyncTest extends SapphireTest
         if ($cc = $this->cc_address) {
             $email->setCc($cc);
         }
+
         $htmlBody = $this->test_body;
         $email->setBody($htmlBody);
 
@@ -360,14 +366,16 @@ class MailgunSyncTest extends SapphireTest
         Config::modify()->set(Base::class, 'send_via_job', 'no');
 
         $connector = MessageConnector::create();
-        $to = $to_address = $this->to_address;
+        $to = $this->to_address;
+        $to_address = $this->to_address;
         $to_name = $this->to_name;
         if ($to_name) {
             $to = $to_name . ' <' . $to_address . '>';
         }
 
         $this->assertNotEmpty($to_address);
-        $from = $from_address = $this->from_address;
+        $from = $this->from_address;
+        $from_address = $this->from_address;
         $from_name = $this->from_name;
         if ($from_name) {
             $from = $from_name . ' <' . $from_address . '>';
@@ -411,7 +419,7 @@ class MailgunSyncTest extends SapphireTest
     /**
      * Test that tags can be set via Taggable
      */
-    public function testTaggableEmail()
+    public function testTaggableEmail(): void
     {
         $limit = 3;
 
@@ -443,6 +451,7 @@ class MailgunSyncTest extends SapphireTest
         if ($cc = $this->cc_address) {
             $email->setCc($cc);
         }
+
         $email->setBody($this->test_body);
         $tags = ['tagheader1','tagheader2','tagheader3'];
         $email->setNotificationTags($tags);
@@ -542,7 +551,7 @@ class MailgunSyncTest extends SapphireTest
     /**
      * test a message with attachments
      */
-    public function testAttachmentDelivery()
+    public function testAttachmentDelivery(): void
     {
         $to_address = $this->to_address;
         $to_name = $this->to_name;
@@ -566,6 +575,7 @@ class MailgunSyncTest extends SapphireTest
         $email->setFrom($from);
         $email->setTo($to);
         $email->setSubject($subject);
+
         $htmlBody = $this->test_body;
         $email->setBody($htmlBody);
 

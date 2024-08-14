@@ -179,7 +179,8 @@ class Message extends Base
     private function getSendDateTime(mixed $in): ?\DateTime
     {
         try {
-            $dt = $default = null;
+            $dt = null;
+            $default = null;
             if ((is_int($in) || is_float($in)) && $in > 0) {
                 $dt = new \DateTime("now +{$in} seconds");
             }
@@ -193,10 +194,10 @@ class Message extends Base
      * Send via the queued job
      * @param string $domain the Mailgun API domain e.g sandboxXXXXXX.mailgun.org
      * @param array $parameters Mailgun API parameters
-     * @param mixed $in
+     * @param mixed $in See:http://php.net/manual/en/datetime.formats.relative.php
      * @return QueuedJobDescriptor|false
      */
-    protected function queueAndSend($domain, $parameters, $in)
+    protected function queueAndSend(string $domain, array $parameters, mixed $in)
     {
         $this->encodeAttachments($parameters);
         $startAfter = null;
@@ -253,7 +254,7 @@ class Message extends Base
      * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
      * To set "deliverytime" set it as an option to setOptions()
      */
-    public function setSendIn(int $seconds)
+    public function setSendIn(int $seconds): static
     {
         $this->send_in_seconds = $seconds;
         return $this;
