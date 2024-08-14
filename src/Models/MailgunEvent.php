@@ -30,48 +30,42 @@ use Exception;
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
-    /**
-     * @var string
-     */
-    private static $default_sort = "Timestamp DESC";// try to sort by most recent event first
+    private static string $default_sort = "Timestamp DESC";// try to sort by most recent event first
+    private static string $singular_name = "Event";
 
-    /**
-     * @var string
-     */
-    private static $singular_name = "Event";
+    private static string $plural_name = "Events";
 
-    /**
-     * @var string
-     */
-    private static $plural_name = "Events";
-
-    /**
-     * @var string
-     */
-    private static $table_name = "MailgunEvent";
+    private static string $table_name = "MailgunEvent";
 
     public const ACCEPTED = 'accepted';
+
     public const REJECTED = 'rejected';
+
     public const DELIVERED = 'delivered';
+
     public const FAILED = 'failed';
+
     public const OPENED = 'opened';
+
     public const CLICKED = 'clicked';
+
     public const UNSUBSCRIBED = 'unsubscribed';
+
     public const COMPLAINED = 'complained';
+
     public const STORED = 'stored';
 
     public const TAG_RESUBMIT = 'resubmit';
 
     public const FAILURE_TEMPORARY = 'temporary';
+
     public const FAILURE_PERMANENT = 'permanent';
 
     public const PERMISSIONS_VIEW = 'MAILGUNEVENT_VIEW';
+
     public const PERMISSIONS_DELETE = 'MAILGUNEVENT_DELETE';
 
-    /**
-     * @var array
-     */
-    private static $db = [
+    private static array $db = [
         /**
          * @note Mailgun says "Event id. It is guaranteed to be unique within a day.
          * It can be used to distinguish events that have already been retrieved
@@ -98,10 +92,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'DecodedStorageKey' => 'Text',  // JSON encoded storage key
     ];
 
-    /**
-     * @var array
-     */
-    private static $summary_fields = [
+    private static array $summary_fields = [
         'ID' => '#',
         'EventType' => 'Event',
         'Severity' => 'Severity',
@@ -114,9 +105,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Defines a default list of filters for the search context
-     * @var array
      */
-    private static $searchable_fields = [
+    private static array $searchable_fields = [
         'Reason',
         'Severity',
         'EventType',
@@ -125,10 +115,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'MessageId',
     ];
 
-    /**
-     * @var array
-     */
-    private static $indexes = [
+    private static array $indexes = [
         'Created' => true,
         'LastEdited' => true,
         'EventType' => true,
@@ -176,6 +163,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
             $manager_group = Group::create();
             $manager_group->Code = $manager_code;
         }
+
         $manager_group->Title = "Mailgun Managers";
         $manager_group_id = $manager_group->write();
         if ($manager_group_id) {
@@ -184,6 +172,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
             if (!in_array(self::PERMISSIONS_DELETE, $codes)) {
                 Permission::grant($manager_group_id, self::PERMISSIONS_DELETE);
             }
+
             if (!in_array(self::PERMISSIONS_VIEW, $codes)) {
                 Permission::grant($manager_group_id, self::PERMISSIONS_VIEW);
             }
@@ -201,13 +190,12 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Returns the age of the event, in seconds
      */
-    public function Age()
+    public function Age(): ?float
     {
         if ($this->Timestamp == 0) {
-            return false;
+            return null;
         }
-        $age = time() - $this->Timestamp;
-        return $age;
+        return time() - $this->Timestamp;
     }
 
     /**
@@ -226,6 +214,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         if (!$member) {
             $member = Member::currentUser();
         }
+
         return Permission::check(self::PERMISSIONS_DELETE, 'any', $member);
     }
 
@@ -237,6 +226,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         if (!$member) {
             $member = Member::currentUser();
         }
+
         return Permission::check(self::PERMISSIONS_VIEW, 'any', $member);
     }
 
@@ -288,8 +278,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
      */
     public function getSiblingEvents()
     {
-        $events = MailgunEvent::get()->filter('MessageId', $this->MessageId)->sort('Timestamp ASC');
-        return $events;
+        return MailgunEvent::get()->filter('MessageId', $this->MessageId)->sort('Timestamp ASC');
     }
 
     /**
@@ -312,13 +301,13 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Return RFC2822 formatted string of event timestamp
-     * @return string
      */
-    private function RecordDateTime($timezone = "UTC")
+    private function RecordDateTime(string $timezone = "UTC"): string
     {
         if (!$this->Timestamp) {
             return "";
         }
+
         $dt = new DateTime();
         $dt->setTimestamp($this->Timestamp);
         $dt->setTimezone(new DateTimeZone($timezone));
@@ -328,12 +317,12 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Combining all event types that are related to a user action
      */
-    public static function UserActionStatus()
+    public static function UserActionStatus(): array
     {
         return [ self::OPENED, self::CLICKED, self::UNSUBSCRIBED, self::COMPLAINED ];
     }
 
-    public function IsFailed()
+    public function IsFailed(): bool
     {
         return $this->EventType == self::FAILED;
     }
@@ -347,40 +336,30 @@ class MailgunEvent extends DataObject implements PermissionProvider
     }
 
     // Mailgun has not even attempted to deliver these
-    public function IsRejected()
+    public function IsRejected(): bool
     {
         return $this->EventType == self::REJECTED;
     }
 
     /**
      * Helper method to determin if event is failed || rejected
-     * @return boolean
      */
-    public function IsFailedOrRejected()
+    public function IsFailedOrRejected(): bool
     {
         return $this->IsFailed() || $this->IsRejected();
     }
 
-    /**
-     * @return boolean
-     */
-    public function IsDelivered()
+    public function IsDelivered(): bool
     {
         return $this->EventType == self::DELIVERED;
     }
 
-    /**
-     * @return boolean
-     */
-    public function IsAccepted()
+    public function IsAccepted(): bool
     {
         return $this->EventType == self::ACCEPTED;
     }
 
-    /**
-     * @return boolean
-     */
-    public function IsUserEvent()
+    public function IsUserEvent(): bool
     {
         return in_array($this->EventType, self::UserActionStatus());
     }
@@ -389,21 +368,20 @@ class MailgunEvent extends DataObject implements PermissionProvider
      * Helper method to create a UTC Date from a timestamp
      * @return string
      */
-    private static function CreateUTCDate($timestamp)
+    private function CreateUTCDate($timestamp)
     {
-        return self::CreateUTCDateTime($timestamp, "Y-m-d");
+        return $this->CreateUTCDateTime($timestamp, "Y-m-d");
     }
 
     /**
      * Helper method to create a UTC DateTime from a timestamp
-     * @return string
      */
-    private static function CreateUTCDateTime($timestamp, $format = "Y-m-d H:i:s")
+    private function CreateUTCDateTime($timestamp, $format = "Y-m-d H:i:s"): string
     {
         $dt = new DateTime();
         $dt->setTimestamp($timestamp);
         $dt->setTimezone(new DateTimeZone('UTC'));
-        return $dt->format('Y-m-d H:i:s');
+        return $dt->format($format);
     }
 
     /**
@@ -411,15 +389,17 @@ class MailgunEvent extends DataObject implements PermissionProvider
      * @deprecated
      * @phpstan-ignore method.unused
      */
-    private static function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type)
+    private function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type): false|object
     {
         if (!$message_id || !$timestamp || !$recipient || !$event_type) {
             return false;
         }
+
         $event = MailgunEvent::get()->filter(['MessageId' => $message_id, 'Timestamp' => $timestamp, 'Recipient' => $recipient, 'EventType' => $event_type ])->first();
         if (!empty($event->ID)) {
             return $event;
         }
+
         return false;
     }
 
@@ -433,28 +413,25 @@ class MailgunEvent extends DataObject implements PermissionProvider
     private function getMessageHeader(MailgunEventModel $event, $header)
     {
         $message = $event->getMessage();
-        $value = isset($message['headers'][$header]) ? $message['headers'][$header] : '';
-        return $value;
+        return $message['headers'][$header] ?? '';
     }
 
     /**
      * Based on a delivery status returned from Mailgun, grab relevant details for this record
-     * @param array $delivery_status
      */
-    private function saveDeliveryStatus(array $delivery_status)
+    private function saveDeliveryStatus(array $delivery_status): bool
     {
-        $this->DeliveryStatusMessage = isset($delivery_status['message']) ? $delivery_status['message'] : '';
-        $this->DeliveryStatusDescription = isset($delivery_status['description']) ? $delivery_status['description'] : '';
-        $this->DeliveryStatusCode = isset($delivery_status['code']) ? $delivery_status['code'] : '';
-        $this->DeliveryStatusAttempts = isset($delivery_status['attempt-no']) ? $delivery_status['attempt-no'] : '';
-        $this->DeliveryStatusSession = isset($delivery_status['session-seconds']) ? $delivery_status['session-seconds'] : '';
-        $this->DeliveryStatusMxHost = isset($delivery_status['mx-host']) ? $delivery_status['mx-host'] : '';
+        $this->DeliveryStatusMessage = $delivery_status['message'] ?? '';
+        $this->DeliveryStatusDescription = $delivery_status['description'] ?? '';
+        $this->DeliveryStatusCode = $delivery_status['code'] ?? '';
+        $this->DeliveryStatusAttempts = $delivery_status['attempt-no'] ?? '';
+        $this->DeliveryStatusSession = $delivery_status['session-seconds'] ?? '';
+        $this->DeliveryStatusMxHost = $delivery_status['mx-host'] ?? '';
         return true;
     }
 
     /**
      * Given a Mailgun\Model\Event\Event, store if possible
-     * @param MailgunEventModel $event
      * @return MailgunEvent|boolean
      */
     public function storeEvent(MailgunEventModel $event)
@@ -463,11 +440,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
         $mailgun_event_id = $event->getId();
         $event_type = $event->getEvent();
-        $variables = $event->getUserVariables();
         $timestamp = $event->getTimestamp();
         $status = $event->getDeliveryStatus();
         $storage = $event->getStorage();
-        $tags = $event->getTags();
         $recipient = $event->getRecipient();
 
         // get message id from headers
@@ -481,19 +456,20 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $mailgun_event->EventId = $mailgun_event_id;// webhooks do not provide a mailgun event id
         $mailgun_event->MessageId = $mailgun_message_id;
         $mailgun_event->Timestamp = $timestamp;
-        $mailgun_event->UTCEventDate = self::CreateUTCDate($timestamp);
+        $mailgun_event->UTCEventDate = $this->CreateUTCDate($timestamp);
         $mailgun_event->Severity = $event->getSeverity();
         $mailgun_event->EventType = $event_type;
         $mailgun_event->Recipient = $recipient;// if the message is sent to Someone <someone@example.com>, the $recipient value will be someone@example.com
         $mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
         $mailgun_event->saveDeliveryStatus($status);
-        $mailgun_event->StorageURL = isset($storage['url']) ? $storage['url'] : '';
+        $mailgun_event->StorageURL = $storage['url'] ?? '';
         $mailgun_event->DecodedStorageKey = "";// no need to store this
         $mailgun_event_id = $mailgun_event->write();
         if (!$mailgun_event_id) {
             // could not create record
             return false;
         }
+
         $this->extend('onAfterStoreMailgunEvent', $event, $mailgun_event);
         return $mailgun_event;
     }
@@ -504,11 +480,10 @@ class MailgunEvent extends DataObject implements PermissionProvider
      */
     public function GetRecipientFailures()
     {
-        $events = MailgunEvent::get()
+        return MailgunEvent::get()
                                 ->filter('MessageId', $this->MessageId) // Failures for this specific message
                                 ->filter('Recipient', $this->Recipient) // Recipient is an email address
                                 ->filterAny('EventType', [ self::FAILED, self::REJECTED ])
                                 ->count();
-        return $events;
     }
 }

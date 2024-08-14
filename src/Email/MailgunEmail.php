@@ -31,14 +31,10 @@ class MailgunEmail extends Email
      */
     private $connector;
 
-    /**
-     * @var array
-     */
-    private $customParameters = [];
+    private array $customParameters = [];
 
     /**
      * Retrieve the connector instance
-     * @return \NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
     public function getConnector(): Message
@@ -61,9 +57,8 @@ class MailgunEmail extends Email
 
     /**
      * Clear custom parameters
-     * @return self
      */
-    public function clearCustomParameters()
+    public function clearCustomParameters(): static
     {
         $this->customParameters = [];
         return $this;
@@ -71,9 +66,8 @@ class MailgunEmail extends Email
 
     /**
      * Set custom parameters on the message connector
-     * @return self
      */
-    public function setCustomParameters(array $args)
+    public function setCustomParameters(array $args): static
     {
         $this->customParameters = $args;
         return $this;

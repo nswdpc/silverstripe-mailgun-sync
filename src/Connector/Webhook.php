@@ -15,38 +15,38 @@ class Webhook extends Base
     /**
      * verify signature
      * @return bool returns true if signature is valid
-     * @param array $signature
      */
-    public function verify_signature($signature)
+    public function verify_signature(array $signature)
     {
         if ($this->is_valid_signature($signature)) {
             return hash_equals($this->sign_token($signature), $signature['signature']);
         }
+
         return false;
     }
 
     /**
      * Sign the token based on timestamp and signature in request
-     * @param array $signature
      */
-    public function sign_token($signature)
+    public function sign_token(array $signature): string
     {
         $webhook_signing_key = $this->getWebhookSigningKey();
         if (!$webhook_signing_key) {
             throw new \Exception("Please set a webhook signing key in configuration");
         }
-        return hash_hmac('sha256', $signature['timestamp'] . $signature['token'], $webhook_signing_key);
+
+        return hash_hmac('sha256', $signature['timestamp'] . $signature['token'], (string) $webhook_signing_key);
     }
 
     /**
      * Based on Mailgun docs, determine if the signature is correct
      * @param array $signature
      */
-    public function is_valid_signature($signature)
+    public function is_valid_signature($signature): bool
     {
         return isset($signature['timestamp'])
                 && isset($signature['token'])
-                && strlen($signature['token']) == 50
+                && strlen((string) $signature['token']) == 50
                 && isset($signature['signature']);
     }
 }

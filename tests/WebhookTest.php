@@ -15,8 +15,9 @@ use SilverStripe\Core\Config\Config;
  */
 class WebhookTest extends FunctionalTest
 {
-    private $webhook_filter_variable = 'skjhgiehg943753-"';
-    private $webhook_previous_filter_variable = 'snsd875bslw[';
+    private string $webhook_filter_variable = 'skjhgiehg943753-"';
+
+    private string $webhook_previous_filter_variable = 'snsd875bslw[';
 
     protected $usesDatabase = true;
 
@@ -31,15 +32,15 @@ class WebhookTest extends FunctionalTest
     /**
      * Get test data from disk
      */
-    protected function getWebhookRequestData($event_type)
+    protected function getWebhookRequestData($event_type): string|false
     {
-        return file_get_contents(dirname(__FILE__) . "/webhooks/{$event_type}.json");
+        return file_get_contents(__DIR__ . "/webhooks/{$event_type}.json");
     }
 
     /**
      * Our configured endpoint for submitting POST data
      */
-    protected function getSubmissionUrl()
+    protected function getSubmissionUrl(): string
     {
         return '_wh/submit';
     }
@@ -76,7 +77,7 @@ class WebhookTest extends FunctionalTest
         return $decoded;
     }
 
-    protected function setWebhookFilterVariable($data, $value)
+    protected function setWebhookFilterVariable(array $data, $value): array
     {
         $data['event-data']['user-variables']['wfv'] = $value;
         return $data;
@@ -99,6 +100,7 @@ class WebhookTest extends FunctionalTest
         $session = null;
         $data = $this->setSignatureOnRequest($signing_key, $this->getWebhookRequestData($type));
         $data = $this->setWebhookFilterVariable($data, $this->webhook_filter_variable);
+
         $cookies = null;
 
         $body = json_encode($data, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
@@ -151,37 +153,37 @@ class WebhookTest extends FunctionalTest
         );
     }
 
-    public function testWebookDelivered()
+    public function testWebookDelivered(): void
     {
         $this->sendWebhookRequest("delivered");
     }
 
-    public function testWebookClick()
+    public function testWebookClick(): void
     {
         $this->sendWebhookRequest("clicked");
     }
 
-    public function testWebookOpened()
+    public function testWebookOpened(): void
     {
         $this->sendWebhookRequest("opened");
     }
 
-    public function testWebookFailedPermanent()
+    public function testWebookFailedPermanent(): void
     {
         $this->sendWebhookRequest("failed_permanent");
     }
 
-    public function testWebookFailedTemporary()
+    public function testWebookFailedTemporary(): void
     {
         $this->sendWebhookRequest("failed_temporary");
     }
 
-    public function testWebookUnsubscribed()
+    public function testWebookUnsubscribed(): void
     {
         $this->sendWebhookRequest("unsubscribed");
     }
 
-    public function testWebookComplained()
+    public function testWebookComplained(): void
     {
         $this->sendWebhookRequest("complained");
     }

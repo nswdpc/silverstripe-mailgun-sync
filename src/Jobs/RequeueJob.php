@@ -18,7 +18,7 @@ class RequeueJob extends AbstractQueuedJob
     public function getTitle()
     {
         return _t(
-            __CLASS__ . ".JOB_TITLE",
+            self::class . ".JOB_TITLE",
             "Re-queue failed attempts to send messages via the Mailgun API"
         );
     }
@@ -34,7 +34,8 @@ class RequeueJob extends AbstractQueuedJob
                 'Implementation' => SendJob::class
             ]);
         $count = $descriptors->count();
-        $kick = $skip = 0;
+        $kick = 0;
+        $skip = 0;
         if ($count > 0) {
             $this->totalSteps = $count;
             foreach ($descriptors as $descriptor) {
@@ -62,7 +63,7 @@ class RequeueJob extends AbstractQueuedJob
 
             $this->addMessage(
                 _t(
-                    __CLASS__ . '.JOB_STATUS',
+                    self::class . '.JOB_STATUS',
                     "Marked {kick}, ignored {skip} broken SendJob descriptors as new",
                     [
                         'kick' => $kick,
@@ -74,7 +75,7 @@ class RequeueJob extends AbstractQueuedJob
         } else {
             $this->addMessage(
                 _t(
-                    __CLASS__ . '.JOB_STATUS_NO_JOBS',
+                    self::class . '.JOB_STATUS_NO_JOBS',
                     "No jobs can be re-queued"
                 ),
                 "info"

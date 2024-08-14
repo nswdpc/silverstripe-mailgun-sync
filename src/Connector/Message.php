@@ -74,6 +74,7 @@ class Message extends Base
         if (empty($event->StorageURL)) {
             throw new Exception("No StorageURL found on MailgunEvent #{$event->ID}");
         }
+
         // Get the mime encoded message, by passing the Accept header
         $message = $client->messages()->show($event->StorageURL, true);
         return $message;
@@ -120,7 +121,6 @@ class Message extends Base
 
     /**
      * Sends a message
-     * @param array $parameters
      */
     protected function sendMessage(array $parameters)
     {
@@ -160,7 +160,7 @@ class Message extends Base
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
             foreach ($parameters['attachment'] as $k=>$attachment) {
-                $parameters['attachment'][$k]['fileContent'] = base64_encode($attachment['fileContent']);
+                $parameters['attachment'][$k]['fileContent'] = base64_encode((string) $attachment['fileContent']);
             }
         }
     }
@@ -173,7 +173,7 @@ class Message extends Base
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
             foreach ($parameters['attachment'] as $k=>$attachment) {
-                $parameters['attachment'][$k]['fileContent'] = base64_decode($attachment['fileContent']);
+                $parameters['attachment'][$k]['fileContent'] = base64_decode((string) $attachment['fileContent']);
             }
         }
     }
@@ -185,13 +185,15 @@ class Message extends Base
     private function getSendDateTime($in): ?\DateTime
     {
         try {
-            $dt = $default = null;
+            $dt = null;
+            $default = null;
             if ($in > 0) {
                 $dt = new \DateTime("now +{$in} seconds");
             }
-        } catch (\Exception $e) {
+        } catch (\Exception) {
         }
-        return $dt ? $dt : $default;
+
+        return $dt ?: $default;
     }
 
     /**
@@ -205,13 +207,15 @@ class Message extends Base
     {
         $this->encodeAttachments($parameters);
         $startAfter = null;
-        if ($start = $this->getSendDateTime($in)) {
+        if (($start = $this->getSendDateTime($in)) instanceof \DateTime) {
             $startAfter = $start->format('Y-m-d H:i:s');
         }
+
         $job  = new SendJob($domain, $parameters);
         if ($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
             return QueuedJobDescriptor::get()->byId($job_id);
         }
+
         return false;
     }
 
@@ -231,8 +235,7 @@ class Message extends Base
         $timeframe = 'now -30 days';
         $begin = Base::DateTime($timeframe);
 
-        $event_filter = MailgunEvent::DELIVERED;
-        $resubmit = false;// no we don't want to resubmit
+        $event_filter = MailgunEvent::DELIVERED;// no we don't want to resubmit
         $extra_params = [
             'limit' => 25,
             'message-id' => $event->MessageId,
@@ -240,20 +243,16 @@ class Message extends Base
         ];
 
         $events = $connector->pollEvents($begin, $event_filter, $extra_params);
-
-        $is_delivered = !empty($events);
-        return $is_delivered;
+        return !empty($events);
     }
 
     /**
      * Trim < and > from message id
-     * @return string
      * @param string $message_id
      */
-    public static function cleanMessageId($message_id)
+    public static function cleanMessageId($message_id): string
     {
-        $message_id = trim($message_id, "<>");
-        return $message_id;
+        return trim($message_id, "<>");
     }
 
     /**
@@ -261,7 +260,7 @@ class Message extends Base
      * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
      * To set "deliverytime" set it as an option to setOptions()
      */
-    public function setSendIn(float $seconds)
+    public function setSendIn(float $seconds): static
     {
         $this->send_in_seconds = $seconds;
         return $this;
@@ -277,7 +276,7 @@ class Message extends Base
      *              and value is a dictionary with variables
      *              that can be referenced in the message body.
      */
-    public function setRecipientVariables(array $recipient_variables)
+    public function setRecipientVariables(array $recipient_variables): static
     {
         $this->recipient_variables = $recipient_variables;
         return $this;
@@ -291,7 +290,7 @@ class Message extends Base
         return $this->recipient_variables;
     }
 
-    public function setAmpHtml(string $html)
+    public function setAmpHtml(string $html): static
     {
         $this->amp_html = $html;
         return $this;
@@ -302,7 +301,7 @@ class Message extends Base
         return $this->amp_html;
     }
 
-    public function setTemplate($template, $version = "", $include_in_text = "")
+    public function setTemplate($template, $version = "", $include_in_text = ""): static
     {
         if ($template) {
             $this->template = [
@@ -311,6 +310,7 @@ class Message extends Base
                 'text' => $include_in_text == "yes" ? "yes" : "",
             ];
         }
+
         return $this;
     }
 
@@ -322,7 +322,7 @@ class Message extends Base
     /**
      * Keys are not prefixed with "o:"
      */
-    public function setOptions(array $options)
+    public function setOptions(array $options): static
     {
         $this->options = $options;
         return $this;
@@ -336,7 +336,7 @@ class Message extends Base
     /**
      * Keys are not prefixed with "h:"
      */
-    public function setCustomHeaders(array $headers)
+    public function setCustomHeaders(array $headers): static
     {
         $this->headers = $headers;
         return $this;
@@ -350,7 +350,7 @@ class Message extends Base
     /**
      * Keys are not prefixed with "v:"
      */
-    public function setVariables(array $variables)
+    public function setVariables(array $variables): static
     {
         $this->variables = $variables;
         return $this;
@@ -363,9 +363,8 @@ class Message extends Base
 
     /**
      * Based on options set in {@link NSWDPC\Messaging\Mailgun\MailgunEmail} set Mailgun options, params, headers and variables
-     * @param array $parameters
      */
-    protected function addCustomParameters(&$parameters)
+    protected function addCustomParameters(array &$parameters)
     {
 
         // VARIABLES
@@ -387,6 +386,7 @@ class Message extends Base
             if (!empty($template['version'])) {
                 $parameters["t:version"] = $template['version'];
             }
+
             if (isset($template['text']) && $template['text'] == "yes") {
                 $parameters["t:text"] = $template['text'];
             }

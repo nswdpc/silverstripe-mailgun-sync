@@ -19,9 +19,8 @@ class Event extends Base
      * @param string $begin an RFC 2822 formatted UTC datetime OR empty string for no begin datetime
      * @param string $event_filter see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also be a filter expression e.g "failed OR rejected"
      * @param array $extra_params extra parameters for API request
-     * @return array
      */
-    public function pollEvents($begin = null, $event_filter = "", $extra_params = [])
+    public function pollEvents($begin = null, $event_filter = "", $extra_params = []): array
     {
         $api_key = $this->getApiKey();
         $client = Mailgun::create($api_key);
@@ -60,6 +59,7 @@ class Event extends Base
             // recursively retrieve the events based on pagination
             $this->getNextPage($client, $response);
         }
+
         return $this->results;
     }
 
@@ -90,8 +90,9 @@ class Event extends Base
         $items = $response->getItems();
         if (empty($items)) {
             // no more items - nothing to do
-            return;
+            return null;
         }
+
         // add to results
         $this->results = array_merge($this->results, $items);
         return $this->getNextPage($client, $response);

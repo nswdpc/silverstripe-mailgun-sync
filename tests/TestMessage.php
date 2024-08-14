@@ -39,7 +39,6 @@ class TestMessage extends Message
 
     /**
      * Sends a message
-     * @param array $parameters
      */
     protected function sendMessage(array $parameters)
     {

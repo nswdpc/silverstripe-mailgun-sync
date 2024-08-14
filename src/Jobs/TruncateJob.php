@@ -57,6 +57,7 @@ class TruncateJob extends AbstractQueuedJob
         } else {
             $dt = new DateTime();
         }
+
         $dt_formatted = $dt->format('Y-m-d H:i:s');
         $this->addMessage("Removing events created before {$dt_formatted}", "info");
         $events = MailgunEvent::get()->filter('Created:LessThan', $dt_formatted);
@@ -67,6 +68,7 @@ class TruncateJob extends AbstractQueuedJob
         } else {
             $this->addMessage("No events to remove", "info");
         }
+
         $this->currentStep = 1;
         $this->isComplete = true;
     }
@@ -78,6 +80,7 @@ class TruncateJob extends AbstractQueuedJob
     {
         $next = new DateTime();
         $next->modify('+' . $this->recreate_in . ' seconds');
+
         $job = new TruncateJob($this->days, $this->recreate_in);
         $service = singleton(QueuedJobService::class);
         $descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));

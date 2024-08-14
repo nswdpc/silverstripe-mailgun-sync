@@ -15,15 +15,9 @@ use Mailgun\Model\Event\Event as MailgunEventModel;
  */
 class MailgunWebHook extends Controller
 {
-    /**
-     * @var bool
-     */
-    private static $webhooks_enabled = true;
+    private static bool $webhooks_enabled = true;
 
-    /**
-     * @var array
-     */
-    private static $allowed_actions = [
+    private static array $allowed_actions = [
         'submit' => true
     ];
 
@@ -113,7 +107,7 @@ class MailgunWebHook extends Controller
             }
 
             // POST body
-            $payload = json_decode($request->getBody(), true);
+            $payload = json_decode((string) $request->getBody(), true);
             if (!$payload) {
                 throw new WebhookClientException("No payload found");
             }
@@ -134,13 +128,12 @@ class MailgunWebHook extends Controller
             if ($variable) {
                 $webhook_filter_ok = false;
                 $previous_variable = $connector->getWebhookPreviousFilterVariable();//from config
-                if (!empty($payload['event-data']['user-variables']['wfv'])) {
-                    if ($payload['event-data']['user-variables']['wfv'] == $variable
-                        || $payload['event-data']['user-variables']['wfv'] == $previous_variable) {
-                        // the webhook submission equals the current or previous variable
-                        $webhook_filter_ok = true;
-                    }
+                if (!empty($payload['event-data']['user-variables']['wfv']) && ($payload['event-data']['user-variables']['wfv'] == $variable
+                    || $payload['event-data']['user-variables']['wfv'] == $previous_variable)) {
+                    // the webhook submission equals the current or previous variable
+                    $webhook_filter_ok = true;
                 }
+
                 if (!$webhook_filter_ok) {
                     // respond with a 400 not a 406 (possible configuration error: allow time to fix)
                     throw new WebhookClientException("Webhook filter variable mismatch", 400);
