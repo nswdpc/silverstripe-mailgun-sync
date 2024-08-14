@@ -321,6 +321,16 @@ class Message extends Base
         return $this;
     }
 
+    /**
+     * Set a single option in the options, will overwrite the current option set
+     * or create if not yet set
+     */
+    public function setOption(string $name, mixed $value): static
+    {
+        $this->options[$name] = $value;
+        return $this;
+    }
+
     public function getOptions()
     {
         return $this->options;

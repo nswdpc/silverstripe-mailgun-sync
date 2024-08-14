@@ -85,7 +85,7 @@ class MailgunMailer implements Mailer
      * Taggable: retrieve tags set via setNotificationTags()
      * Doing so will replace any tags assigned through setCustomParameters
      * @param TaggableEmail $email
-     * @param MessageConnector connector instance for this send attempt
+     * @param MessageConnector $connector connector instance for this send attempt
      * @return MessageConnector
      */
     protected function assignNotificationTags(TaggableEmail &$email, MessageConnector &$connector): MessageConnector
@@ -94,16 +94,7 @@ class MailgunMailer implements Mailer
         if (empty($tags)) {
             return $connector;
         }
-
-        // Tags are assigned via custom parameters / option
-        $customParameters = $email->getCustomParameters();
-        if (empty($customParameters['options'])) {
-            $customParameters['options'] = [];
-        }
-        // 'tag' translates to 'o:tag'
-        $customParameters['options']['tag'] = $tags;
-        $connector->setOptions($customParameters['options']);
-        return $connector;
+        return $connector->setOption('tag', $tags);
     }
 
     /**
