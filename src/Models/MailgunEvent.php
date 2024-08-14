@@ -30,8 +30,9 @@ use Exception;
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
-    private static string $default_sort = "Timestamp DESC";
     // try to sort by most recent event first
+    private static string $default_sort = "Timestamp DESC";
+
     private static string $singular_name = "Event";
 
     private static string $plural_name = "Events";
