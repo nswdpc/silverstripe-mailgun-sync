@@ -137,20 +137,13 @@ class Message extends Base
         // send options
         $send_via_job = $this->sendViaJob();
         $in = $this->getSendIn();// seconds
-        switch ($send_via_job) {
-            case 'yes':
-                return $this->queueAndSend($domain, $parameters, $in);
-            case 'when-attachments':
-                if (!empty($parameters['attachment'])) {
-                    return $this->queueAndSend($domain, $parameters, $in);
-                }
-                // fallback to direct
-                // no break
-            case 'no':
-            default:
-                return $client->messages()->send($domain, $parameters);
+        if ($send_via_job == 'yes') {
+            return $this->queueAndSend($domain, $parameters, $in);
+        } elseif ($send_via_job == 'when-attachments' && !empty($parameters['attachment'])) {
+            return $this->queueAndSend($domain, $parameters, $in);
+        } else {
+            return $client->messages()->send($domain, $parameters);
         }
-        return null;
     }
 
     /**
