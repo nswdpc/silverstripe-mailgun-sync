@@ -415,8 +415,8 @@ class MailgunSyncTest extends SapphireTest
     {
         $limit = 3;
 
-        Config::inst()->update(ProjectTags::class, 'tag', '');
-        Config::inst()->update(ProjectTags::class, 'tag_limit', $limit);
+        Config::modify()->set(ProjectTags::class, 'tag', '');
+        Config::modify()->set(ProjectTags::class, 'tag_limit', $limit);
 
         $to_address = $this->to_address;
         $to_name = $this->to_name;
@@ -457,9 +457,9 @@ class MailgunSyncTest extends SapphireTest
 
         $sendData = TestMessage::getSendData();
 
-        $this->arrayHasKey('parameters', $sendData);
+        $this->assertArrayHasKey('parameters', $sendData);
 
-        $this->arrayHasKey('o:tag', $sendData['parameters']);
+        $this->assertArrayHasKey('o:tag', $sendData['parameters']);
         $this->assertEquals($tags, $sendData['parameters']['o:tag']);
 
         $tooManyTags = ['tagheader1','tagheader2','tagheader3', 'tagheader4'];
@@ -474,9 +474,9 @@ class MailgunSyncTest extends SapphireTest
 
         $sendData = TestMessage::getSendData();
 
-        $this->arrayHasKey('parameters', $sendData);
+        $this->assertArrayHasKey('parameters', $sendData);
 
-        $this->arrayHasKey('o:tag', $sendData['parameters']);
+        $this->assertArrayHasKey('o:tag', $sendData['parameters']);
         $this->assertEquals($expectedTags, $sendData['parameters']['o:tag']);
     }
 
