@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
@@ -14,7 +15,6 @@ use Symbiote\QueuedJobs\Services\QueuedJobService;
  */
 class SendJob extends AbstractQueuedJob
 {
-
     /**
      * Total steps for this job
      * @var int
@@ -61,8 +61,8 @@ class SendJob extends AbstractQueuedJob
         $params = [];
         // these simple message params
         $parts = ['to','from','cc','bcc','subject'];
-        foreach($parts as $part) {
-            $params[ $part ] = isset($this->parameters[ $part ])  ? $this->parameters[ $part ] :  '';
+        foreach ($parts as $part) {
+            $params[ $part ] = isset($this->parameters[ $part ]) ? $this->parameters[ $part ] : '';
         }
         // at this time
         $params['sendtime'] = microtime(true);
@@ -79,7 +79,7 @@ class SendJob extends AbstractQueuedJob
     {
         $this->connector = MessageConnector::create();
         $this->domain = $this->connector->getApiDomain();
-        if(!empty($parameters)) {
+        if (!empty($parameters)) {
             $this->parameters = $parameters;
         }
     }
@@ -89,9 +89,7 @@ class SendJob extends AbstractQueuedJob
      */
     public function process()
     {
-
         try {
-
             if ($this->isComplete) {
                 // the job has already been marked complete
                 return;
@@ -111,7 +109,7 @@ class SendJob extends AbstractQueuedJob
             }
 
             $parameters = $this->parameters;
-            if(empty($parameters)) {
+            if (empty($parameters)) {
                 $msg = _t(
                     __CLASS__ . ".EMPTY_PARAMS",
                     "Mailgun SendJob was called with empty parameters"
@@ -144,7 +142,6 @@ class SendJob extends AbstractQueuedJob
                     )
                 )
             );
-
         } catch (JobProcessingException $e) {
             $this->addMessage(
                 _t(
@@ -180,6 +177,5 @@ class SendJob extends AbstractQueuedJob
                 "Mailgun send failed. Check status.mailgun.com or connectivity?"
             )
         );
-
     }
 }

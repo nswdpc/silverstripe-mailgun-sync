@@ -15,13 +15,13 @@ use SilverStripe\Core\Config\Config;
  */
 class WebhookTest extends FunctionalTest
 {
-
     private $webhook_filter_variable = 'skjhgiehg943753-"';
     private $webhook_previous_filter_variable = 'snsd875bslw[';
 
     protected $usesDatabase = true;
 
-    public function setUp() : void {
+    public function setUp(): void
+    {
         parent::setUp();
         Config::modify()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
         Config::modify()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
@@ -31,21 +31,24 @@ class WebhookTest extends FunctionalTest
     /**
      * Get test data from disk
      */
-    protected function getWebhookRequestData($event_type) {
-        return file_get_contents( dirname(__FILE__) . "/webhooks/{$event_type}.json");
+    protected function getWebhookRequestData($event_type)
+    {
+        return file_get_contents(dirname(__FILE__) . "/webhooks/{$event_type}.json");
     }
 
     /**
      * Our configured endpoint for submitting POST data
      */
-    protected function getSubmissionUrl() {
+    protected function getSubmissionUrl()
+    {
         return '_wh/submit';
     }
 
     /**
      * Webhook Mailgun API connector
      */
-    protected function getConnector() {
+    protected function getConnector()
+    {
         return Webhook::create();
     }
 
@@ -53,7 +56,8 @@ class WebhookTest extends FunctionalTest
      * Set a signing key in Configuration
      * @param string $signing_key
      */
-    protected function setSigningKey($signing_key) {
+    protected function setSigningKey($signing_key)
+    {
         Config::modify()->set(Base::class, 'webhook_signing_key', $signing_key);
     }
 
@@ -63,7 +67,8 @@ class WebhookTest extends FunctionalTest
      * @param string $request_data
      * @return array
      */
-    protected function setSignatureOnRequest($signing_key, $request_data) {
+    protected function setSignatureOnRequest($signing_key, $request_data)
+    {
         $decoded = json_decode($request_data, true);
         $connector = $this->getConnector();
         $signature = $connector->sign_token($decoded['signature']);
@@ -71,7 +76,8 @@ class WebhookTest extends FunctionalTest
         return $decoded;
     }
 
-    protected function setWebhookFilterVariable($data, $value) {
+    protected function setWebhookFilterVariable($data, $value)
+    {
         $data['event-data']['user-variables']['wfv'] = $value;
         return $data;
     }
@@ -81,8 +87,8 @@ class WebhookTest extends FunctionalTest
      * and one that should fail
      * @param string $type
      */
-    protected function sendWebhookRequest($type) {
-
+    protected function sendWebhookRequest($type)
+    {
         $signing_key = "TEST_SHOULD_PASS";
         $this->setSigningKey($signing_key);
 
@@ -108,7 +114,7 @@ class WebhookTest extends FunctionalTest
         // test if the event was saved
         $record = MailgunEvent::get()->filter('EventId', $event->getId())->first();
 
-        $this->assertTrue( $record && $record->exists() ,  "DB Mailgun event does not exist for event {$event->getId()}");
+        $this->assertTrue($record && $record->exists(), "DB Mailgun event does not exist for event {$event->getId()}");
 
         // change the webhook config variable to the previous var
         $data = $this->setWebhookFilterVariable($data, $this->webhook_previous_filter_variable);
@@ -130,7 +136,7 @@ class WebhookTest extends FunctionalTest
         );
 
         // remove webhook variable and test
-        unset( $data['event-data']['user-variables']['wfv'] );
+        unset($data['event-data']['user-variables']['wfv']);
         Config::modify()->set(Base::class, 'webhook_filter_variable', '');
         Config::modify()->set(Base::class, 'webhook_previous_filter_variable', '');
 
@@ -143,35 +149,40 @@ class WebhookTest extends FunctionalTest
             $response->getStatusCode(),
             'Expected failed response code 406 with incorrect signing_key but got ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
         );
-
     }
 
-    public function testWebookDelivered() {
+    public function testWebookDelivered()
+    {
         $this->sendWebhookRequest("delivered");
     }
 
-    public function testWebookClick() {
+    public function testWebookClick()
+    {
         $this->sendWebhookRequest("clicked");
     }
 
-    public function testWebookOpened() {
+    public function testWebookOpened()
+    {
         $this->sendWebhookRequest("opened");
     }
 
-    public function testWebookFailedPermanent() {
+    public function testWebookFailedPermanent()
+    {
         $this->sendWebhookRequest("failed_permanent");
     }
 
-    public function testWebookFailedTemporary() {
+    public function testWebookFailedTemporary()
+    {
         $this->sendWebhookRequest("failed_temporary");
     }
 
-    public function testWebookUnsubscribed() {
+    public function testWebookUnsubscribed()
+    {
         $this->sendWebhookRequest("unsubscribed");
     }
 
-    public function testWebookComplained() {
+    public function testWebookComplained()
+    {
         $this->sendWebhookRequest("complained");
     }
-
 }

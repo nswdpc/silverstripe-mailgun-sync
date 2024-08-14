@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
@@ -6,7 +7,6 @@ use NSWDPC\Messaging\Mailgun\Log;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
-
 
 /**
  * Base connector to the Mailgun API
@@ -18,7 +18,7 @@ abstract class Base
 
     use Injectable;
 
-    const API_ENDPOINT_EU = 'https://api.eu.mailgun.net';
+    public const API_ENDPOINT_EU = 'https://api.eu.mailgun.net';
 
     /**
      * The Mailgun API key or Domain Sending Key (recommended)
@@ -106,7 +106,7 @@ abstract class Base
         }
         $api_endpoint = $this->config()->get('api_endpoint_region');
         $this->api_endpoint_url = '';
-        switch($api_endpoint) {
+        switch ($api_endpoint) {
             case 'API_ENDPOINT_EU':
                 $this->api_endpoint_url = self::API_ENDPOINT_EU;
                 $client = Mailgun::create($api_key, $this->api_endpoint_url);
@@ -118,7 +118,8 @@ abstract class Base
         return $client;
     }
 
-    public function getApiEndpointRegion() {
+    public function getApiEndpointRegion()
+    {
         return $this->api_endpoint_url;
     }
 
@@ -143,7 +144,8 @@ abstract class Base
         return $this->config()->get('webhook_previous_filter_variable');
     }
 
-    public function getWebhooksEnabled() {
+    public function getWebhooksEnabled()
+    {
         return $this->config()->get('webhooks_enabled');
     }
 
@@ -153,7 +155,8 @@ abstract class Base
         return $mailgun_api_domain;
     }
 
-    public function isSandbox() {
+    public function isSandbox()
+    {
         $api_domain = $this->getApiDomain();
         $result = preg_match("/^sandbox[a-z0-9]+\.mailgun\.org$/i", $api_domain);
         return $result == 1;

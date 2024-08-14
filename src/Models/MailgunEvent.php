@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Mailgun;
@@ -29,7 +30,6 @@ use Exception;
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
-
     /**
      * @var string
      */
@@ -50,23 +50,23 @@ class MailgunEvent extends DataObject implements PermissionProvider
      */
     private static $table_name = "MailgunEvent";
 
-    const ACCEPTED = 'accepted';
-    const REJECTED = 'rejected';
-    const DELIVERED = 'delivered';
-    const FAILED = 'failed';
-    const OPENED = 'opened';
-    const CLICKED = 'clicked';
-    const UNSUBSCRIBED = 'unsubscribed';
-    const COMPLAINED = 'complained';
-    const STORED = 'stored';
+    public const ACCEPTED = 'accepted';
+    public const REJECTED = 'rejected';
+    public const DELIVERED = 'delivered';
+    public const FAILED = 'failed';
+    public const OPENED = 'opened';
+    public const CLICKED = 'clicked';
+    public const UNSUBSCRIBED = 'unsubscribed';
+    public const COMPLAINED = 'complained';
+    public const STORED = 'stored';
 
-    const TAG_RESUBMIT = 'resubmit';
+    public const TAG_RESUBMIT = 'resubmit';
 
-    const FAILURE_TEMPORARY = 'temporary';
-    const FAILURE_PERMANENT = 'permanent';
+    public const FAILURE_TEMPORARY = 'temporary';
+    public const FAILURE_PERMANENT = 'permanent';
 
-    const PERMISSIONS_VIEW = 'MAILGUNEVENT_VIEW';
-    const PERMISSIONS_DELETE = 'MAILGUNEVENT_DELETE';
+    public const PERMISSIONS_VIEW = 'MAILGUNEVENT_VIEW';
+    public const PERMISSIONS_DELETE = 'MAILGUNEVENT_DELETE';
 
     /**
      * @var array
@@ -181,10 +181,10 @@ class MailgunEvent extends DataObject implements PermissionProvider
         if ($manager_group_id) {
             $permissions = $manager_group->Permissions()->filter('Code', [ self::PERMISSIONS_DELETE, self::PERMISSIONS_VIEW ]);
             $codes = $permissions->column('Code');
-            if(!in_array( self::PERMISSIONS_DELETE, $codes)) {
+            if (!in_array(self::PERMISSIONS_DELETE, $codes)) {
                 Permission::grant($manager_group_id, self::PERMISSIONS_DELETE);
             }
-            if(!in_array( self::PERMISSIONS_VIEW, $codes)) {
+            if (!in_array(self::PERMISSIONS_VIEW, $codes)) {
                 Permission::grant($manager_group_id, self::PERMISSIONS_VIEW);
             }
         }
@@ -459,7 +459,6 @@ class MailgunEvent extends DataObject implements PermissionProvider
      */
     public function storeEvent(MailgunEventModel $event)
     {
-
         $this->extend('onBeforeStoreMailgunEvent', $event);
 
         $mailgun_event_id = $event->getId();
@@ -512,5 +511,4 @@ class MailgunEvent extends DataObject implements PermissionProvider
                                 ->count();
         return $events;
     }
-
 }

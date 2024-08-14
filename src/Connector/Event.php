@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use NSWDPC\Messaging\Mailgun\MailgunEvent;
@@ -20,7 +21,7 @@ class Event extends Base
      * @param array $extra_params extra parameters for API request
      * @return array
      */
-    public function pollEvents($begin = null, $event_filter = "", $extra_params = array())
+    public function pollEvents($begin = null, $event_filter = "", $extra_params = [])
     {
         $api_key = $this->getApiKey();
         $client = Mailgun::create($api_key);

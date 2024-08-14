@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Admin\ModelAdmin;
@@ -18,7 +19,6 @@ use SilverStripe\Forms\GridField\GridFieldDetailForm;
  */
 class MailgunModelAdmin extends ModelAdmin
 {
-
     /**
      * @var string
      */
@@ -41,17 +41,16 @@ class MailgunModelAdmin extends ModelAdmin
      */
     public function getEditForm($id = null, $fields = null)
     {
-
         $form = parent::getEditForm($id, $fields);
 
         $grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
-        if($grid instanceof GridField) {
+        if ($grid instanceof GridField) {
             $config = $grid->getConfig();
 
             $config->removeComponentsByType(GridFieldAddNewButton::class);
             $config->removeComponentsByType(GridFieldPrintButton::class);
 
-            if(! Permission::check( MailgunEvent::PERMISSIONS_DELETE, 'any', Member::currentUser()) ) {
+            if (! Permission::check(MailgunEvent::PERMISSIONS_DELETE, 'any', Member::currentUser())) {
                 $config->removeComponentsByType(GridFieldEditButton::class);
                 $config->removeComponentsByType(GridFieldDeleteAction::class);
             }

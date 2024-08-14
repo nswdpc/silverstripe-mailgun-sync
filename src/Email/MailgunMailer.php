@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
@@ -49,9 +50,10 @@ class MailgunMailer implements Mailer
         'Message-ID',
     ];
 
-    public function getAlwaysFrom() {
+    public function getAlwaysFrom()
+    {
         $always_from = $this->config()->get('always_from');
-        if(!$always_from && $this->alwaysFrom) {
+        if (!$always_from && $this->alwaysFrom) {
             $always_from = $this->alwaysFrom;
         }
         return $always_from;
@@ -63,13 +65,14 @@ class MailgunMailer implements Mailer
      * @param MessageConnector $connector instance for this send attempt
      * @return MessageConnector
      */
-    protected function assignCustomParameters(MailgunEmail &$email, MessageConnector &$connector) : MessageConnector {
+    protected function assignCustomParameters(MailgunEmail &$email, MessageConnector &$connector): MessageConnector
+    {
         $customParameters = $email->getCustomParameters();
         $email->clearCustomParameters();
-        $connector->setVariables( $customParameters['variables'] ?? [] )
-                ->setOptions( $customParameters['options'] ?? [] )
-                ->setCustomHeaders( $customParameters['headers'] ?? [] )
-                ->setRecipientVariables( $customParameters['recipient-variables'] ?? [] )
+        $connector->setVariables($customParameters['variables'] ?? [])
+                ->setOptions($customParameters['options'] ?? [])
+                ->setCustomHeaders($customParameters['headers'] ?? [])
+                ->setRecipientVariables($customParameters['recipient-variables'] ?? [])
                 ->setSendIn($customParameters['send-in'] ?? 0)
                 ->setAmpHtml($customParameters['amp-html'] ?? '')
                 ->setTemplate($customParameters['template'] ?? []);
@@ -92,12 +95,12 @@ class MailgunMailer implements Mailer
 
             // Send the payload
             $response = $connector->send($parameters);
-            if($response instanceof SendResponse) {
+            if ($response instanceof SendResponse) {
                 // get a message.id from the response
                 $message_id = $this->saveResponse($response);
                 // return the message_id
                 return $message_id;
-            } else if($response instanceof QueuedJobDescriptor) {
+            } elseif ($response instanceof QueuedJobDescriptor) {
                 // return job
                 return $response;
             } else {
@@ -114,7 +117,8 @@ class MailgunMailer implements Mailer
      * Returns a flattened array of values being recipients understandable to the Mailgun API
      * @return array
      */
-    public function processEmailDisplayName(array $data) {
+    public function processEmailDisplayName(array $data)
+    {
         $list = [];
         foreach ($data as $email => $displayName) {
             if (!empty($displayName)) {
@@ -132,7 +136,8 @@ class MailgunMailer implements Mailer
      * @param MessageConnector $connector the connector to the Mailgun PHP SDK client
      * @return array of parameters for the Mailgun API
      */
-    public function prepareParameters(Email $email, MessageConnector $connector) : array {
+    public function prepareParameters(Email $email, MessageConnector $connector): array
+    {
 
         /**
          * @var Swift_Message
@@ -164,7 +169,7 @@ class MailgunMailer implements Mailer
         $from = implode(",", $senders);
 
         // Assign custom parameters to the connector
-        if($email instanceof MailgunEmail) {
+        if ($email instanceof MailgunEmail) {
             $this->assignCustomParameters($email, $connector);
         }
 
@@ -174,7 +179,7 @@ class MailgunMailer implements Mailer
         // process headers
         $headers = $message->getHeaders();
         if ($headers instanceof Swift_Mime_SimpleHeaderSet) {
-            $headers = $this->prepareHeaders( $headers );
+            $headers = $this->prepareHeaders($headers);
         } else {
             // ensure empty array
             $headers = [];
@@ -195,16 +200,16 @@ class MailgunMailer implements Mailer
          */
         $plain = $email->findPlainPart();
         $plain_body = '';
-        if($plain) {
+        if ($plain) {
             $plain_body = $plain->getBody();
         }
 
         $parameters = array_merge($parameters, [
-                'from' => $from,
-                'to' => $to,
-                'subject' => $subject,
-                'text' => $plain_body,
-                'html' => $email->getBody()
+            'from' => $from,
+            'to' => $to,
+            'subject' => $subject,
+            'text' => $plain_body,
+            'html' => $email->getBody()
         ]);
 
         // HEADERS: these generic headers override anything passed in or added as a custom parameter
@@ -241,14 +246,15 @@ class MailgunMailer implements Mailer
      * Given {@link \SilverStripe\Control\Email\Email} configuration, apply relevant values
      * @param array $parameters
      */
-    public function assignDefaultParameters(&$parameters) {
+    public function assignDefaultParameters(&$parameters)
+    {
 
         // Override send all emails to
         $sendAllEmailsTo = Email::getSendAllEmailsTo();
-        if($sendAllEmailsTo) {
-            if(is_string($sendAllEmailsTo)) {
+        if ($sendAllEmailsTo) {
+            if (is_string($sendAllEmailsTo)) {
                 $parameters['to'] = $sendAllEmailsTo;
-            } else if(is_array($sendAllEmailsTo)) {
+            } elseif (is_array($sendAllEmailsTo)) {
                 $sendAllEmailsTo = $this->processEmailDisplayName($sendAllEmailsTo);
                 $parameters['to'] = implode(",", $sendAllEmailsTo);
             } else {
@@ -258,12 +264,12 @@ class MailgunMailer implements Mailer
 
         // Override from address, note always_from overrides this
         $sendAllEmailsFrom = Email::getSendAllEmailsFrom();
-        if($sendAllEmailsFrom) {
-            if(is_string($sendAllEmailsFrom)) {
+        if ($sendAllEmailsFrom) {
+            if (is_string($sendAllEmailsFrom)) {
                 $parameters['from'] = $sendAllEmailsFrom;
-            } else if(is_array($sendAllEmailsFrom)) {
+            } elseif (is_array($sendAllEmailsFrom)) {
                 $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
-                $parameters['from'] = implode(",",$sendAllEmailsFrom);
+                $parameters['from'] = implode(",", $sendAllEmailsFrom);
             } else {
                 throw new \Exception("Email::getSendAllEmailsFrom should be a string or array");
             }
@@ -271,19 +277,19 @@ class MailgunMailer implements Mailer
 
         // Add or set CC defaults
         $ccAllEmailsTo = Email::getCCAllEmailsTo();
-        if($ccAllEmailsTo) {
+        if ($ccAllEmailsTo) {
             $cc = '';
-            if(is_string($ccAllEmailsTo)) {
+            if (is_string($ccAllEmailsTo)) {
                 $cc = $ccAllEmailsTo;
-            } else if(is_array($ccAllEmailsTo)) {
+            } elseif (is_array($ccAllEmailsTo)) {
                 $ccAllEmailsTo = $this->processEmailDisplayName($ccAllEmailsTo);
                 $cc = implode(",", $ccAllEmailsTo);
             } else {
                 throw new \Exception("Email::getCCAllEmailsTo should be a string or array");
             }
 
-            if($cc) {
-                if(isset($parameters['cc'])) {
+            if ($cc) {
+                if (isset($parameters['cc'])) {
                     $parameters['cc'] .= "," . $cc;
                 } else {
                     $parameters['cc'] = $cc;
@@ -293,26 +299,25 @@ class MailgunMailer implements Mailer
 
         // Add or set BCC defaults
         $bccAllEmailsTo = Email::getBCCAllEmailsTo();
-        if($bccAllEmailsTo) {
+        if ($bccAllEmailsTo) {
             $bcc = '';
-            if(is_string($bccAllEmailsTo)) {
+            if (is_string($bccAllEmailsTo)) {
                 $bcc = $bccAllEmailsTo;
-            } else if(is_array($bccAllEmailsTo)) {
+            } elseif (is_array($bccAllEmailsTo)) {
                 $bccAllEmailsTo = $this->processEmailDisplayName($bccAllEmailsTo);
                 $bcc = implode(",", $bccAllEmailsTo);
             } else {
                 throw new \Exception("Email::getBCCAllEmailsTo should be a string or array");
             }
 
-            if($bcc) {
-                if(isset($parameters['bcc'])) {
+            if ($bcc) {
+                if (isset($parameters['bcc'])) {
                     $parameters['bcc'] .= "," . $bcc;
                 } else {
                     $parameters['bcc'] = $bcc;
                 }
             }
         }
-
     }
 
     /**
@@ -375,5 +380,4 @@ class MailgunMailer implements Mailer
         $message_id = MessageConnector::cleanMessageId($message_id);
         return $message_id;
     }
-
 }

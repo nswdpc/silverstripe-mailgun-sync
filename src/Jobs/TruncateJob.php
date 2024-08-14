@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
@@ -49,7 +50,7 @@ class TruncateJob extends AbstractQueuedJob
     public function process()
     {
         // Base date to check back for records in the past
-        if($this->days > 0) {
+        if ($this->days > 0) {
             // allow for parts of days to the nearest hour
             $hours = round($this->days * 24);
             $dt = new DateTime("now -{$hours}hour");
@@ -60,7 +61,7 @@ class TruncateJob extends AbstractQueuedJob
         $this->addMessage("Removing events created before {$dt_formatted}", "info");
         $events = MailgunEvent::get()->filter('Created:LessThan', $dt_formatted);
         $count = $events->count();
-        if($count > 0) {
+        if ($count > 0) {
             $events->removeAll();
             $this->addMessage("Removed {$count} events", "info");
         } else {

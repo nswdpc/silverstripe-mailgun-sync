@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Control\Email\Email;
@@ -13,8 +14,8 @@ use NSWDPC\Messaging\Mailgun\Connector\Message;
  * https://documentation.mailgun.com/en/latest/api-sending.html#sending
  * @author James
  */
-class MailgunEmail extends Email {
-
+class MailgunEmail extends Email
+{
     /**
      * Allow configuration via API
      */
@@ -40,8 +41,9 @@ class MailgunEmail extends Email {
      * @return \NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
-    public function getConnector() : Message {
-        $this->connector = Injector::inst()->get( Message::class );
+    public function getConnector(): Message
+    {
+        $this->connector = Injector::inst()->get(Message::class);
         return $this->connector;
     }
 
@@ -50,7 +52,8 @@ class MailgunEmail extends Email {
      * Custom parameters are retrievable once to avoid replaying them across
      * multiple messages
      */
-    public function getCustomParameters() : array {
+    public function getCustomParameters(): array
+    {
         $customParameters = $this->customParameters;
         $this->clearCustomParameters();
         return $customParameters;
@@ -60,7 +63,8 @@ class MailgunEmail extends Email {
      * Clear custom parameters
      * @return self
      */
-    public function clearCustomParameters() {
+    public function clearCustomParameters()
+    {
         $this->customParameters = [];
         return $this;
     }
@@ -69,9 +73,9 @@ class MailgunEmail extends Email {
      * Set custom parameters on the message connector
      * @return self
      */
-    public function setCustomParameters(array $args) {
+    public function setCustomParameters(array $args)
+    {
         $this->customParameters = $args;
         return $this;
     }
-
 }

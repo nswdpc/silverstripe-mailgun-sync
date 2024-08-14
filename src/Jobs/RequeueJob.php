@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
@@ -14,7 +15,6 @@ use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
  */
 class RequeueJob extends AbstractQueuedJob
 {
-
     public function getTitle()
     {
         return _t(
@@ -28,7 +28,6 @@ class RequeueJob extends AbstractQueuedJob
      */
     public function process()
     {
-
         $descriptors = QueuedJobDescriptor::get()
             ->filter([
                 'JobStatus' => QueuedJob::STATUS_BROKEN,
@@ -36,12 +35,11 @@ class RequeueJob extends AbstractQueuedJob
             ]);
         $count = $descriptors->count();
         $kick = $skip = 0;
-        if($count > 0) {
+        if ($count > 0) {
             $this->totalSteps = $count;
-            foreach($descriptors as $descriptor) {
-
+            foreach ($descriptors as $descriptor) {
                 $data = @unserialize($descriptor->SavedJobData);
-                if(empty($data->parameters)) {
+                if (empty($data->parameters)) {
                     // parameters cleared so pointless re-queuing
                     $skip++;
                     continue;
@@ -73,7 +71,6 @@ class RequeueJob extends AbstractQueuedJob
                 ),
                 "info"
             );
-
         } else {
             $this->addMessage(
                 _t(
@@ -85,6 +82,5 @@ class RequeueJob extends AbstractQueuedJob
         }
 
         $this->isComplete = true;
-
     }
 }

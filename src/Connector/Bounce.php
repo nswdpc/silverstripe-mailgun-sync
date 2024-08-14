@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
@@ -11,7 +12,6 @@ use SilverStripe\Control\Email\Email;
  */
 class Bounce extends Base
 {
-
     /**
      * Remove an address from the bounce suppression list
      */

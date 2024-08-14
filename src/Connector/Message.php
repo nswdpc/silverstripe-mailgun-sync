@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
@@ -21,7 +22,6 @@ use Exception;
  */
 class Message extends Base
 {
-
     /**
      * Delay sending (via queued job)
      * @var float
@@ -110,20 +110,20 @@ class Message extends Base
         $this->applyDefaultRecipient($parameters);
 
         // apply the webhook_filter_variable, if webhooks are enabled
-        if($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
+        if ($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
             $parameters["v:wfv"] = $variable;
         }
 
         // Send a message defined by the parameters provided
         return $this->sendMessage($parameters);
-
     }
 
     /**
      * Sends a message
      * @param array $parameters
      */
-    protected function sendMessage(array $parameters) {
+    protected function sendMessage(array $parameters)
+    {
 
         /**
          * @var \Mailgun\Mailgun
@@ -182,11 +182,11 @@ class Message extends Base
      * Returns a DateTime being when the queued job should be started after
      * @param string $in See:http://php.net/manual/en/datetime.formats.relative.php
      */
-    private function getSendDateTime($in) : ?\DateTime
+    private function getSendDateTime($in): ?\DateTime
     {
         try {
             $dt = $default = null;
-            if($in > 0) {
+            if ($in > 0) {
                 $dt = new \DateTime("now +{$in} seconds");
             }
         } catch (\Exception $e) {
@@ -205,11 +205,11 @@ class Message extends Base
     {
         $this->encodeAttachments($parameters);
         $startAfter = null;
-        if($start = $this->getSendDateTime($in)) {
+        if ($start = $this->getSendDateTime($in)) {
             $startAfter = $start->format('Y-m-d H:i:s');
         }
         $job  = new SendJob($domain, $parameters);
-        if($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
+        if ($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
             return QueuedJobDescriptor::get()->byId($job_id);
         }
         return false;
@@ -261,12 +261,14 @@ class Message extends Base
      * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
      * To set "deliverytime" set it as an option to setOptions()
      */
-    public function setSendIn(float $seconds) {
+    public function setSendIn(float $seconds)
+    {
         $this->send_in_seconds = $seconds;
         return $this;
     }
 
-    public function getSendIn() {
+    public function getSendIn()
+    {
         return $this->send_in_seconds;
     }
 
@@ -275,7 +277,8 @@ class Message extends Base
      *              and value is a dictionary with variables
      *              that can be referenced in the message body.
      */
-    public function setRecipientVariables(array $recipient_variables) {
+    public function setRecipientVariables(array $recipient_variables)
+    {
         $this->recipient_variables = $recipient_variables;
         return $this;
     }
@@ -283,21 +286,25 @@ class Message extends Base
     /**
      * @returns string|null
      */
-    public function getRecipientVariables() {
+    public function getRecipientVariables()
+    {
         return $this->recipient_variables;
     }
 
-    public function setAmpHtml(string $html) {
+    public function setAmpHtml(string $html)
+    {
         $this->amp_html = $html;
         return $this;
     }
 
-    public function getAmpHtml() {
+    public function getAmpHtml()
+    {
         return $this->amp_html;
     }
 
-    public function setTemplate($template, $version = "", $include_in_text = "") {
-        if($template) {
+    public function setTemplate($template, $version = "", $include_in_text = "")
+    {
+        if ($template) {
             $this->template = [
                 'template' => $template,
                 'version' => $version,
@@ -307,43 +314,50 @@ class Message extends Base
         return $this;
     }
 
-    public function getTemplate() {
+    public function getTemplate()
+    {
         return $this->template;
     }
 
     /**
      * Keys are not prefixed with "o:"
      */
-    public function setOptions(array $options) {
+    public function setOptions(array $options)
+    {
         $this->options = $options;
         return $this;
     }
 
-    public function getOptions() {
+    public function getOptions()
+    {
         return $this->options;
     }
 
     /**
      * Keys are not prefixed with "h:"
      */
-    public function setCustomHeaders(array $headers) {
+    public function setCustomHeaders(array $headers)
+    {
         $this->headers = $headers;
         return $this;
     }
 
-    public function getCustomHeaders() {
+    public function getCustomHeaders()
+    {
         return $this->headers;
     }
 
     /**
      * Keys are not prefixed with "v:"
      */
-    public function setVariables(array $variables) {
+    public function setVariables(array $variables)
+    {
         $this->variables = $variables;
         return $this;
     }
 
-    public function getVariables() {
+    public function getVariables()
+    {
         return $this->variables;
     }
 
@@ -356,44 +370,42 @@ class Message extends Base
 
         // VARIABLES
         $variables = $this->getVariables();
-        foreach($variables as $k=>$v) {
+        foreach ($variables as $k=>$v) {
             $parameters["v:{$k}"] = $v;
         }
 
         // OPTIONS
         $options = $this->getOptions();
-        foreach($options as $k=>$v) {
+        foreach ($options as $k=>$v) {
             $parameters["o:{$k}"] = $v;
         }
 
         // TEMPLATE
         $template = $this->getTemplate();
-        if(!empty($template['template'])) {
+        if (!empty($template['template'])) {
             $parameters["template"] = $template['template'];
-            if(!empty($template['version'])) {
+            if (!empty($template['version'])) {
                 $parameters["t:version"] = $template['version'];
             }
-            if(isset($template['text']) && $template['text'] == "yes") {
+            if (isset($template['text']) && $template['text'] == "yes") {
                 $parameters["t:text"] = $template['text'];
             }
         }
 
         // AMP HTML handling
-        if($amp_html = $this->getAmpHtml()) {
+        if ($amp_html = $this->getAmpHtml()) {
             $parameters["amp-html"] = $amp_html;
         }
 
         // HEADERS
         $headers = $this->getCustomHeaders();
-        foreach($headers as $k=>$v) {
+        foreach ($headers as $k=>$v) {
             $parameters["h:{$k}"] = $v;
         }
 
         // RECIPIENT VARIABLES
-        if($recipient_variables = $this->getRecipientVariables()) {
+        if ($recipient_variables = $this->getRecipientVariables()) {
             $parameters["recipient-variables"] = json_encode($recipient_variables);
         }
-
     }
-
 }
