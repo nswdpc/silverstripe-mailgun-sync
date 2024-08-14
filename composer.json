@@ -63,5 +63,7 @@
             "silverstripe/recipe-plugin": true,
             "phpstan/extension-installer": true
         }
-    }
+    },
+    "prefer-stable": true,
+    "minimum-stability": "dev"
 }
