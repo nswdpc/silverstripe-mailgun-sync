@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Control\Email\Email;
@@ -16,7 +17,8 @@ use NSWDPC\StructuredEmail\EmailWithCustomParameters;
  * https://documentation.mailgun.com/en/latest/api-sending.html#sending
  * @author James
  */
-class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
+class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
+{
 
     /**
      * Allow configuration via API
@@ -41,11 +43,11 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
 
     /**
      * Retrieve the connector instance
-     * @return \NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
-    public function getConnector() : Message {
-        $this->connector = Injector::inst()->get( Message::class );
+    public function getConnector(): Message
+    {
+        $this->connector = Injector::inst()->get(Message::class);
         return $this->connector;
     }
 
@@ -57,5 +59,4 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters {
         $this->setTaggableNotificationTags( $tags );
         return $this;
     }
-
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use Mailgun\Mailgun;
@@ -11,16 +12,15 @@ use NSWDPC\Messaging\Mailgun\Connector\Message;
  */
 class TestMessage extends Message
 {
+    /**
+     * @var string
+     */
+    public const MSG_ID = 'TESTONLY';
 
     /**
      * @var string
      */
-    const MSG_ID = 'TESTONLY';
-
-    /**
-     * @var string
-     */
-    const MSG_MESSAGE = 'This was handled as a test';
+    public const MSG_MESSAGE = 'This was handled as a test';
 
     /**
      * @var string
@@ -39,10 +39,9 @@ class TestMessage extends Message
 
     /**
      * Sends a message
-     * @param array $parameters
      */
-    protected function sendMessage(array $parameters) {
-
+    protected function sendMessage(array $parameters)
+    {
         self::$sendData = [];
 
         // Test API domain
@@ -65,6 +64,7 @@ class TestMessage extends Message
                     $response = $this->queueAndSend($domain, $parameters, $in);
                     break;
                 }
+                // no break
             case 'no':
             default:
                 $this->sentVia = 'direct-to-api';
@@ -88,15 +88,16 @@ class TestMessage extends Message
     /**
      * Set data that would be used
      */
-    public function setSendData(array $data) {
+    public function setSendData(array $data)
+    {
         self::$sendData = $data;
     }
 
     /**
      * Get data that would be used
      */
-    public static function getSendData() : array {
+    public static function getSendData(): array
+    {
         return self::$sendData;
     }
-
 }

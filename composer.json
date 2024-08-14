@@ -35,6 +35,12 @@
             ]
         }
     },
+    "repositories": [
+        {
+        "type": "git",
+        "url": "https://github.com/nswdpc/ci-files.git"
+        }
+    ],
     "require": {
         "symbiote/silverstripe-queuedjobs": "^4.9",
         "mailgun/mailgun-php": "^3",
@@ -44,7 +50,18 @@
         "nswdpc/silverstripe-structured-email": "^0.2"
     },
     "require-dev": {
+        "cambis/silverstripe-rector": "^0.5.1",
         "phpunit/phpunit": "^9.5",
-        "friendsofphp/php-cs-fixer": "^3"
+        "syntro/silverstripe-phpstan": "^1",
+        "nswdpc/ci-files": "dev-v-1"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "php-http/discovery": true,
+            "silverstripe/vendor-plugin": true,
+            "silverstripe/recipe-plugin": true,
+            "phpstan/extension-installer": true
+        }
     }
 }
