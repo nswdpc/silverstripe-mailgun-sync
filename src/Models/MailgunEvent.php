@@ -30,7 +30,8 @@ use Exception;
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
-    private static string $default_sort = "Timestamp DESC";// try to sort by most recent event first
+    private static string $default_sort = "Timestamp DESC";
+    // try to sort by most recent event first
     private static string $singular_name = "Event";
 
     private static string $plural_name = "Events";
@@ -195,6 +196,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         if ($this->Timestamp == 0) {
             return null;
         }
+
         return time() - $this->Timestamp;
     }
 
@@ -283,18 +285,16 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * UTC date/time based on Timestamp of this event
-     * @return string
      */
-    public function UTCDateTime()
+    public function UTCDateTime(): string
     {
         return $this->RecordDateTime("UTC");
     }
 
     /**
      * Local date/time based on Timestamp of this event
-     * @return string
      */
-    public function LocalDateTime()
+    public function LocalDateTime(): string
     {
         return $this->RecordDateTime("Australia/Sydney");
     }
@@ -330,7 +330,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * @deprecated use IsFailed() in order to match API event naming
      */
-    public function IsFailure()
+    public function IsFailure(): bool
     {
         return $this->IsFailed();
     }
@@ -366,9 +366,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Helper method to create a UTC Date from a timestamp
-     * @return string
      */
-    private function CreateUTCDate($timestamp)
+    private function CreateUTCDate($timestamp): string
     {
         return $this->CreateUTCDateTime($timestamp, "Y-m-d");
     }
@@ -376,7 +375,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Helper method to create a UTC DateTime from a timestamp
      */
-    private function CreateUTCDateTime($timestamp, $format = "Y-m-d H:i:s"): string
+    private function CreateUTCDateTime($timestamp, string $format = "Y-m-d H:i:s"): string
     {
         $dt = new DateTime();
         $dt->setTimestamp($timestamp);

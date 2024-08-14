@@ -37,6 +37,7 @@ class MailgunSyncTest extends SapphireTest
 
     // In your sandbox domains settings, set the To address to an address you can authorise
     private static string $to_address = "test@example.com";
+
     // an email address
     private static string $to_name = "Test Tester";// optional the recipient name
     // Ditto if testing cc
@@ -92,7 +93,7 @@ class MailgunSyncTest extends SapphireTest
         $value = 'API_ENDPOINT_EU';
         Config::modify()->set(Base::class, 'api_endpoint_region', $value);
         $connector = MessageConnector::create();
-        $domains = $connector->getClient();
+        $connector->getClient();
         // assert that the expected URL value is what was set on the client
         $this->assertEquals(constant(Base::class . "::{$value}"), $connector->getApiEndpointRegion());
 

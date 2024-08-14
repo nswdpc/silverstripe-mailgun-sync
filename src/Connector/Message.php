@@ -150,6 +150,7 @@ class Message extends Base
             default:
                 return $client->messages()->send($domain, $parameters);
         }
+        return null;
     }
 
     /**
@@ -193,7 +194,7 @@ class Message extends Base
         } catch (\Exception) {
         }
 
-        return $dt ?: $default;
+        return $dt instanceof \DateTime ? $dt : $default;
     }
 
     /**
@@ -222,7 +223,7 @@ class Message extends Base
     /**
      * Lookup all events for the submission linked to this event
      */
-    public function isDelivered(MailgunEvent $event, $cleanup = true)
+    public function isDelivered(MailgunEvent $event, $cleanup = true): bool
     {
 
         // Query will be for this MessageId and a delivered status
@@ -243,7 +244,7 @@ class Message extends Base
         ];
 
         $events = $connector->pollEvents($begin, $event_filter, $extra_params);
-        return !empty($events);
+        return $events !== [];
     }
 
     /**

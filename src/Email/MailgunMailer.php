@@ -143,6 +143,7 @@ class MailgunMailer implements Mailer
         if (!$message instanceof Swift_Message) {
             throw new InvalidRequestException("There is no message associated with this request");
         }
+
         $recipients = [];
         $senders = [];
 
@@ -370,7 +371,7 @@ class MailgunMailer implements Mailer
             private 'id' => string '<message-id.mailgun.org>' (length=92)
             private 'message' => string 'Queued. Thank you.' (length=18)
     */
-    final protected function saveResponse($message)
+    final protected function saveResponse($message): string
     {
         $message_id = $message->getId();
         return MessageConnector::cleanMessageId($message_id);
