@@ -408,6 +408,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * GetByMessageDetails - retrieve an event based on the message/timestamp/recipient/event type
+     * @deprecated
+     * @phpstan-ignore method.unused
      */
     private static function GetByMessageDetails($message_id, $timestamp, $recipient, $event_type)
     {
@@ -423,8 +425,10 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Return message header from the  {@link Mailgun\Model\Event\Event}
+     * @deprecated
      * @return string
      * @param string $header the header to retrieve
+     * @phpstan-ignore method.unused
      */
     private function getMessageHeader(MailgunEventModel $event, $header)
     {

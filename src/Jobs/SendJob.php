@@ -73,6 +73,7 @@ class SendJob extends AbstractQueuedJob
      * Create the job
      * @param string $domain DEPRECATED
      * @param array $parameters for Mailgun API
+     * @phpstan-ignore constructor.unusedParameter
      */
     public function __construct($domain = "", $parameters = [])
     {

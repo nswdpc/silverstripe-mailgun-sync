@@ -158,6 +158,8 @@ class MailgunSyncTest extends SapphireTest
 
         $email = Email::create();
 
+        $this->assertInstanceOf(MailgunEmail::class, $email);
+
         $email->setFrom($from);
         $email->setTo($to);
         $email->setCc(["cc@example.com" => "Cc Person"]);
@@ -170,6 +172,7 @@ class MailgunSyncTest extends SapphireTest
         $email->setBody( $htmlBody );
 
         $customParameters = $this->getCustomParameters($to_address, $send_in);
+        /** @var \NSWDPC\Messaging\Mailgun\MailgunEmail $email */
         $email->setCustomParameters($customParameters);
 
         // send the email, returns a message_id if delivered

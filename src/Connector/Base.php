@@ -82,7 +82,7 @@ abstract class Base
 
     /**
      * This is populated in client() and allows tests to check the current API endpoint set
-     * @var bool
+     * @var string
      */
     private $api_endpoint_url = '';
 

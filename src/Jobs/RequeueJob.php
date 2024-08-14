@@ -55,7 +55,7 @@ class RequeueJob extends AbstractQueuedJob
                 $descriptor->JobStatus = QueuedJob::STATUS_NEW;
                 $descriptor->StepsProcessed = 0;
                 $descriptor->LastProcessedCount = -1;
-                $descriptor->Worker = null;// clear otherwise job is considered locked
+                $descriptor->Worker = '';// clear otherwise job is considered locked
                 $descriptor->write();
 
                 $kick++;

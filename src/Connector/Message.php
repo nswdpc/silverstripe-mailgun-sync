@@ -140,18 +140,15 @@ class Message extends Base
         switch ($send_via_job) {
             case 'yes':
                 return $this->queueAndSend($domain, $parameters, $in);
-                break;
             case 'when-attachments':
                 if (!empty($parameters['attachment'])) {
                     return $this->queueAndSend($domain, $parameters, $in);
-                    break;
                 }
                 // fallback to direct
                 // no break
             case 'no':
             default:
                 return $client->messages()->send($domain, $parameters);
-                break;
         }
     }
 
