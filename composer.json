@@ -52,7 +52,7 @@
         "cambis/silverstripe-rector": "^0.5.1",
         "phpunit/phpunit": "^9.5",
         "syntro/silverstripe-phpstan": "^1",
-        "nswdpc/ci-files": "^1"
+        "nswdpc/ci-files": "dev-v-1"
     },
     "config": {
         "allow-plugins": {
