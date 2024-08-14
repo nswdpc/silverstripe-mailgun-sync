@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Controllers;
 
 use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Security\Member;

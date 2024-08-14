@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Email;
 
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Core\Config\Configurable;
@@ -57,5 +57,21 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
     {
         $this->setTaggableNotificationTags($tags);
         return $this;
+    }
+
+    /**
+     * Set a mailgun response from a send attempt
+     */
+    public function setMailgunResponse(mixed $response): static {
+        $this->lastResponse = $response;
+    }
+
+    /**
+     * Return the last mailgun response, and clear it at the same time
+     */
+    public function getMailgunResponse(): mixed {
+        $response = $this->lastResponse;
+        $this->lastResponse = null;
+        return $response;
     }
 }

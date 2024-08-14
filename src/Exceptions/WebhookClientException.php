@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Exceptions;
 
 /**
  * When Mailgun sends a faulty webhook request, this is thrown

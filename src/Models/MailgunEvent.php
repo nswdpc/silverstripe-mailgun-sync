@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Models;
 
 use Mailgun\Mailgun;
 use SilverStripe\ORM\DataObject;

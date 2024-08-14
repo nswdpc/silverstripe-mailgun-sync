@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Email;
 
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
@@ -19,12 +19,16 @@ use Swift_Message;
 use Swift_MimePart;
 use Swift_Attachment;
 use Swift_Mime_SimpleHeaderSet;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mime\RawMessage;
 
 /**
- * Mailgun Mailer, called via $email->send();
- * See: https://docs.silverstripe.org/en/4/developer_guides/email/ for Email documentation.
+ * Mailgun mailer interface
+ * Sends emails with various options via the Mailgun HTTP API
  */
-class MailgunMailer implements Mailer
+class MailgunMailer implements MailerInterface
 {
     /**
      * Allow configuration via API
@@ -96,10 +100,13 @@ class MailgunMailer implements Mailer
     }
 
     /**
+     * Given an Email
+     * Framework requirement: "symfony/mailer": "^6.1",
+     * \SilverStripe\Control\Email\Email extends \Symfony\Component\Mime\Email which extends \Symfony\Component\Mime\Message \Symfony\Component\Mime\RawMessage
+     * Note that the $email parameter is not restricted to MailgunEmail to allow other Email implementations
      * @param Email $email
-     * @return mixed
      */
-    public function send($email)
+    public function send(Email $email, ?Envelope $envelope = null): void
     {
         try {
 
@@ -113,20 +120,16 @@ class MailgunMailer implements Mailer
             $response = $connector->send($parameters);
             if ($response instanceof SendResponse) {
                 // get a message.id from the response
-                $message_id = $this->saveResponse($response);
-                // return the message_id
-                return $message_id;
+                $email->setMailgunResponse($this->saveResponse($response));
             } elseif ($response instanceof QueuedJobDescriptor) {
                 // return job
-                return $response;
+                $email->setMailgunResponse($response);
             } else {
                 throw new \Exception("Tried to send, expected a SendResponse or a QueuedJobDescriptor but got type=" . gettype($response));
             }
         } catch (\Exception $exception) {
             Log::log('Mailgun-Sync / Mailgun error: ' . $exception->getMessage(), \Psr\Log\LogLevel::NOTICE);
         }
-
-        return false;
     }
 
     /**
@@ -381,7 +384,7 @@ class MailgunMailer implements Mailer
             private 'id' => string '<message-id.mailgun.org>' (length=92)
             private 'message' => string 'Queued. Thank you.' (length=18)
     */
-    final protected function saveResponse($message): string
+    final protected function saveResponse(SendResponse $message): string
     {
         $message_id = $message->getId();
         return MessageConnector::cleanMessageId($message_id);
