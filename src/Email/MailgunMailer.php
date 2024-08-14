@@ -26,7 +26,6 @@ use Swift_Mime_SimpleHeaderSet;
  */
 class MailgunMailer implements Mailer
 {
-
     /**
      * Allow configuration via API
      */
@@ -68,7 +67,8 @@ class MailgunMailer implements Mailer
      * @param EmailWithCustomParameters $email
      * @param MessageConnector $connector instance for this send attempt
      */
-    protected function assignCustomParameters(EmailWithCustomParameters &$email, MessageConnector &$connector) : MessageConnector {
+    protected function assignCustomParameters(EmailWithCustomParameters &$email, MessageConnector &$connector): MessageConnector
+    {
         $customParameters = $email->getCustomParameters();
         $email->clearCustomParameters();
         $connector->setVariables($customParameters['variables'] ?? [])
@@ -88,15 +88,16 @@ class MailgunMailer implements Mailer
      * @param MessageConnector connector instance for this send attempt
      * @return MessageConnector
      */
-    protected function assignNotificationTags(TaggableEmail &$email, MessageConnector &$connector) : MessageConnector {
+    protected function assignNotificationTags(TaggableEmail &$email, MessageConnector &$connector): MessageConnector
+    {
         $tags = $email->getNotificationTags();
-        if(empty($tags)) {
+        if (empty($tags)) {
             return $connector;
         }
 
         // Tags are assigned via custom parameters / option
         $customParameters = $email->getCustomParameters();
-        if(empty($customParameters['options'])) {
+        if (empty($customParameters['options'])) {
             $customParameters['options'] = [];
         }
         // 'tag' translates to 'o:tag'
@@ -158,7 +159,8 @@ class MailgunMailer implements Mailer
      * @param Email $email
      * @return array of parameters for the Mailgun API
      */
-    public function prepareParameters(Email $email, MessageConnector $connector) : array {
+    public function prepareParameters(Email $email, MessageConnector $connector): array
+    {
         /**
          * @var Swift_Message
          */
@@ -184,7 +186,7 @@ class MailgunMailer implements Mailer
         }
 
         // If the email supports custom parameters
-        if($email instanceof EmailWithCustomParameters) {
+        if ($email instanceof EmailWithCustomParameters) {
             $this->assignCustomParameters($email, $connector);
         }
 

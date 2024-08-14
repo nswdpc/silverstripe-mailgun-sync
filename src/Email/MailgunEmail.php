@@ -19,7 +19,6 @@ use NSWDPC\StructuredEmail\EmailWithCustomParameters;
  */
 class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
 {
-
     /**
      * Allow configuration via API
      */
@@ -55,8 +54,9 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
      * Set tags as options on the Mailgun API
      * @return self
      */
-    public function setNotificationTags(array $tags) {
-        $this->setTaggableNotificationTags( $tags );
+    public function setNotificationTags(array $tags)
+    {
+        $this->setTaggableNotificationTags($tags);
         return $this;
     }
 }

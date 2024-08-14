@@ -180,7 +180,7 @@ class Message extends Base
     {
         try {
             $dt = $default = null;
-            if((is_int($in) || is_float($in)) && $in > 0) {
+            if ((is_int($in) || is_float($in)) && $in > 0) {
                 $dt = new \DateTime("now +{$in} seconds");
             }
         } catch (\Exception) {
@@ -253,7 +253,8 @@ class Message extends Base
      * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
      * To set "deliverytime" set it as an option to setOptions()
      */
-    public function setSendIn(int $seconds) {
+    public function setSendIn(int $seconds)
+    {
         $this->send_in_seconds = $seconds;
         return $this;
     }

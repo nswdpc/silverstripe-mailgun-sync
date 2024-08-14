@@ -26,7 +26,6 @@ use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
  */
 class MailgunSyncTest extends SapphireTest
 {
-
     protected $usesDatabase = false;
 
     protected $test_api_key = 'the_api_key';
@@ -48,7 +47,6 @@ class MailgunSyncTest extends SapphireTest
 
     public function setUp(): void
     {
-
         parent::setUp();
         // Avoid using TestMailer for this test
         Injector::inst()->registerService(new MailgunMailer(), Mailer::class);
@@ -143,7 +141,6 @@ class MailgunSyncTest extends SapphireTest
      */
     public function testMailerDelivery($subject = "test_mailer_delivery", $send_in = 0): array
     {
-
         $to_address = $this->to_address;
         $to_name = $this->to_name;
         $this->assertNotEmpty($to_address);
@@ -172,7 +169,7 @@ class MailgunSyncTest extends SapphireTest
             $email->setCc($cc);
         }
         $htmlBody = $this->test_body;
-        $email->setBody( $htmlBody );
+        $email->setBody($htmlBody);
 
         $customParameters = $this->getCustomParameters($to_address, $send_in);
         /** @var \NSWDPC\Messaging\Mailgun\MailgunEmail $email */
@@ -414,8 +411,8 @@ class MailgunSyncTest extends SapphireTest
     /**
      * Test that tags can be set via Taggable
      */
-    public function testTaggableEmail() {
-
+    public function testTaggableEmail()
+    {
         $limit = 3;
 
         Config::inst()->update(ProjectTags::class, 'tag', '');
@@ -451,7 +448,7 @@ class MailgunSyncTest extends SapphireTest
         $email->setNotificationTags($tags);
 
         $tags = $email->getNotificationTags();
-        $this->assertEquals( $limit, count($tags) );
+        $this->assertEquals($limit, count($tags));
 
         // Send message
         $response = $email->send();
@@ -463,12 +460,12 @@ class MailgunSyncTest extends SapphireTest
         $this->arrayHasKey('parameters', $sendData);
 
         $this->arrayHasKey('o:tag', $sendData['parameters']);
-        $this->assertEquals( $tags, $sendData['parameters']['o:tag']);
+        $this->assertEquals($tags, $sendData['parameters']['o:tag']);
 
         $tooManyTags = ['tagheader1','tagheader2','tagheader3', 'tagheader4'];
         $expectedTags = ['tagheader1','tagheader2','tagheader3'];
         $email->setNotificationTags($tooManyTags);
-        $this->assertEquals( $expectedTags, $email->getNotificationTags());
+        $this->assertEquals($expectedTags, $email->getNotificationTags());
 
         // Send message again ...
         $response = $email->send();
@@ -481,7 +478,6 @@ class MailgunSyncTest extends SapphireTest
 
         $this->arrayHasKey('o:tag', $sendData['parameters']);
         $this->assertEquals($expectedTags, $sendData['parameters']['o:tag']);
-
     }
 
     /**
@@ -546,7 +542,8 @@ class MailgunSyncTest extends SapphireTest
     /**
      * test a message with attachments
      */
-    public function testAttachmentDelivery() {
+    public function testAttachmentDelivery()
+    {
         $to_address = $this->to_address;
         $to_name = $this->to_name;
         $this->assertNotEmpty($to_address);
@@ -570,7 +567,7 @@ class MailgunSyncTest extends SapphireTest
         $email->setTo($to);
         $email->setSubject($subject);
         $htmlBody = $this->test_body;
-        $email->setBody( $htmlBody );
+        $email->setBody($htmlBody);
 
         $files = [
             "test_attachment.pdf" => 'application/pdf',
