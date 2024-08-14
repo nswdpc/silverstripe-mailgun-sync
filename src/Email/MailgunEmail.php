@@ -35,7 +35,7 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
     use CustomParameters;
 
     /**
-     * @var NSWDPC\Messaging\Mailgun\Connector\Message|null
+     * @var \NSWDPC\Messaging\Mailgun\Connector\Message|null
      * @deprecated
      */
     private $connector = null;
@@ -52,9 +52,8 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
 
     /**
      * Set tags as options on the Mailgun API
-     * @return self
      */
-    public function setNotificationTags(array $tags)
+    public function setNotificationTags(array $tags): static
     {
         $this->setTaggableNotificationTags($tags);
         return $this;
