@@ -106,7 +106,7 @@ class MailgunMailer implements MailerInterface
      * Note that the $email parameter is not restricted to MailgunEmail to allow other Email implementations
      * @param Email $email
      */
-    public function send(Email $email, ?Envelope $envelope = null): void
+    public function send(RawMessage $email, ?Envelope $envelope = null): void
     {
         try {
 
