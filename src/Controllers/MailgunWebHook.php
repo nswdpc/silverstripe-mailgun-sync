@@ -2,6 +2,11 @@
 
 namespace NSWDPC\Messaging\Mailgun\Controllers;
 
+use NSWDPC\Messaging\Mailgun\Exceptions\WebhookClientException;
+use NSWDPC\Messaging\Mailgun\Exceptions\WebhookServerException;
+use NSWDPC\Messaging\Mailgun\Exceptions\WebhookNotAcceptableException;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
@@ -45,7 +50,7 @@ class MailgunWebHook extends Controller
      */
     protected function serverError($status_code = 503, $message = "")
     {
-        Log::log($message, \Psr\Log\LogLevel::NOTICE);
+        Logger::log($message, \Psr\Log\LogLevel::NOTICE);
         $response = HTTPResponse::create($this->getResponseBody(false), $status_code);
         $response->addHeader('Content-Type', 'application/json');
         return $response;
@@ -56,7 +61,7 @@ class MailgunWebHook extends Controller
      */
     protected function clientError($status_code  = 400, $message = "")
     {
-        Log::log($message, \Psr\Log\LogLevel::NOTICE);
+        Logger::log($message, \Psr\Log\LogLevel::NOTICE);
         $response = HTTPResponse::create($this->getResponseBody(false), $status_code);
         $response->addHeader('Content-Type', 'application/json');
         return $response;

@@ -4,21 +4,21 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
-use NSWDPC\Messaging\Mailgun\SendJob;
+use NSWDPC\Messaging\Mailgun\Jobs\SendJob;
 use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Control\Email\Mailer;
 use SilverStripe\Control\Email\Email;
-use NSWDPC\Messaging\Mailgun\MailgunMailer;
-use NSWDPC\Messaging\Mailgun\MailgunEmail;
+use NSWDPC\Messaging\Mailgun\Email\MailgunMailer;
+use NSWDPC\Messaging\Mailgun\Email\MailgunEmail;
 use NSWDPC\Messaging\Taggable\ProjectTags;
 use SilverStripe\Assets\File;
 use SilverStripe\Assets\Folder;
 use Exception;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
+use Symfony\Component\Mailer\MailerInterface;
 
 /**
  * Tests for mailgun-sync, see README.md for more
@@ -54,7 +54,7 @@ class MailgunSyncTest extends SapphireTest
     {
         parent::setUp();
         // Avoid using TestMailer for this test
-        Injector::inst()->registerService(new MailgunMailer(), Mailer::class);
+        Injector::inst()->registerService(new MailgunMailer(), MailerInterface::class);
         // use MailgunEmail
         Injector::inst()->registerService(MailgunEmail::create(), Email::class);
 
@@ -178,12 +178,12 @@ class MailgunSyncTest extends SapphireTest
         $email->setBody($htmlBody);
 
         $customParameters = $this->getCustomParameters($to_address, $send_in);
-        /** @var \NSWDPC\Messaging\Mailgun\MailgunEmail $email */
+        /** @var \NSWDPC\Messaging\Mailgun\Email\MailgunEmail $email */
         $email->setCustomParameters($customParameters);
 
         // send the email, returns a message_id if delivered
-
-        $response = $email->send();
+        $email->send();
+        $response = null;
         if (Config::inst()->get(Base::class, 'send_via_job') == 'no') {
             $this->assertEquals($response, TestMessage::MSG_ID);
         } else {
@@ -345,7 +345,8 @@ class MailgunSyncTest extends SapphireTest
         $email->setTo($to);
         $email->setSubject($subject);
 
-        $response = $email->send();
+        $email->send();
+        $response = null;
 
         $this->assertEquals(TestMessage::MSG_ID, $response);
 
@@ -460,7 +461,8 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals($limit, count($tags));
 
         // Send message
-        $response = $email->send();
+        $email->send();
+        $response = null;
 
         $this->assertEquals(TestMessage::MSG_ID, $response);
 
@@ -477,7 +479,8 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals($expectedTags, $email->getNotificationTags());
 
         // Send message again ...
-        $response = $email->send();
+        $email->send();
+        $response = null;
 
         $this->assertEquals(TestMessage::MSG_ID, $response);
 
@@ -527,7 +530,8 @@ class MailgunSyncTest extends SapphireTest
         $email->setBcc(['bcctest1@example.com' => 'bcctest 1', 'bcctest2@example.com' => 'bcctest 2']);
         $email->setSubject("Email with default configuration set");
 
-        $response = $email->send();
+        $email->send();
+        $response = null;
 
         $this->assertEquals(TestMessage::MSG_ID, $response);
 

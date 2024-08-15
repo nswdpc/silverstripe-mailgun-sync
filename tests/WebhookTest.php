@@ -4,7 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Webhook;
-use NSWDPC\Messaging\Mailgun\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Config\Config;
 

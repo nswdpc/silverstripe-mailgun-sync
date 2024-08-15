@@ -3,13 +3,12 @@
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\Messaging\Mailgun\Log;
-use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
 use Mailgun\Model\Message\SendResponse;
 use Mailgun\Model\Message\ShowResponse;
-use NSWDPC\Messaging\Mailgun\SendJob;
-use NSWDPC\Messaging\Mailgun\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\MailgunMimeFile;
+use NSWDPC\Messaging\Mailgun\Jobs\SendJob;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
+use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
 use SilverStripe\Assets\Folder;
 use SilverStripe\Assets\File;
 use SilverStripe\Security\Group;

@@ -4,6 +4,9 @@ namespace NSWDPC\Messaging\Mailgun\Email;
 
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Exceptions\InvalidRequestException;
+use NSWDPC\Messaging\Mailgun\Models\MailgunResponse;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
 use NSWDPC\StructuredEmail\EmailWithCustomParameters;
 use SilverStripe\Control\Email\Mailer;
@@ -25,10 +28,11 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\RawMessage;
 
 /**
- * Mailgun mailer interface
+ * Mailgun mailer
  * Sends emails with various options via the Mailgun HTTP API
+ * This is called from the MailgunSyncApiTransport
  */
-class MailgunMailer implements MailerInterface
+class MailgunMailer
 {
     /**
      * Allow configuration via API
@@ -36,18 +40,18 @@ class MailgunMailer implements MailerInterface
     use Configurable;
 
     /**
-     * Injector
+     * Injector::inst()->create(MailgunMailer::class)
      */
     use Injectable;
 
-    // configured in project
+    /**
+     * Configured in project, if required
+     * When set ALL emails will sent from this address
+     */
     private static string $always_from = "";
 
-    // or set via Injector
-    public $alwaysFrom;// when set, override From address, applying From provided to Reply-To header, set original "From" as "Sender" header
-
     /**
-     * @var array An array of headers that Swift produces and Mailgun probably doesn't need
+     * @var array An array of headers that Mailgun probably doesn't need
      */
     private static array $denylist_headers = [
         'Content-Type',
@@ -56,14 +60,12 @@ class MailgunMailer implements MailerInterface
         'Message-ID',
     ];
 
-    public function getAlwaysFrom()
+    /**
+     * Return the always from value
+     */
+    public function getAlwaysFrom(): string
     {
-        $always_from = $this->config()->get('always_from');
-        if (!$always_from && $this->alwaysFrom) {
-            $always_from = $this->alwaysFrom;
-        }
-
-        return $always_from;
+        return $this->config()->get('always_from');
     }
 
     /**
@@ -100,13 +102,11 @@ class MailgunMailer implements MailerInterface
     }
 
     /**
-     * Given an Email
-     * Framework requirement: "symfony/mailer": "^6.1",
-     * \SilverStripe\Control\Email\Email extends \Symfony\Component\Mime\Email which extends \Symfony\Component\Mime\Message \Symfony\Component\Mime\RawMessage
-     * Note that the $email parameter is not restricted to MailgunEmail to allow other Email implementations
-     * @param Email $email
+     * Send the message via the Mailgun API
+     * @param \Symfony\Component\Mime\Email $email the original email
+     * @param \Symfony\Component\Mime\Envelope|null $envelope the email envelope
      */
-    public function send(RawMessage $email, ?Envelope $envelope = null): void
+    public function send(\Symfony\Component\Mime\Email $email, ?Envelope $envelope = null): string|QueuedJobDescriptor
     {
         try {
 
@@ -120,15 +120,15 @@ class MailgunMailer implements MailerInterface
             $response = $connector->send($parameters);
             if ($response instanceof SendResponse) {
                 // get a message.id from the response
-                $email->setMailgunResponse($this->saveResponse($response));
+                return $this->saveResponse($response);
             } elseif ($response instanceof QueuedJobDescriptor) {
                 // return job
-                $email->setMailgunResponse($response);
+                return $response;
             } else {
                 throw new \Exception("Tried to send, expected a SendResponse or a QueuedJobDescriptor but got type=" . gettype($response));
             }
         } catch (\Exception $exception) {
-            Log::log('Mailgun-Sync / Mailgun error: ' . $exception->getMessage(), \Psr\Log\LogLevel::NOTICE);
+            Logger::log('Mailgun-Sync / Mailgun error: ' . $exception->getMessage(), \Psr\Log\LogLevel::NOTICE);
         }
     }
 
@@ -257,43 +257,23 @@ class MailgunMailer implements MailerInterface
 
         // Override send all emails to
         $sendAllEmailsTo = Email::getSendAllEmailsTo();
-        if ($sendAllEmailsTo) {
-            if (is_string($sendAllEmailsTo)) {
-                $parameters['to'] = $sendAllEmailsTo;
-            } elseif (is_array($sendAllEmailsTo)) {
-                $sendAllEmailsTo = $this->processEmailDisplayName($sendAllEmailsTo);
-                $parameters['to'] = implode(",", $sendAllEmailsTo);
-            } else {
-                throw new \Exception("Email::getSendAllEmailsTo should be a string or array");
-            }
+        if ($sendAllEmailsTo !== []) {
+            $sendAllEmailsTo = $this->processEmailDisplayName($sendAllEmailsTo);
+            $parameters['to'] = implode(",", $sendAllEmailsTo);
         }
 
         // Override from address, note always_from overrides this
         $sendAllEmailsFrom = Email::getSendAllEmailsFrom();
-        if ($sendAllEmailsFrom) {
-            if (is_string($sendAllEmailsFrom)) {
-                $parameters['from'] = $sendAllEmailsFrom;
-            } elseif (is_array($sendAllEmailsFrom)) {
-                $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
-                $parameters['from'] = implode(",", $sendAllEmailsFrom);
-            } else {
-                throw new \Exception("Email::getSendAllEmailsFrom should be a string or array");
-            }
+        if ($sendAllEmailsFrom !== []) {
+            $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
+            $parameters['from'] = implode(",", $sendAllEmailsFrom);
         }
 
         // Add or set CC defaults
         $ccAllEmailsTo = Email::getCCAllEmailsTo();
-        if ($ccAllEmailsTo) {
-            $cc = '';
-            if (is_string($ccAllEmailsTo)) {
-                $cc = $ccAllEmailsTo;
-            } elseif (is_array($ccAllEmailsTo)) {
-                $ccAllEmailsTo = $this->processEmailDisplayName($ccAllEmailsTo);
-                $cc = implode(",", $ccAllEmailsTo);
-            } else {
-                throw new \Exception("Email::getCCAllEmailsTo should be a string or array");
-            }
-
+        if ($ccAllEmailsTo !== []) {
+            $ccAllEmailsTo = $this->processEmailDisplayName($ccAllEmailsTo);
+            $cc = implode(",", $ccAllEmailsTo);
             if ($cc !== '') {
                 if (isset($parameters['cc'])) {
                     $parameters['cc'] .= "," . $cc;
@@ -305,17 +285,9 @@ class MailgunMailer implements MailerInterface
 
         // Add or set BCC defaults
         $bccAllEmailsTo = Email::getBCCAllEmailsTo();
-        if ($bccAllEmailsTo) {
-            $bcc = '';
-            if (is_string($bccAllEmailsTo)) {
-                $bcc = $bccAllEmailsTo;
-            } elseif (is_array($bccAllEmailsTo)) {
-                $bccAllEmailsTo = $this->processEmailDisplayName($bccAllEmailsTo);
-                $bcc = implode(",", $bccAllEmailsTo);
-            } else {
-                throw new \Exception("Email::getBCCAllEmailsTo should be a string or array");
-            }
-
+        if ($bccAllEmailsTo !== []) {
+            $bccAllEmailsTo = $this->processEmailDisplayName($bccAllEmailsTo);
+            $bcc = implode(",", $bccAllEmailsTo);
             if ($bcc !== '') {
                 if (isset($parameters['bcc'])) {
                     $parameters['bcc'] .= "," . $bcc;

@@ -2,14 +2,14 @@
 
 namespace NSWDPC\Messaging\Mailgun\Email;
 
-use SilverStripe\Control\Email\Email;
-use SilverStripe\Core\Config\Configurable;
-use SilverStripe\Core\Injector\Injectable;
-use SilverStripe\Core\Injector\Injector;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
 use NSWDPC\StructuredEmail\CustomParameters;
 use NSWDPC\StructuredEmail\EmailWithCustomParameters;
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
 
 /**
  * Email class to handle Mailgun smarts for Email sending
@@ -34,21 +34,6 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
      */
     use CustomParameters;
 
-    /**
-     * @var \NSWDPC\Messaging\Mailgun\Connector\Message|null
-     * @deprecated
-     */
-    private $connector;
-
-    /**
-     * Retrieve the connector instance
-     * @deprecated
-     */
-    public function getConnector(): Message
-    {
-        $this->connector = Injector::inst()->get(Message::class);
-        return $this->connector;
-    }
 
     /**
      * Set tags as options on the Mailgun API
@@ -59,19 +44,4 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
         return $this;
     }
 
-    /**
-     * Set a mailgun response from a send attempt
-     */
-    public function setMailgunResponse(mixed $response): static {
-        $this->lastResponse = $response;
-    }
-
-    /**
-     * Return the last mailgun response, and clear it at the same time
-     */
-    public function getMailgunResponse(): mixed {
-        $response = $this->lastResponse;
-        $this->lastResponse = null;
-        return $response;
-    }
 }

@@ -2,9 +2,11 @@
 
 namespace NSWDPC\Messaging\Mailgun\Controllers;
 
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
+use SilverStripe\Security\Security;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldAddNewButton;
@@ -41,7 +43,7 @@ class MailgunModelAdmin extends ModelAdmin
             $config->removeComponentsByType(GridFieldAddNewButton::class);
             $config->removeComponentsByType(GridFieldPrintButton::class);
 
-            if (! Permission::check(MailgunEvent::PERMISSIONS_DELETE, 'any', Member::currentUser())) {
+            if (! Permission::check(MailgunEvent::PERMISSIONS_DELETE, 'any', Security::getCurrentUser())) {
                 $config->removeComponentsByType(GridFieldEditButton::class);
                 $config->removeComponentsByType(GridFieldDeleteAction::class);
             }

@@ -9,6 +9,7 @@ use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
+use SilverStripe\Security\Security;
 use SilverStripe\Security\Permission;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\GridField\GridField;
@@ -18,9 +19,6 @@ use SilverStripe\Forms\FormAction;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\FieldType\DBField;
-use DateTime;
-use DateTimeZone;
-use Exception;
 
 /**
  * @author James
@@ -215,7 +213,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     public function canDelete($member = null)
     {
         if (!$member) {
-            $member = Member::currentUser();
+            $member = Security::getCurrentUser();
         }
 
         return Permission::check(self::PERMISSIONS_DELETE, 'any', $member);
@@ -227,7 +225,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     public function canView($member = null)
     {
         if (!$member) {
-            $member = Member::currentUser();
+            $member = Security::getCurrentUser();
         }
 
         return Permission::check(self::PERMISSIONS_VIEW, 'any', $member);
@@ -309,10 +307,10 @@ class MailgunEvent extends DataObject implements PermissionProvider
             return "";
         }
 
-        $dt = new DateTime();
+        $dt = new \DateTime();
         $dt->setTimestamp($this->Timestamp);
-        $dt->setTimezone(new DateTimeZone($timezone));
-        return $dt->format(DateTime::RFC2822);
+        $dt->setTimezone(new \DateTimeZone($timezone));
+        return $dt->format(\DateTime::RFC2822);
     }
 
     /**
@@ -378,9 +376,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
      */
     private function CreateUTCDateTime($timestamp, string $format = "Y-m-d H:i:s"): string
     {
-        $dt = new DateTime();
+        $dt = new \DateTime();
         $dt->setTimestamp($timestamp);
-        $dt->setTimezone(new DateTimeZone('UTC'));
+        $dt->setTimezone(new \DateTimeZone('UTC'));
         return $dt->format($format);
     }
 

@@ -4,6 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Jobs;
 
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Exceptions\JobProcessingException;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 use SilverStripe\Core\Config\Config;
