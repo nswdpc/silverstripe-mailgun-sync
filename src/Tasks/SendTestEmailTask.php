@@ -12,7 +12,6 @@ use SilverStripe\ORM\DB;
  */
 class SendTestEmailTask extends BuildTask
 {
-
     /**
      * @inheritdoc
      */

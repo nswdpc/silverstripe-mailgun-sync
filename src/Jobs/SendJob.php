@@ -100,7 +100,7 @@ class SendJob extends AbstractQueuedJob
             $transport = Injector::inst()->create(TransportInterface::class);
             if (!($transport instanceof MailgunSyncApiTransport)) {
                 $type = get_debug_type($transport);
-                
+
                 // This job can only be processed with a MailgunSyncApiTransport
                 throw new \RuntimeException("SendJob::process() expected a MailgunSyncApiTransport to send the email, got a {$type}");
             }
