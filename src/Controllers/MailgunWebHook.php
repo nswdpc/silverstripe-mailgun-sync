@@ -23,7 +23,6 @@ use Symfony\Component\Mailer\Transport\TransportInterface;
  */
 class MailgunWebHook extends Controller
 {
-
     /**
      * Set to false to disallow webhook requests to this controller
      */
