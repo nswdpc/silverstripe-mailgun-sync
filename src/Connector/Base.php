@@ -6,6 +6,7 @@ use Mailgun\Mailgun;
 use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
 use Symfony\Component\Mailer\Transport\Dsn;
 
@@ -52,23 +53,6 @@ abstract class Base
      * Be aware of the privacy implications of setting this value
      */
     private static string $default_recipient = '';
-
-    /**
-     * Your webook signing key, provided by Mailgun
-     */
-    private static string $webhook_signing_key = '';
-
-    /**
-     * Messages with this variable set will be allowed when a webhook request is made back to the controller
-     * Messages without this variable will be ignored
-     * This is useful if you use one mailing domain across multiple sites
-     */
-    private static string $webhook_filter_variable = '';
-
-    /**
-     * Whether webhooks are enabled or not
-     */
-    private static bool $webhooks_enabled = true;
 
     /**
      * DSN for this client
@@ -155,7 +139,7 @@ abstract class Base
      */
     public function getWebhookSigningKey(): string
     {
-        return $this->config()->get('webhook_signing_key');
+        return (string)Environment::getEnv('MAILGUN_WEBHOOK_SIGNING_KEY');
     }
 
     /**
@@ -163,7 +147,7 @@ abstract class Base
      */
     public function getWebhookFilterVariable(): string
     {
-        return $this->config()->get('webhook_filter_variable');
+        return (string)Environment::getEnv('MAILGUN_WEBHOOK_FILTER_VARIABLE');
     }
 
     /**
@@ -171,7 +155,7 @@ abstract class Base
      */
     public function getWebhookPreviousFilterVariable(): string
     {
-        return $this->config()->get('webhook_previous_filter_variable');
+        return (string)Environment::getEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE');
     }
 
     /**
@@ -180,7 +164,7 @@ abstract class Base
      */
     public function getWebhooksEnabled(): bool
     {
-        return $this->config()->get('webhooks_enabled');
+        return MailgunWebhook::config()->get('webhooks_enabled');
     }
 
     /**

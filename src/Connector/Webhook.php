@@ -2,6 +2,7 @@
 
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
+use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebhook;
 use NSWDPC\Messaging\Mailgun\MailgunEvent;
 use NSWDPC\Messaging\Mailgun\Log;
 use Mailgun\Mailgun;

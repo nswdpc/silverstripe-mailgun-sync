@@ -6,18 +6,34 @@ In the event that you use the same mailing domain for multiple websites, you can
 
 ## Configuration
 
+### YML
 ```yaml
-NSWDPC\Messaging\Mailgun\Connector\Base:
+NSWDPC\Messaging\Mailgun\Controllers\MailgunWebhook:
+  # allow incoming webhook requests
   webhooks_enabled: true
 ```
 
-### webhooks_enabled
+### ENV
 
-(bool)
+MAILGUN_WEBHOOK_API_KEY
 
-Reject/Accept webhooks. Setting this to false will cause a 503 code to be returned to the Mailgun webhook HTTP request (meaning it will try again later until giving up)
+(string)
 
-### webhook_signing_key
+The API key used for webhooks, not a sending key.
+
+MAILGUN_WEBHOOK_DOMAIN
+
+(string)
+
+The mailing domain to handle webhooks on
+
+MAILGUN_WEBHOOK_REGION
+
+(string)
+
+Optional: the region. If using EU, the value should be 'API_ENDPOINT_EU'.
+
+MAILGUN_WEBHOOK_SIGNING_KEY
 
 (string)
 
@@ -25,7 +41,7 @@ This is listed in your Mailgun account as your "HTTP webhook signing key", it's 
 
 Treat this value like a private API key and password, if it is exposed then recycle it.
 
-### webhook_filter_variable
+MAILGUN_WEBHOOK_FILTER_VARIABLE
 
 (string)
 
@@ -33,13 +49,13 @@ A value unique for the website or websites  you wish to aggregate webhooks for.
 
 #### Example
 
-You have 2 websites all using the same mailing domain, with 2 webhook endpoints pointing at these sites configured in Mailgun settings.
+You have 2 websites both using the same mailing domain, with 2 webhook endpoints pointing at these sites configured in Mailgun settings.
 
 You can use this configuration value to filter out webhook submissions for the other site (provided the configuration value is different between the two sites).
 
 You can leave this empty and aggregate all webhook submissions on your mailing domain
 
-### webhook_previous_filter_variable
+MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE
 
 (string)
 

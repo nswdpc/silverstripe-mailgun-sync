@@ -38,17 +38,19 @@ SilverStripe\Core\Injector\Injector:
       # Specify use of the EU region
       # dsn: 'mailgunsync+api://sendingdomain:apikey@default?region=API_ENDPOINT_EU'
 ---
-# if using webhooks, add the webhook signing key in the same file
+```
+
+You can override other options in the same config file
+
+```yaml
 Name: local-mailgunsync
 After:
   - '#app-mailgunsync'
 ---
 # API config
 NSWDPC\Messaging\Mailgun\Connector\Base:
-  # (bool) whether you want to enable Webhook handling
-  webhooks_enabled: true
-  # (string) grab this from your Mailgun account control panel
-  webhook_signing_key: 'some-webhook-signing-key-from-mailgun'
+  # API settings
+  api_testmode: false
 ```
 
 ### Set up a project configuration

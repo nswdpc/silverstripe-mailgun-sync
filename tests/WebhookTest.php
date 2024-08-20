@@ -4,9 +4,11 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Webhook;
+use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebhook;
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Environment;
 
 /**
  * Tests for RequestHandler and HTTPRequest
@@ -17,23 +19,33 @@ class WebhookTest extends FunctionalTest
 
     protected string $webhook_previous_filter_variable = 'snsd875bslw[';
 
+    protected string $webhook_signing_key = 'abcd1234';
+
     protected string $test_api_key = 'webhook_api_key';
 
-    protected string $test_api_domain = 'testing.example.net';
+    protected string $test_api_domain = 'webhook.example.net';
+
+    protected string $test_api_region = 'API_ENDPOINT_EU';
 
     protected $usesDatabase = true;
 
     public function setUp(): void
     {
         parent::setUp();
-        Config::modify()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
-        Config::modify()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
-        Config::modify()->set(Base::class, 'webhooks_enabled', true);
+        Environment::setEnv('MAILGUN_WEBHOOK_API_KEY', $this->test_api_key);
+        Environment::setEnv('MAILGUN_WEBHOOK_DOMAIN', $this->test_api_domain);
+        Environment::setEnv('MAILGUN_WEBHOOK_REGION', $this->test_api_region);
+        Environment::setEnv('MAILGUN_WEBHOOK_FILTER_VARIABLE', $this->webhook_filter_variable);
+        Environment::setEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE', $this->webhook_filter_variable);
+        Environment::setEnv('MAILGUN_WEBHOOK_SIGNING_KEY', $this->webhook_signing_key);
+        Config::modify()->set(MailgunWebhook::class, 'webhooks_enabled', true);
     }
 
     protected function getTestDsn(): string
     {
-        return "mailgunsync+api://{$this->test_api_domain}:{$this->test_api_key}@default";
+        $domain = Environment::setEnv('MAILGUN_WEBHOOK_DOMAIN');
+        $key = Environment::setEnv('MAILGUN_WEBHOOK_API_KEY');
+        return "mailgunsync+api://{$domain}:{$key}@default";
     }
 
     /**

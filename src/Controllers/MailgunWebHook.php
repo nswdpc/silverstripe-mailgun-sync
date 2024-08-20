@@ -12,6 +12,7 @@ use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
@@ -22,6 +23,10 @@ use Symfony\Component\Mailer\Transport\TransportInterface;
  */
 class MailgunWebHook extends Controller
 {
+
+    /**
+     * Set to false to disallow webhook requests to this controller
+     */
     private static bool $webhooks_enabled = true;
 
     /**
@@ -33,11 +38,20 @@ class MailgunWebHook extends Controller
 
     /**
      * Retrieve webook signing key from config
+     * This uses configuration from env
      */
     protected function getConnector(): Webhook
     {
         $transport = Injector::inst()->create(TransportInterface::class);
-        return Webhook::create($transport->getDsn());
+        $key = (string)Environment::getEnv('MAILGUN_WEBHOOK_API_KEY');
+        $domain = (string)Environment::getEnv('MAILGUN_WEBHOOK_DOMAIN');
+        $region = (string)Environment::getEnv('MAILGUN_WEBHOOK_REGION');
+        $options = "";
+        if($region !== '') {
+            $options = "?region={$region}";
+        }
+        $dsn = "mailgunsync+api://{$domain}:{$key}@default/{$options}";
+        return Webhook::create($dsn);
     }
 
     /**
