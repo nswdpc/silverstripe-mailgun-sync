@@ -13,9 +13,13 @@ use SilverStripe\Core\Config\Config;
  */
 class WebhookTest extends FunctionalTest
 {
-    private string $webhook_filter_variable = 'skjhgiehg943753-"';
+    protected string $webhook_filter_variable = 'skjhgiehg943753-"';
 
-    private string $webhook_previous_filter_variable = 'snsd875bslw[';
+    protected string $webhook_previous_filter_variable = 'snsd875bslw[';
+
+    protected string $test_api_key = 'webhook_api_key';
+
+    protected string $test_api_domain = 'testing.example.net';
 
     protected $usesDatabase = true;
 
@@ -25,6 +29,11 @@ class WebhookTest extends FunctionalTest
         Config::modify()->set(Base::class, 'webhook_filter_variable', $this->webhook_filter_variable);
         Config::modify()->set(Base::class, 'webhook_previous_filter_variable', $this->webhook_previous_filter_variable);
         Config::modify()->set(Base::class, 'webhooks_enabled', true);
+    }
+
+    protected function getTestDsn(): string
+    {
+        return "mailgunsync+api://{$this->test_api_domain}:{$this->test_api_key}@default";
     }
 
     /**
@@ -48,7 +57,7 @@ class WebhookTest extends FunctionalTest
      */
     protected function getConnector()
     {
-        return Webhook::create();
+        return Webhook::create($this->getTestDsn());
     }
 
     /**
@@ -101,7 +110,7 @@ class WebhookTest extends FunctionalTest
 
         $cookies = null;
 
-        $body = json_encode($data, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
+        $body = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 
         $response = $this->post($url, $data, $headers, $session, $body, $cookies);
         $this->assertEquals(

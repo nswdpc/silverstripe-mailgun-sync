@@ -2,6 +2,8 @@
 
 namespace NSWDPC\Messaging\Mailgun\Controllers;
 
+use Mailgun\Model\Event\Event as MailgunEventModel;
+use NSWDPC\Messaging\Mailgun\Connector\Webhook;
 use NSWDPC\Messaging\Mailgun\Exceptions\WebhookClientException;
 use NSWDPC\Messaging\Mailgun\Exceptions\WebhookServerException;
 use NSWDPC\Messaging\Mailgun\Exceptions\WebhookNotAcceptableException;
@@ -10,8 +12,8 @@ use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
-use NSWDPC\Messaging\Mailgun\Connector\Webhook;
-use Mailgun\Model\Event\Event as MailgunEventModel;
+use SilverStripe\Core\Injector\Injector;
+use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
  * Controller for handling webhook submissions from Mailgun.
@@ -22,6 +24,9 @@ class MailgunWebHook extends Controller
 {
     private static bool $webhooks_enabled = true;
 
+    /**
+     * @inheritdoc
+     */
     private static array $allowed_actions = [
         'submit' => true
     ];
@@ -29,15 +34,16 @@ class MailgunWebHook extends Controller
     /**
      * Retrieve webook signing key from config
      */
-    protected function getConnector()
+    protected function getConnector(): Webhook
     {
-        return Webhook::create();
+        $transport = Injector::inst()->create(TransportInterface::class);
+        return Webhook::create($transport->getDsn());
     }
 
     /**
      * Return JSON encoded response body
      */
-    protected function getResponseBody($success = true)
+    protected function getResponseBody($success = true): string
     {
         $data = [
             'success' => $success
@@ -48,7 +54,7 @@ class MailgunWebHook extends Controller
     /**
      * We have done something wrong
      */
-    protected function serverError($status_code = 503, $message = "")
+    protected function serverError($status_code = 503, $message = ""): HTTPResponse
     {
         Logger::log($message, \Psr\Log\LogLevel::NOTICE);
         $response = HTTPResponse::create($this->getResponseBody(false), $status_code);
@@ -59,7 +65,7 @@ class MailgunWebHook extends Controller
     /**
      * Client (being Mailgun user agent) has done something wrong
      */
-    protected function clientError($status_code  = 400, $message = "")
+    protected function clientError($status_code  = 400, $message = ""): HTTPResponse
     {
         Logger::log($message, \Psr\Log\LogLevel::NOTICE);
         $response = HTTPResponse::create($this->getResponseBody(false), $status_code);
@@ -70,7 +76,7 @@ class MailgunWebHook extends Controller
     /**
      * All is good
      */
-    protected function returnOK($status_code  = 200, $message = "OK")
+    protected function returnOK($status_code  = 200, $message = "OK"): HTTPResponse
     {
         $response = HTTPResponse::create($this->getResponseBody(true), $status_code);
         $response->addHeader('Content-Type', 'application/json');
@@ -80,7 +86,7 @@ class MailgunWebHook extends Controller
     /**
      * Ignore / requests
      */
-    public function index($request)
+    public function index($request): HTTPResponse
     {
         return $this->clientError(404, "Not Found");
     }
@@ -90,7 +96,7 @@ class MailgunWebHook extends Controller
      * @throws \Exception|WebhookServerException|WebhookClientException|WebhookNotAcceptableException
      * The exception thrown depends on the error found. A 406 error will stop Mailgun from retrying a particular request
      */
-    public function submit(HTTPRequest $request = null)
+    public function submit(HTTPRequest $request = null): HTTPResponse
     {
         try {
             $connector = $this->getConnector();
@@ -130,7 +136,7 @@ class MailgunWebHook extends Controller
 
             // verify the variable, if set, is in the payload, ignore submission
             $variable = $connector->getWebhookFilterVariable();//from config
-            if ($variable) {
+            if ($variable !== '') {
                 $webhook_filter_ok = false;
                 $previous_variable = $connector->getWebhookPreviousFilterVariable();//from config
                 if (!empty($payload['event-data']['user-variables']['wfv']) && ($payload['event-data']['user-variables']['wfv'] == $variable

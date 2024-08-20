@@ -3,7 +3,6 @@
 namespace NSWDPC\Messaging\Mailgun\Models;
 
 use Mailgun\Mailgun;
-use SilverStripe\ORM\DataObject;
 use Mailgun\Model\Event\Event as MailgunEventModel;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use SilverStripe\Security\PermissionProvider;
@@ -16,6 +15,8 @@ use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\FormAction;
+use SilverStripe\ORM\DataList;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\FieldType\DBField;
@@ -28,13 +29,24 @@ use SilverStripe\ORM\FieldType\DBField;
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
-    // try to sort by most recent event first
+    /**
+     * @inheritdoc
+     */
     private static string $default_sort = "Timestamp DESC";
 
+    /**
+     * @inheritdoc
+     */
     private static string $singular_name = "Event";
 
+    /**
+     * @inheritdoc
+     */
     private static string $plural_name = "Events";
 
+    /**
+     * @inheritdoc
+     */
     private static string $table_name = "MailgunEvent";
 
     public const ACCEPTED = 'accepted';
@@ -65,6 +77,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     public const PERMISSIONS_DELETE = 'MAILGUNEVENT_DELETE';
 
+    /**
+     * @inheritdoc
+     */
     private static array $db = [
         /**
          * @note Mailgun says "Event id. It is guaranteed to be unique within a day.
@@ -92,6 +107,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'DecodedStorageKey' => 'Text',  // JSON encoded storage key
     ];
 
+    /**
+     * @inheritdoc
+     */
     private static array $summary_fields = [
         'ID' => '#',
         'EventType' => 'Event',
@@ -104,7 +122,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     ];
 
     /**
-     * Defines a default list of filters for the search context
+     * @inheritdoc
      */
     private static array $searchable_fields = [
         'Reason',
@@ -115,6 +133,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
         'MessageId',
     ];
 
+    /**
+     * @inheritdoc
+     */
     private static array $indexes = [
         'Created' => true,
         'LastEdited' => true,
@@ -155,7 +176,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Set permission groups
      */
-    private function createGroupsAndPermissions()
+    private function createGroupsAndPermissions(): void
     {
         $manager_code = 'mailgun-managers';
         $manager_group = Group::get()->filter('Code', $manager_code)->first();
@@ -261,7 +282,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
         // show a list of related events sharing the same MessageId
         $siblings = $this->getSiblingEvents();
-        if ($siblings && $siblings->count() > 0) {
+        if ($siblings->count() > 0) {
             $config = GridFieldConfig_RecordEditor::create();
             $config->removeComponentsByType('GridFieldEditButton');
             $gridfield = GridField::create('SiblingEventsGridField', 'Siblings', $siblings, $config);
@@ -275,9 +296,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Events that are sibling to this event (sharing the smae MessageId)
-     * @return \SilverStripe\ORM\DataList
      */
-    public function getSiblingEvents()
+    public function getSiblingEvents(): DataList
     {
         return MailgunEvent::get()->filter('MessageId', $this->MessageId)->sort('Timestamp ASC');
     }
@@ -341,23 +361,32 @@ class MailgunEvent extends DataObject implements PermissionProvider
     }
 
     /**
-     * Helper method to determin if event is failed || rejected
+     * Helper method to determine if event is failed || rejected
      */
     public function IsFailedOrRejected(): bool
     {
         return $this->IsFailed() || $this->IsRejected();
     }
 
+    /**
+     * Helper method to determine if event was delivered
+     */
     public function IsDelivered(): bool
     {
         return $this->EventType == self::DELIVERED;
     }
 
+    /**
+     * Helper method to determine if event was accepted
+     */
     public function IsAccepted(): bool
     {
         return $this->EventType == self::ACCEPTED;
     }
 
+    /**
+     * Helper method to determine if event is via a user action (e.g complained)
+     */
     public function IsUserEvent(): bool
     {
         return in_array($this->EventType, self::UserActionStatus());
@@ -476,7 +505,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
      * Retrieve the number of failures for a particular recipient/message for this event's linked submission
      * Failures are determined to be 'failed' or 'rejected' events
      */
-    public function GetRecipientFailures()
+    public function GetRecipientFailures(): int
     {
         return MailgunEvent::get()
                                 ->filter('MessageId', $this->MessageId) // Failures for this specific message

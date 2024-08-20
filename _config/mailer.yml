@@ -1,0 +1,10 @@
+---
+Name: 'mailgunsync-mailer'
+After:
+  '#mailer'
+---
+SilverStripe\Core\Injector\Injector:
+  # override the core transport factory to ensure that the Mailgun Api transport
+  # factor is registered as a transport factory
+  SilverStripe\Control\Email\TransportFactory:
+    class: 'NSWDPC\Messaging\Mailgun\Transport\TransportFactory'

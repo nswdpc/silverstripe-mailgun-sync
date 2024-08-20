@@ -3,13 +3,14 @@
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\Messaging\Mailgun\Log;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 /**
- * Base connector to the Mailgun API
+ * Base connector to the Mailgun API, that sits between project code and the Mailgun SDK API client
  * Read the Docs at https://documentation.mailgun.com/en/latest/api_reference.html for reference implementations
  */
 abstract class Base
@@ -18,17 +19,15 @@ abstract class Base
 
     use Injectable;
 
+    /**
+     * The Mailgun API region URL for the EU
+     */
     public const API_ENDPOINT_EU = 'https://api.eu.mailgun.net';
 
     /**
-     * The Mailgun API key or Domain Sending Key (recommended)
+     * The Mailgun default region URL
      */
-    private static string $api_key = '';
-
-    /**
-     * The Mailgun sending domain
-     */
-    private static string $api_domain = '';
+    public const API_ENDPOINT_DEFAULT = 'https://api.mailgun.net';
 
     /**
      * Whether to to enable testmode
@@ -36,6 +35,7 @@ abstract class Base
      * You are charged for messages sent in test mode
      */
     private static bool $api_testmode = false;// when true ALL emails are sent with o:testmode = 'yes'
+
     /**
      * Always set the sender header to be the same as the From header
      * This assists with removing "on behalf of" in certain email clients
@@ -71,117 +71,158 @@ abstract class Base
     private static bool $webhooks_enabled = true;
 
     /**
-     * This is populated in client() and allows tests to check the current API endpoint set
+     * DSN for this client
      */
-    private string $api_endpoint_url = '';
+    protected Dsn $dsn;
+
+    /**
+     * Create an instance of the specific connector
+     * @param Dsn|string $dsn DSN for this request
+     */
+    public function __construct(Dsn|string $dsn)
+    {
+        if(is_string($dsn)) {
+            $dsn = Dsn::fromString($dsn);
+        }
+
+        $this->dsn = $dsn;
+    }
 
     /**
      * Returns an RFC2822 datetime in the format accepted by Mailgun
      * @param string $relative a strtotime compatible format e.g 'now -4 weeks'
      */
-    public static function DateTime($relative)
+    public static function DateTime(string $relative)
     {
-        if ($relative) {
+        if ($relative !== '') {
             return gmdate('r', strtotime($relative));
         } else {
             return gmdate('r');
         }
     }
 
-    public function getClient($api_key = null)
+    /**
+     * Get the Mailgun SDK client
+     * @param string $apiKey an optional alternate API key for use this this client instance
+     */
+    public function getClient(string $apiKey = null)
     {
-        if (!$api_key) {
-            $api_key = $this->getApiKey();
+        if ($apiKey === '' || is_null($apiKey)) {
+            $apiKey = $this->getApiKey();
         }
 
-        $api_endpoint = $this->config()->get('api_endpoint_region');
-        $this->api_endpoint_url = '';
-        switch ($api_endpoint) {
-            case 'API_ENDPOINT_EU':
-                $this->api_endpoint_url = self::API_ENDPOINT_EU;
-                $client = Mailgun::create($api_key, $this->api_endpoint_url);
-                break;
-            default:
-                $client = Mailgun::create($api_key);
-                break;
+        if($apiKey === '') {
+            throw new \RuntimeException("Cannot send if no API key is present");
         }
 
-        return $client;
+        return match ($this->getApiEndpointRegion()) {
+            'API_ENDPOINT_EU' => Mailgun::create($apiKey, self::API_ENDPOINT_EU),
+            default => Mailgun::create($apiKey),
+        };
     }
 
-    public function getApiEndpointRegion()
+    /**
+     * Return the sending domain for this instance
+     */
+    public function getApiDomain(): ?string
     {
-        return $this->api_endpoint_url;
+        return $this->dsn->getUser();
     }
 
-    public function getApiKey()
+    /**
+     * Get the configured API region string
+     */
+    public function getApiEndpointRegion(): string
     {
-        return $this->config()->get('api_key');
+        $region = $this->dsn->getOption('region');
+        if(!is_string($region)) {
+            $region = '';
+        }
+
+        return $region;
     }
 
-    public function getWebhookSigningKey()
+    /**
+     * Get the API key
+     */
+    public function getApiKey(): ?string
+    {
+        return $this->dsn->getPassword();
+    }
+
+    /**
+     * Get the Mailgun webhook signing key from configuration
+     */
+    public function getWebhookSigningKey(): string
     {
         return $this->config()->get('webhook_signing_key');
     }
 
-    public function getWebhookFilterVariable()
+    /**
+     * Get the Mailgun webhook filter variable from config
+     */
+    public function getWebhookFilterVariable(): string
     {
         return $this->config()->get('webhook_filter_variable');
     }
 
-    public function getWebhookPreviousFilterVariable()
+    /**
+     * Get the previous Mailgun webhook filter variable from config
+     */
+    public function getWebhookPreviousFilterVariable(): string
     {
         return $this->config()->get('webhook_previous_filter_variable');
     }
 
-    public function getWebhooksEnabled()
+    /**
+     * Are webhooks enabled?
+     * Set to false in config to reject all webhook requests
+     */
+    public function getWebhooksEnabled(): bool
     {
         return $this->config()->get('webhooks_enabled');
     }
 
-    public function getApiDomain()
+    /**
+     * Is the current sending domain a sandbox domain?
+     */
+    public function isSandbox(): bool
     {
-        return $this->config()->get('api_domain');
-    }
-
-    public function isSandbox()
-    {
-        $api_domain = $this->getApiDomain();
-        $result = preg_match("/^sandbox[a-z0-9]+\.mailgun\.org$/i", (string) $api_domain);
-        return $result == 1;
+        $result = preg_match("/^sandbox[a-z0-9]+\.mailgun\.org$/i", (string) $this->getApiDomain());
+        return $result === 1;
     }
 
     /**
      * Get send via job option value
      */
-    final protected function sendViaJob()
+    final protected function sendViaJob(): string
     {
         return $this->config()->get('send_via_job');
     }
 
     /**
-     * When true, the Sender header is always set to the From value. When false, use {@link NSWDPC\Messaging\Mailgun\MailgunMailer::setSender()} to set the Sender header as required
+     * When true, the Sender header is always set to the From value
      */
-    final protected function alwaysSetSender()
+    final protected function alwaysSetSender(): bool
     {
         return $this->config()->get('always_set_sender');
     }
 
     /**
-     * Prior to any send/sendMime action, check config and set testmode if config says so
+     * apply test mode based on configuration value
      */
-    final protected function applyTestMode(array &$parameters)
+    final protected function applyTestMode(array &$parameters): void
     {
-        $mailgun_testmode = $this->config()->get('api_testmode');
-        if ($mailgun_testmode) {
+        if($this->config()->get('api_testmode')) {
             $parameters['o:testmode'] = 'yes';
         }
     }
 
     /**
      * When Bcc/Cc is provided with no 'To', mailgun rejects the request (400 Bad Request), this method applies the configured default_recipient
+     * @deprecated
      */
-    final public function applyDefaultRecipient(&$parameters)
+    final public function applyDefaultRecipient(&$parameters): void
     {
         if (empty($parameters['to'])
                 && (!empty($parameters['cc']) || !empty($parameters['bcc']))

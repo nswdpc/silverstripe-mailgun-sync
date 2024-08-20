@@ -2,19 +2,16 @@
 
 namespace NSWDPC\Messaging\Mailgun\Email;
 
-use NSWDPC\Messaging\Mailgun\Connector\Message;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
 use NSWDPC\StructuredEmail\CustomParameters;
 use NSWDPC\StructuredEmail\EmailWithCustomParameters;
-use SilverStripe\Control\Email\Email;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 
 /**
- * Email class to handle Mailgun smarts for Email sending
- * For a description of the properties represented here see
- * https://documentation.mailgun.com/en/latest/api-sending.html#sending
+ * Email class for Mailgun handling custom parameters and tagging
+ * overrides SilverStripe\Control\Email\Email via Injector definition in your project configuration
  * @author James
  */
 class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
@@ -33,7 +30,6 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
      * Custom parameters for the mailer, if it is supported
      */
     use CustomParameters;
-
 
     /**
      * Set tags as options on the Mailgun API

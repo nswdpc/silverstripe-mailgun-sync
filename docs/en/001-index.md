@@ -1,85 +1,158 @@
-# Documentation
+# Getting started
 
-+ [More detailed configuration](./005-detailed_configuration.md)
+See also:
++ [Sending email](./002-sending-email.md)
++ [Sending email (more)](./002.1-more-sending-email.md)
++ [Queued jobs](./003-sending-email.md)
 + [Webhooks](./100-webhooks.md)
 
+## Configuration
 
-## MailgunEmail
+First, follow the setup details as defined in the Silverstripe Email documentation.
+You must use a DSN in the format below (either in yaml as below) or as the MAILER_DSN environment variable value (recommended)
 
-MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters` and `setNotificationTags`
+In the DSN formatted as `scheme://user:password/host/?query_string`
 
-These extra options, variables, headers and recipient variables are passed to the Mailgun API.
++ scheme: mailgunsync+api, this loads the correct Transport
++ user: the Mailgun sending domain
++ pass: the Mailgin sending API key
++ host: this is set to 'default' and is internally updated based on the region option
++ region: in the query string, set region=API_ENDPOINT_EU to send via the EU region (example below)
 
-[Mailgun places a limit of 3 tags per message](https://documentation.mailgun.com/en/latest/user_manual.html#tagging)
 
-```php
-use SilverStripe\Control\Email\Email;
+Add the following to your project's local yaml config e.g. in `app/_config/local.yml` and update options as required. Ignore this file in version control for your project (do not commit secrets to VCS).
 
-$person = get_person();
-
-// Set parameters (no need to prefix keys)
-$parameters = [
-    
-    // Set v: prefixed variables
-    'variables' => [
-        'test' => 'true',
-        'foo' => 'bar',
-    ],
-
-    // Set o: prefixed options
-    'options' => [
-        'deliverytime' => $person->getReminderTime(\DateTimeInterface::RFC2822),
-        'dkim' => 'yes',// require DKIM for this specific message
-        'tag' => ['tag1','tag2','tag4'], // send some tags for analytics
-        'tracking' => 'yes', // turn tracking on just for this message
-        'require-tls' => 'yes', // require a TLS connection when Mailgun connects to the remote mail server
-        'skip-verification' => 'no' // do not skip TLS verification
-    ],
-
-    // h: prefixed headers
-    'headers' => [
-        'X-Test-Header' => 'testing'
-    ],
-
-    // Specific recipient variables
-    'recipient_variables' => [
-        $person->Email => ["tagline" => "Reminder"]
-    ]
-];
-
-// Send the email
-$email = Email::create();
-$email->setTo($person->Email)
-    ->setSubject('A reminder')
-    ->setFrom('someone.else@example.com')
-    ->setCustomParameters($parameters)
-    ->send();
+```yaml
+---
+Name: local-mailer
+After:
+  - '#mailer'
+---
+SilverStripe\Core\Injector\Injector:
+  Symfony\Component\Mailer\Transport\TransportInterface:
+    constructor:
+      # , region not specified, and so will be set to API_ENDPOINT_DEFAULT internally
+      dsn: 'mailgunsync+api://sendingdomain:apikey@default'
+      # Specify a default region
+      # dsn: 'mailgunsync+api://sendingdomain:apikey@default?region=API_ENDPOINT_DEFAULT'
+      # Specify use of the EU region
+      # dsn: 'mailgunsync+api://sendingdomain:apikey@default?region=API_ENDPOINT_EU'
+---
+# if using webhooks, add the webhook signing key in the same file
+Name: local-mailgunsync
+After:
+  - '#app-mailgunsync'
+---
+# API config
+NSWDPC\Messaging\Mailgun\Connector\Base:
+  # (bool) whether you want to enable Webhook handling
+  webhooks_enabled: true
+  # (string) grab this from your Mailgun account control panel
+  webhook_signing_key: 'some-webhook-signing-key-from-mailgun'
 ```
 
-## Tagging
+### Set up a project configuration
 
-`MailgunEmail` uses our [`Taggable` trait](https://github.com/nswdpc/silverstripe-taggable-notifications) to quickly set tags on a message.
+Add the following to your project's yaml config e.g. in `app/_config/mailgun.yml` and update options.
 
-```php
-$email = Email::create();
-$response = $email->setTo('someone@example.com')
-    ->setSubject('Tagged message')
-    ->setFrom('someone.else@example.com')
-    ->setNotificationTags(['tag1','tag2','tag4']);
-    ->send();
+```yaml
+---
+Name: app-mailgunsync
+After:
+  - '#mailgunsync'
+---
+# API config
+NSWDPC\Messaging\Mailgun\Connector\Base:
+  # (bool) this setting triggers o:testmode='yes' in messages if true
+  api_testmode: false
+  # (bool) you will probably want this as true, when false some clients will show 'Sent on behalf of' text
+  always_set_sender: true
+  # (string) whether to send via a job - see below. options are 'yes', 'no', and 'when-attachments'
+  send_via_job: 'yes'
+  # (string) When set, messages with no 'To' header are delivered here.
+  default_recipient: ''
+---
+# Configure the mailer
+Name: app-emailconfig
+After:
+  # override core email configuration
+  - '#emailconfig'
+  # replace TaggableEmail with MailgunEmail
+  - '#nswdpc-taggable-email'
+---
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\Control\Email\Email:
+    ## replace Email with MailgunEmail via Injector
+    class: 'NSWDPC\Messaging\Mailgun\MailgunEmail'
 ```
 
-Internally, this adds the tags to the options.tag parameter provided to the Mailgun API.
+> Remember to flush configuration after a configuration change.
 
-> Tags set via this method or setCustomParameters will override the other method.
+## Options descriptions
 
-## Future delivery
+### api_testmode
 
-To send in the future, use [scheduled delivery](https://documentation.mailgun.com/en/latest/user_manual.html#scheduling-delivery) with an RFC2822 formatted datetime.
+(bool)
 
-```php
-//send in the future example
-$options = [
-    'deliverytime' => 'Fri, 14 Oct 2032 06:30:00 +1100'
-];
-```
+When true, messages will send with the o:testmode parameter set to 'yes'
+
+Any message sent with this enabled will be accepted but not delivered.
+
+### always_set_sender
+
+(bool)
+
+When true, sets the Sender header to match the From header unless the Sender header is already set.
+
+This can remove "on behalf of" and "sent by" messages showing in email clients.
+
+### send_via_job
+
+(string)
+
+The message will be sent via a Queued Job depending on this setting and the message in question:
+
++ 'yes' = All messages
++ 'no' = Do not send via the queued job
++ 'when-attachments' = Only when attachments are present
+
+With a value of 'when-attachments' set, message delivery attempts without attachments will not use the queued job.
+
+## Configuring your Mailgun account
+
+Configuration of your Mailgun domain and account is beyond the scope of this document but is straightforward.
+
+You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain).
+
+MXToolBox.com is a useful tool to check your mailing domain has valid DMARC records.
+
+## Troubleshooting
+
+A few things can go wrong. If email is not being delivered:
+
++ Check configuration
++ Enable Silverstripe logging per Silverstripe documentation, check logs for any errors or notices
++ Review Mailgin logs in their control panel - are messages being accepted?
++ Review and understand DMARC, SPF and DKIM for your domain, check DNS records
+
+## DMARC considerations
+
+When sending email it's wise to consider how you maintain the quality of your mailing domain (and IP(s)).
+
+If your mailing domain is "mg.example.com" and you send "From: someone@example.net" DMARC rules will most likely kick in at the recipient mail server and your message will be quarantined or rejected (unless example.net designates example.com as a permitted sender).  Instead, use a From header of "someone@mg.example.com" or "someone@example.com" in your messages.
+
+Your Reply-To header can be any valid address.
+
+See [dmarc.org](https://dmarc.org) for more information on the importance of DMARC, SPF and DKIM
+
+
+## Tests
+
+Unit tests: [./tests](./tests). Tests use the [TestMessage](./tests/TestMessage.php) connector.
+
+### Sending emails using sandbox/testmode
+
+For acceptance testing, you can use a combination of the Mailgun sandbox domain and API testmode.
+
++ Sandbox domain: ensure the sending domain value in configuration is set to the sandbox domain provided by Mailgun. Remember to list approved recipients in the sandbox domain settings in the Mailgun control panel.
++ Test mode: set the `api_testmode` value to true. In testmode, Mailgun accepts but does not deliver messages.

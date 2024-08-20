@@ -13,6 +13,9 @@ use Exception;
  */
 class Event extends Base
 {
+    /**
+     * Results of polling for events
+     */
     protected $results = [];
 
     /**
@@ -20,7 +23,7 @@ class Event extends Base
      * @param string $event_filter see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also be a filter expression e.g "failed OR rejected"
      * @param array $extra_params extra parameters for API request
      */
-    public function pollEvents($begin = null, $event_filter = "", $extra_params = []): array
+    public function pollEvents(?string $begin = null, string $event_filter = "", array $extra_params = []): array
     {
         $api_key = $this->getApiKey();
         $client = Mailgun::create($api_key);
@@ -31,16 +34,16 @@ class Event extends Base
             'ascending' => 'yes',
         ];
 
-        if ($begin) {
+        if ($begin !== '') {
             $params['begin'] = $begin;
         }
 
-        if ($event_filter) {
+        if ($event_filter !== '') {
             $params['event'] = $event_filter;
         }
 
         // Push anything extra into the API request
-        if (!empty($extra_params) && is_array($extra_params)) {
+        if ($extra_params !== []) {
             $params = array_merge($params, $extra_params);
         }
 

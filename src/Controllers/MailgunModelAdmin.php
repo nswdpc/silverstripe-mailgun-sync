@@ -21,10 +21,19 @@ use SilverStripe\Forms\GridField\GridFieldDetailForm;
  */
 class MailgunModelAdmin extends ModelAdmin
 {
+    /**
+     * @inheritdoc
+     */
     private static string $url_segment = 'mailgun';
 
+    /**
+     * @inheritdoc
+     */
     private static string $menu_title = 'Mailgun';
 
+    /**
+     * @inheritdoc
+     */
     private static array $managed_models = [
         MailgunEvent::class,
     ];
