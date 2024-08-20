@@ -19,7 +19,7 @@ class SendTestEmailTask extends BuildTask
 
     protected $description = 'Sends a test email via Mailgun using the configured values';
 
-    private static $segment = "SendMailgunTestEmailTask";
+    private static string $segment = "SendMailgunTestEmailTask";
 
     public function run($request)
     {
@@ -34,8 +34,8 @@ class SendTestEmailTask extends BuildTask
             $email->text('My plain text content');
             $email->send();
 
-        } catch (\Exception $e) {
-            DB::alteration_message("Failed: {$e->getMessage()}", "error");
+        } catch (\Exception $exception) {
+            DB::alteration_message("Failed: {$exception->getMessage()}", "error");
         }
 
     }
