@@ -41,7 +41,7 @@ class MailgunWebHook extends Controller
      */
     protected function getConnector(): Webhook
     {
-        $transport = Injector::inst()->create(TransportInterface::class);
+        Injector::inst()->create(TransportInterface::class);
         $key = (string)Environment::getEnv('MAILGUN_WEBHOOK_API_KEY');
         $domain = (string)Environment::getEnv('MAILGUN_WEBHOOK_DOMAIN');
         $region = (string)Environment::getEnv('MAILGUN_WEBHOOK_REGION');
@@ -49,6 +49,7 @@ class MailgunWebHook extends Controller
         if($region !== '') {
             $options = "?region={$region}";
         }
+
         $dsn = "mailgunsync+api://{$domain}:{$key}@default/{$options}";
         return Webhook::create($dsn);
     }
