@@ -2,10 +2,9 @@
 
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
-use NSWDPC\Messaging\Mailgun\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\Log;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use Mailgun\Mailgun;
-use Exception;
 
 /**
  * Connector to handle Mailgun Event API request/response
