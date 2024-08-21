@@ -3,6 +3,9 @@
 namespace NSWDPC\Messaging\Mailgun\Transport;
 
 use NSWDPC\Messaging\Mailgun\Services\Logger;
+use NSWDPC\Messaging\Mailgun\Services\MailerSubscriber;
+use Psr\Log\LoggerInterface;
+use SilverStripe\Core\Injector\Injector;
 use Symfony\Component\Mailer\Exception\UnsupportedSchemeException;
 use Symfony\Component\Mailer\Transport\AbstractTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
@@ -21,6 +24,13 @@ final class MailgunSyncTransportFactory extends AbstractTransportFactory
     {
         $scheme = $dsn->getScheme();
         if ('mailgunsync+api' === $scheme) {
+            if($this->dispatcher) {
+                $subscriber = new MailerSubscriber();
+                $this->dispatcher->addSubscriber($subscriber);
+            }
+            if(is_null($this->logger)) {
+                $this->logger = Injector::inst()->get(LoggerInterface::class);
+            }
             $transport = new MailgunSyncApiTransport($this->client, $this->dispatcher, $this->logger);
             $transport->setDsn($dsn);
             return $transport;

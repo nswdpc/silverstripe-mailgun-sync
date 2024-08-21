@@ -146,8 +146,7 @@ class MailgunSyncApiTransport extends AbstractApiTransport
 
             return $apiResponse;
         } catch (\Exception $exception) {
-            $msg = 'Mailgun-Sync / Mailgun error: ' . $exception->getMessage();
-            throw new HttpTransportException($msg, $apiResponse, 0, $exception);
+            throw new HttpTransportException($exception->getMessage(), $apiResponse, 0, $exception);
         }
     }
 
