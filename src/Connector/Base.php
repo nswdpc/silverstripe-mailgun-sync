@@ -3,6 +3,7 @@
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
+use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebhook;
 use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;

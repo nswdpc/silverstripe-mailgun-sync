@@ -15,11 +15,11 @@ use SilverStripe\Core\Environment;
  */
 class WebhookTest extends FunctionalTest
 {
-    protected string $webhook_filter_variable = 'skjhgiehg943753-"';
+    protected string $webhook_filter_variable = 'test-filter-var-curr';
 
-    protected string $webhook_previous_filter_variable = 'snsd875bslw[';
+    protected string $webhook_previous_filter_variable = 'test-filter-var-prev';
 
-    protected string $webhook_signing_key = 'abcd1234';
+    protected string $webhook_signing_key = 'TEST_SHOULD_PASS';
 
     protected string $test_api_key = 'webhook_api_key';
 
@@ -36,15 +36,15 @@ class WebhookTest extends FunctionalTest
         Environment::setEnv('MAILGUN_WEBHOOK_DOMAIN', $this->test_api_domain);
         Environment::setEnv('MAILGUN_WEBHOOK_REGION', $this->test_api_region);
         Environment::setEnv('MAILGUN_WEBHOOK_FILTER_VARIABLE', $this->webhook_filter_variable);
-        Environment::setEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE', $this->webhook_filter_variable);
+        Environment::setEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE', $this->webhook_previous_filter_variable);
         Environment::setEnv('MAILGUN_WEBHOOK_SIGNING_KEY', $this->webhook_signing_key);
         Config::modify()->set(MailgunWebhook::class, 'webhooks_enabled', true);
     }
 
     protected function getTestDsn(): string
     {
-        $domain = Environment::setEnv('MAILGUN_WEBHOOK_DOMAIN');
-        $key = Environment::setEnv('MAILGUN_WEBHOOK_API_KEY');
+        $domain = Environment::getEnv('MAILGUN_WEBHOOK_DOMAIN');
+        $key = Environment::getEnv('MAILGUN_WEBHOOK_API_KEY');
         return "mailgunsync+api://{$domain}:{$key}@default";
     }
 
@@ -73,24 +73,15 @@ class WebhookTest extends FunctionalTest
     }
 
     /**
-     * Set a signing key in Configuration
-     * @param string $signing_key
-     */
-    protected function setSigningKey($signing_key)
-    {
-        Config::modify()->set(Base::class, 'webhook_signing_key', $signing_key);
-    }
-
-    /**
      * Replace the signature on the request data with something to trigger success/error
-     * @param string $signing_key
-     * @param string $request_data
+     * @param string $request_data JSON encoded request data from a test payload
      * @return array
      */
-    protected function setSignatureOnRequest($signing_key, $request_data)
+    protected function setSignatureOnRequest(string $request_data)
     {
         $decoded = json_decode($request_data, true);
         $connector = $this->getConnector();
+        // sign the signature
         $signature = $connector->sign_token($decoded['signature']);
         $decoded['signature']['signature'] = $signature;
         return $decoded;
@@ -109,16 +100,16 @@ class WebhookTest extends FunctionalTest
      */
     protected function sendWebhookRequest($type)
     {
-        $signing_key = "TEST_SHOULD_PASS";
-        $this->setSigningKey($signing_key);
+
+        $signingKey = Environment::getEnv('MAILGUN_WEBHOOK_SIGNING_KEY');
 
         $url = $this->getSubmissionUrl();
         $headers = [
             'Content-Type' => "application/json"
         ];
         $session = null;
-        $data = $this->setSignatureOnRequest($signing_key, $this->getWebhookRequestData($type));
-        $data = $this->setWebhookFilterVariable($data, $this->webhook_filter_variable);
+        $data = $this->setSignatureOnRequest($this->getWebhookRequestData($type));
+        $data = $this->setWebhookFilterVariable($data, Environment::getEnv('MAILGUN_WEBHOOK_FILTER_VARIABLE'));
 
         $cookies = null;
 
@@ -128,7 +119,7 @@ class WebhookTest extends FunctionalTest
         $this->assertEquals(
             200,
             $response->getStatusCode(),
-            'Expected success response with correct signing_key failed: ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
+            'Expected success response with correct signing_key ' . $signingKey . ' failed: ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
         );
 
         $event = \Mailgun\Model\Event\Event::create($data['event-data']);
@@ -138,14 +129,13 @@ class WebhookTest extends FunctionalTest
         $this->assertTrue($record && $record->exists(), "DB Mailgun event does not exist for event {$event->getId()}");
 
         // change the webhook config variable to the previous var
-        $data = $this->setWebhookFilterVariable($data, $this->webhook_previous_filter_variable);
+        $data = $this->setWebhookFilterVariable($data, Environment::getEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE'));
         $response = $this->post($url, $data, $headers, $session, json_encode($data, JSON_UNESCAPED_SLASHES), $cookies);
         $this->assertEquals(
             200,
             $response->getStatusCode(),
-            'Expected success response with correct signing_key failed: ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
+            'Expected success response with correct signing_key ' . $signingKey . ' failed: ' . $response->getStatusCode() . "/" . $response->getStatusDescription()
         );
-
 
         // change the webhook variable to something else completely
         $data = $this->setWebhookFilterVariable($data, 'not going to work');
@@ -158,12 +148,10 @@ class WebhookTest extends FunctionalTest
 
         // remove webhook variable and test
         unset($data['event-data']['user-variables']['wfv']);
-        Config::modify()->set(Base::class, 'webhook_filter_variable', '');
-        Config::modify()->set(Base::class, 'webhook_previous_filter_variable', '');
-
-        // change the signing key in config, it should fail now
-        $signing_key = "YOU_SHALL_NOT_PASS";
-        $this->setSigningKey($signing_key);
+        Environment::setEnv('MAILGUN_WEBHOOK_FILTER_VARIABLE', '');
+        Environment::setEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE', '');
+        // change the signing key, it should fail now as the payload signatures are signed with the 'webhook_signing_key' value
+        Environment::setEnv('MAILGUN_WEBHOOK_SIGNING_KEY', "YOU_SHALL_NOT_PASS");
         $response = $this->post($url, $data, $headers, $session, json_encode($data, JSON_UNESCAPED_SLASHES), $cookies);
         $this->assertEquals(
             406,
@@ -172,37 +160,37 @@ class WebhookTest extends FunctionalTest
         );
     }
 
-    public function testWebookDelivered(): void
+    public function testWebhookDelivered(): void
     {
         $this->sendWebhookRequest("delivered");
     }
 
-    public function testWebookClick(): void
+    public function testWebhookClick(): void
     {
         $this->sendWebhookRequest("clicked");
     }
 
-    public function testWebookOpened(): void
+    public function testWebhookOpened(): void
     {
         $this->sendWebhookRequest("opened");
     }
 
-    public function testWebookFailedPermanent(): void
+    public function testWebhookFailedPermanent(): void
     {
         $this->sendWebhookRequest("failed_permanent");
     }
 
-    public function testWebookFailedTemporary(): void
+    public function testWebhookFailedTemporary(): void
     {
         $this->sendWebhookRequest("failed_temporary");
     }
 
-    public function testWebookUnsubscribed(): void
+    public function testWebhookUnsubscribed(): void
     {
         $this->sendWebhookRequest("unsubscribed");
     }
 
-    public function testWebookComplained(): void
+    public function testWebhookComplained(): void
     {
         $this->sendWebhookRequest("complained");
     }
