@@ -46,7 +46,7 @@ class MailerSubscriber implements EventSubscriberInterface
             } else {
                 Logger::log("Mailgun sent", "INFO");
             }
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             Logger::log("Sent mailgun message but failed to decoded SentMessage", "NOTICE");
         }
     }

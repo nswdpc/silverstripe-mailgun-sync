@@ -28,9 +28,11 @@ final class MailgunSyncTransportFactory extends AbstractTransportFactory
                 $subscriber = new MailerSubscriber();
                 $this->dispatcher->addSubscriber($subscriber);
             }
+
             if(is_null($this->logger)) {
                 $this->logger = Injector::inst()->get(LoggerInterface::class);
             }
+
             $transport = new MailgunSyncApiTransport($this->client, $this->dispatcher, $this->logger);
             $transport->setDsn($dsn);
             return $transport;
