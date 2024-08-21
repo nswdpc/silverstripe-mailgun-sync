@@ -8,7 +8,6 @@ use Mailgun\Model\Message\ShowResponse;
 use NSWDPC\Messaging\Mailgun\Jobs\SendJob;
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use NSWDPC\Messaging\Mailgun\Services\Logger;
-use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
 use SilverStripe\Assets\Folder;
 use SilverStripe\Assets\File;
 use SilverStripe\Security\Group;
@@ -208,34 +207,6 @@ class Message extends Base
         } else {
             return null;
         }
-    }
-
-    /**
-     * Lookup all events for the submission linked to this event
-     */
-    public function isDelivered(MailgunEvent $event, $cleanup = true): bool
-    {
-
-        // Query will be for this MessageId and a delivered status
-        if (empty($event->MessageId)) {
-            throw new \Exception("Tried to query a message based on MailgunEvent #{$event->ID} with no linked MessageId");
-        }
-
-        // poll for delivered events, MG stores them for up to 30 days
-        // @TODO an API sending key in the DSN cannot be used here as it can only send emails
-        $connector = EventConnector::create($this->dsn);
-        $timeframe = 'now -30 days';
-        $begin = Base::DateTime($timeframe);
-
-        $event_filter = MailgunEvent::DELIVERED;// no we don't want to resubmit
-        $extra_params = [
-            'limit' => 25,
-            'message-id' => $event->MessageId,
-            'recipient' => $event->Recipient,// match against the recipient of the event
-        ];
-
-        $events = $connector->pollEvents($begin, $event_filter, $extra_params);
-        return $events !== [];
     }
 
     /**
