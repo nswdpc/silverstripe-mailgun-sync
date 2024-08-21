@@ -4,7 +4,7 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 
 use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Webhook;
-use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebhook;
+use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebHook;
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Config\Config;
@@ -38,7 +38,7 @@ class WebhookTest extends FunctionalTest
         Environment::setEnv('MAILGUN_WEBHOOK_FILTER_VARIABLE', $this->webhook_filter_variable);
         Environment::setEnv('MAILGUN_WEBHOOK_PREVIOUS_FILTER_VARIABLE', $this->webhook_previous_filter_variable);
         Environment::setEnv('MAILGUN_WEBHOOK_SIGNING_KEY', $this->webhook_signing_key);
-        Config::modify()->set(MailgunWebhook::class, 'webhooks_enabled', true);
+        Config::modify()->set(MailgunWebHook::class, 'webhooks_enabled', true);
     }
 
     protected function getTestDsn(): string
