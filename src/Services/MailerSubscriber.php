@@ -16,7 +16,6 @@ use Symfony\Component\Mailer\SentMessage;
  */
 class MailerSubscriber implements EventSubscriberInterface
 {
-
     /**
      * @inheritdoc
      */
@@ -42,7 +41,7 @@ class MailerSubscriber implements EventSubscriberInterface
             $queuedJobId = $decoded['queuedJobDescriptor'] ?? '';
             if($msgId !== '') {
                 Logger::log("Mailgun accepted message {$msgId}", "INFO");
-            } else if($queuedJobId !== '') {
+            } elseif($queuedJobId !== '') {
                 Logger::log("Queued job #{$queuedJobId} was created for mailgun send attempt", "INFO");
             } else {
                 Logger::log("Mailgun sent", "INFO");
