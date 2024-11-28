@@ -30,6 +30,7 @@ class TransportFactory extends SilverStripeEmailTransportFactory
         foreach ($defaultFactories as $defaultFactory) {
             $factories[] = $defaultFactory;
         }
+
         $transport = new Transport($factories);
         return $transport->fromString($dsn);
     }
