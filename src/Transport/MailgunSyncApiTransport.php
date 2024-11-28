@@ -128,7 +128,7 @@ class MailgunSyncApiTransport extends AbstractApiTransport
 
             $apiResponse = new ApiResponse();
 
-            if(!($this->dsn instanceof Dsn)) {
+            if (!($this->dsn instanceof Dsn)) {
                 throw new \RuntimeException("No DSN set for send attempt.");
             }
 
@@ -261,7 +261,7 @@ class MailgunSyncApiTransport extends AbstractApiTransport
         $sendAllEmailsFrom = SilverStripeEmail::getSendAllEmailsFrom();
         if ($sendAllEmailsFrom !== []) {
             $sendAllEmailsFrom = $this->processEmailDisplayName($sendAllEmailsFrom);
-            if($sendAllEmailsFrom !== []) {
+            if ($sendAllEmailsFrom !== []) {
                 // the current from for the message
                 $from = $parameters['from'];
                 $parameters['h:Reply-To'] = $from;// set the original from as a reply-to

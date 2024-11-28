@@ -46,7 +46,7 @@ class MailgunWebHook extends Controller
         $domain = (string)Environment::getEnv('MAILGUN_WEBHOOK_DOMAIN');
         $region = (string)Environment::getEnv('MAILGUN_WEBHOOK_REGION');
         $options = "";
-        if($region !== '') {
+        if ($region !== '') {
             $options = "?region={$region}";
         }
 

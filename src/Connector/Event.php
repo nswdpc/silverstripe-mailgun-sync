@@ -31,7 +31,7 @@ class Event extends Base
     public function isDeliveredMessage(string $msgId, string $recipient): bool
     {
 
-        if($msgId === '') {
+        if ($msgId === '') {
             throw new \UnexpectedValueException("Empty message id when checking isDelivered");
         }
 

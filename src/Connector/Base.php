@@ -66,7 +66,7 @@ abstract class Base
      */
     public function __construct(Dsn|string $dsn)
     {
-        if(is_string($dsn)) {
+        if (is_string($dsn)) {
             $dsn = Dsn::fromString($dsn);
         }
 
@@ -96,7 +96,7 @@ abstract class Base
             $apiKey = $this->getApiKey();
         }
 
-        if($apiKey === '') {
+        if ($apiKey === '') {
             throw new \RuntimeException("Cannot send if no API key is present");
         }
 
@@ -120,7 +120,7 @@ abstract class Base
     public function getApiEndpointRegion(): string
     {
         $region = $this->dsn->getOption('region');
-        if(!is_string($region)) {
+        if (!is_string($region)) {
             $region = '';
         }
 
@@ -198,7 +198,7 @@ abstract class Base
      */
     final protected function applyTestMode(array &$parameters): void
     {
-        if($this->config()->get('api_testmode')) {
+        if ($this->config()->get('api_testmode')) {
             $parameters['o:testmode'] = 'yes';
         }
     }

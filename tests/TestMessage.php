@@ -54,10 +54,10 @@ class TestMessage extends Message
 
         // send options
         $send_via_job = $this->sendViaJob();
-        if($send_via_job === 'yes') {
+        if ($send_via_job === 'yes') {
             $this->sentVia = 'job';
             $response = $this->queueAndSend($domain, $parameters, $in);
-        } elseif($send_via_job === 'when-attachments') {
+        } elseif ($send_via_job === 'when-attachments') {
             $this->sentVia = 'job-as-attachments';
             $response = $this->queueAndSend($domain, $parameters, $in);
         } else {

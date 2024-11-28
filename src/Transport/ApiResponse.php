@@ -49,7 +49,7 @@ class ApiResponse implements ResponseInterface
      */
     public function setMsgId(string $msgId): static
     {
-        if(!is_null($this->queuedJobDescriptor)) {
+        if (!is_null($this->queuedJobDescriptor)) {
             throw new \RuntimeException("Cannot set a msgId response if the response already has a QueuedJobDescriptor");
         }
 
@@ -70,7 +70,7 @@ class ApiResponse implements ResponseInterface
      */
     public function setQueuedJobDescriptor(QueuedJobDescriptor $queuedJobDescriptor): static
     {
-        if($this->msgId !== '') {
+        if ($this->msgId !== '') {
             throw new \RuntimeException("Cannot set a QueuedJobDescriptor response if the response already has a msgId");
         }
 
@@ -101,9 +101,9 @@ class ApiResponse implements ResponseInterface
      */
     public function getStatusCode(): int
     {
-        if($this->msgId !== '') {
+        if ($this->msgId !== '') {
             return 200;// OK
-        } elseif(!is_null($this->queuedJobDescriptor)) {
+        } elseif (!is_null($this->queuedJobDescriptor)) {
             return 202;// Accepted
         } else {
             return 500;// Error condition
@@ -197,7 +197,7 @@ class ApiResponse implements ResponseInterface
      */
     public function getInfo(?string $type = null): mixed
     {
-        if($this->msgId !== '' || !is_null($this->queuedJobDescriptor)) {
+        if ($this->msgId !== '' || !is_null($this->queuedJobDescriptor)) {
             // return info based on message send handling
             $info = [
                 'canceled' => false,
@@ -214,7 +214,7 @@ class ApiResponse implements ResponseInterface
             $info = [];
         }
 
-        if(!is_null($type)) {
+        if (!is_null($type)) {
             return $info[$type] ?? null;
         } else {
             return $info;

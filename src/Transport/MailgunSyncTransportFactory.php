@@ -24,12 +24,12 @@ final class MailgunSyncTransportFactory extends AbstractTransportFactory
     {
         $scheme = $dsn->getScheme();
         if ('mailgunsync+api' === $scheme) {
-            if($this->dispatcher) {
+            if ($this->dispatcher) {
                 $subscriber = new MailerSubscriber();
                 $this->dispatcher->addSubscriber($subscriber);
             }
 
-            if(is_null($this->logger)) {
+            if (is_null($this->logger)) {
                 $this->logger = Injector::inst()->get(LoggerInterface::class);
             }
 

@@ -39,9 +39,9 @@ class MailerSubscriber implements EventSubscriberInterface
             $decoded = json_decode($message->getMessageId(), true, 512, JSON_THROW_ON_ERROR);
             $msgId = $decoded['msgId'] ?? '';
             $queuedJobId = $decoded['queuedJobDescriptor'] ?? '';
-            if($msgId !== '') {
+            if ($msgId !== '') {
                 Logger::log("Mailgun accepted message {$msgId}", "INFO");
-            } elseif($queuedJobId !== '') {
+            } elseif ($queuedJobId !== '') {
                 Logger::log("Queued job #{$queuedJobId} was created for mailgun send attempt", "INFO");
             } else {
                 Logger::log("Mailgun sent", "INFO");

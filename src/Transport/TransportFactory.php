@@ -27,7 +27,7 @@ class TransportFactory extends SilverStripeEmailTransportFactory
         $factories = [];
         // add the transport factory from this module
         $factories[] = new MailgunSyncTransportFactory($dispatcher, $client, $logger);
-        foreach($defaultFactories as $defaultFactory) {
+        foreach ($defaultFactories as $defaultFactory) {
             $factories[] = $defaultFactory;
         }
         $transport = new Transport($factories);

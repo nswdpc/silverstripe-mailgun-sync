@@ -636,7 +636,7 @@ class MailgunSyncTest extends SapphireTest
         // Symfony attachments
         $symfonyAttachments = $email->getAttachments();
         $this->assertEquals(count($files), count($symfonyAttachments));
-        foreach($symfonyAttachments as $symfonyAttachment) {
+        foreach ($symfonyAttachments as $symfonyAttachment) {
             $this->assertInstanceOf(\Symfony\Component\Mime\Part\DataPart::class, $symfonyAttachment);
         }
 
