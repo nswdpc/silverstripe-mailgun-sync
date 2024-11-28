@@ -14,17 +14,22 @@ class TransportFactory extends SilverStripeEmailTransportFactory
 {
     /**
      * Ensure the MailgunSyncTransportFactory as added as a TransportFactory
+     * so that when the mailgunsync+api:// DSN is used, it gets picked up
      */
     public function create($service, array $params = [])
     {
         $dsn = Environment::getEnv('MAILER_DSN') ?: $params['dsn'];
-        $defaultFactories = Transport::getDefaultFactories();
+        $dispatcher = $params['dispatcher'] ?? null;
+        $client = $params['client'] ?? null;
+        $logger = $params['logger'] ?? null;
+        // get all default factories
+        $defaultFactories = Transport::getDefaultFactories($dispatcher, $client, $logger);
         $factories = [];
-        $factories[] = new MailgunSyncTransportFactory($params['dispatcher'] ?? null, $params['client'] ?? null, $params['logger'] ?? null);
+        // add the transport factory from this module
+        $factories[] = new MailgunSyncTransportFactory($dispatcher, $client, $logger);
         foreach($defaultFactories as $defaultFactory) {
             $factories[] = $defaultFactory;
         }
-
         $transport = new Transport($factories);
         return $transport->fromString($dsn);
     }
