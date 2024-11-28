@@ -3,8 +3,8 @@
 namespace NSWDPC\Messaging\Mailgun\Email;
 
 use NSWDPC\Messaging\Taggable\TaggableEmail;
-use NSWDPC\StructuredEmail\CustomParameters;
-use NSWDPC\StructuredEmail\EmailWithCustomParameters;
+use NSWDPC\Messaging\Taggable\CustomParameters;
+use NSWDPC\Messaging\Taggable\EmailWithCustomParameters;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;

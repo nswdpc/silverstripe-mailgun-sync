@@ -8,7 +8,7 @@ use NSWDPC\Messaging\Mailgun\Exceptions\SendException;
 use NSWDPC\Messaging\Mailgun\Services\Logger;
 use NSWDPC\Messaging\Mailgun\Transport\ApiResponse;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
-use NSWDPC\StructuredEmail\EmailWithCustomParameters;
+use NSWDPC\Messaging\Taggable\EmailWithCustomParameters;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Control\Email\Email as SilverStripeEmail;
