@@ -12,7 +12,7 @@ use Symfony\Component\Mailer\Event\FailedMessageEvent;
 use Symfony\Component\Mailer\SentMessage;
 
 /**
- * Subscribe to message, send and failed events
+ * Subscribe to SentMessageEvent and FailedMessageEvent events
  */
 class MailerSubscriber implements EventSubscriberInterface
 {
