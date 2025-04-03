@@ -43,7 +43,7 @@
         "nyholm/psr7" : "^1.8",
         "silverstripe/framework" : "^5",
         "nswdpc/silverstripe-taggable-notifications": "^1",
-        "symfony/http-client": "^6.4"
+        "symfony/http-client": "^6.4|^7.0"
     },
     "require-dev": {
         "cambis/silverstripe-rector": "^0.5.1",
