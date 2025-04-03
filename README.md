@@ -29,9 +29,9 @@ composer require nswdpc/silverstripe-mailgun-sync
 
 See [Getting Started](./docs/en/001-index.md)
 
-### Breaking changes
+## Breaking changes
 
-## 5.0 release
+### 2.0+ release
 
 This version refactored the module to support the `silverstripe/framework` change to using `symfony/mailer` and is not backwards compatible with previous versions. When updating your project, be aware of the following changes:
 
@@ -43,7 +43,7 @@ This version refactored the module to support the `silverstripe/framework` chang
 + 'Always from' handling was removed, Email.send_all_emails_from is now the only way to do this
 + All client connectors that extend `Base` must now provide a `Dsn` or a string that a `Dsn` can be created from:
 
-## 1.0 release
+### 1.0 release
 
 Version 1 removed unused features to reduce the complexity of this module.
 
