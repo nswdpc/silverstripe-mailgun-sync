@@ -120,6 +120,13 @@ class MailgunSyncApiTransport extends AbstractApiTransport
 
     /**
      * Do send via the API
+     * This is the point where messages ares are handed off to the Mailgun SDK for API delivery
+     * 1. SilverStripe\Control\Email\Email->send()
+     * 2. Symfony\Component\Mailer\Mailer->send(Object(NSWDPC\Messaging\Mailgun\Email\MailgunEmail))
+     * 3. Symfony\Component\Mailer\Transport\AbstractTransport->send(Object(NSWDPC\Messaging\Mailgun\Email\MailgunEmail), Object(Symfony\Component\Mailer\DelayedEnvelope))
+     * 4. Symfony\Component\Mailer\Transport\AbstractHttpTransport->doSend(Object(Symfony\Component\Mailer\SentMessage))
+     * 5. Symfony\Component\Mailer\Transport\AbstractApiTransport->doSendHttp(Object(Symfony\Component\Mailer\SentMessage))
+     * 6. NSWDPC\Messaging\Mailgun\Transport\MailgunSyncApiTransport->doSendApi(Object(Symfony\Component\Mailer\SentMessage), Object(NSWDPC\Messaging\Mailgun\Email\MailgunEmail), Object(Symfony\Component\Mailer\DelayedEnvelope))
      * @throws \RuntimeException|HttpTransportException
      */
     protected function doSendApi(SentMessage $sentMessage, SymfonyEmail $email, Envelope $envelope): ResponseInterface
