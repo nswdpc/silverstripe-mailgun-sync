@@ -8,19 +8,25 @@ See also:
 
 ## Configuration
 
+### Setup
 First, follow the setup details as defined in the Silverstripe Email documentation.
+
+### DSN
 You must use a DSN in the format below (either in yaml as below) or as the MAILER_DSN environment variable value (recommended)
 
-In the DSN formatted as `scheme://user:password/host/?query_string`
+The DSN format is: `mailgunsync+api://domain:apikey@default?region=REGION_NAME`
 
 + scheme: mailgunsync+api, this loads the correct Transport
-+ user: the Mailgun sending domain
-+ pass: the Mailgin sending API key
-+ host: this is set to 'default' and is internally updated based on the region option
-+ region: in the query string, set region=API_ENDPOINT_EU to send via the EU region (example below)
++ domain: your Mailgun sending domain
++ apikey: your Mailgun sending API key
++ region: (optional) in the query string, set region=API_ENDPOINT_EU to send via the Mailgun EU region
 
+As an environment variable:
+```sh
+MAILER_DSN="mailgunsync+api://sendingdomain:apikey@default"
+```
 
-Add the following to your project's local yaml config e.g. in `app/_config/local.yml` and update options as required. Ignore this file in version control for your project (do not commit secrets to VCS).
+or, as YML configuration:
 
 ```yaml
 ---
@@ -31,31 +37,13 @@ After:
 SilverStripe\Core\Injector\Injector:
   Symfony\Component\Mailer\Transport\TransportInterface:
     constructor:
-      # , region not specified, and so will be set to API_ENDPOINT_DEFAULT internally
       dsn: 'mailgunsync+api://sendingdomain:apikey@default'
-      # Specify a default region
-      # dsn: 'mailgunsync+api://sendingdomain:apikey@default?region=API_ENDPOINT_DEFAULT'
-      # Specify use of the EU region
-      # dsn: 'mailgunsync+api://sendingdomain:apikey@default?region=API_ENDPOINT_EU'
 ---
 ```
 
-You can override other options in the same config file
+### Other project configuration
 
-```yaml
-Name: local-mailgunsync
-After:
-  - '#app-mailgunsync'
----
-# API config
-NSWDPC\Messaging\Mailgun\Connector\Base:
-  # API settings
-  api_testmode: false
-```
-
-### Set up a project configuration
-
-Add the following to your project's yaml config e.g. in `app/_config/mailgun.yml` and update options.
+Add the following to your project's YML config e.g. in `app/_config/mailgun.yml` and update options per your requirements.
 
 ```yaml
 ---
@@ -74,21 +62,17 @@ NSWDPC\Messaging\Mailgun\Connector\Base:
   # (string) When set, messages with no 'To' header are delivered here.
   default_recipient: ''
 ---
-# Configure the mailer
+# Configure the Email class to use
+# MailgunEmail provides taggable email handling
 Name: app-emailconfig
-After:
-  # override core email configuration
-  - '#emailconfig'
-  # replace TaggableEmail with MailgunEmail
-  - '#nswdpc-taggable-email'
 ---
 SilverStripe\Core\Injector\Injector:
   SilverStripe\Control\Email\Email:
-    ## replace Email with MailgunEmail via Injector
     class: 'NSWDPC\Messaging\Mailgun\MailgunEmail'
 ```
 
 > Remember to flush configuration after a configuration change.
+
 
 ## Options descriptions
 
@@ -132,10 +116,11 @@ MXToolBox.com is a useful tool to check your mailing domain has valid DMARC reco
 
 A few things can go wrong. If email is not being delivered:
 
-+ Check configuration
++ Check configuration + credentials
++ Check IP Access Management
 + Enable Silverstripe logging per Silverstripe documentation, check logs for any errors or notices
 + Review Mailgin logs in their control panel - are messages being accepted?
-+ Review and understand DMARC, SPF and DKIM for your domain, check DNS records
++ Review and understand DMARC, SPF and DKIM for your domain, verify your DNS records
 
 ## DMARC considerations
 
@@ -147,14 +132,13 @@ Your Reply-To header can be any valid address.
 
 See [dmarc.org](https://dmarc.org) for more information on the importance of DMARC, SPF and DKIM
 
-
 ## Tests
 
-Unit tests: [./tests](./tests). Tests use the [TestMessage](./tests/TestMessage.php) connector.
+Unit tests: [./tests](./tests). Tests use the [TestMessage](./tests/TestMessage.php) connector and messages are not delivered externally.
 
 ### Sending emails using sandbox/testmode
 
-For acceptance testing, you can use a combination of the Mailgun sandbox domain and API testmode.
+For acceptance testing, you can use a combination of the Mailgun sandbox domain and/or API testmode.
 
 + Sandbox domain: ensure the sending domain value in configuration is set to the sandbox domain provided by Mailgun. Remember to list approved recipients in the sandbox domain settings in the Mailgun control panel.
 + Test mode: set the `api_testmode` value to true. In testmode, Mailgun accepts but does not deliver messages.

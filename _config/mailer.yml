@@ -5,6 +5,7 @@ After:
 ---
 SilverStripe\Core\Injector\Injector:
   # override the core transport factory to ensure that the Mailgun Api transport
-  # factor is registered as a transport factory
+  # factory is registered as a transport factory, along with the other default
+  # transport factories
   SilverStripe\Control\Email\TransportFactory:
     class: 'NSWDPC\Messaging\Mailgun\Transport\TransportFactory'
