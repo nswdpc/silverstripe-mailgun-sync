@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
@@ -21,10 +22,9 @@ use Exception;
  */
 class Message extends Base
 {
-
     /**
      * Delay sending (via queued job)
-     * @var float
+     * @var int
      */
     protected $send_in_seconds = 0;
 
@@ -74,6 +74,7 @@ class Message extends Base
         if (empty($event->StorageURL)) {
             throw new Exception("No StorageURL found on MailgunEvent #{$event->ID}");
         }
+
         // Get the mime encoded message, by passing the Accept header
         $message = $client->messages()->show($event->StorageURL, true);
         return $message;
@@ -110,20 +111,19 @@ class Message extends Base
         $this->applyDefaultRecipient($parameters);
 
         // apply the webhook_filter_variable, if webhooks are enabled
-        if($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
+        if ($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
             $parameters["v:wfv"] = $variable;
         }
 
         // Send a message defined by the parameters provided
         return $this->sendMessage($parameters);
-
     }
 
     /**
      * Sends a message
-     * @param array $parameters
      */
-    protected function sendMessage(array $parameters) {
+    protected function sendMessage(array $parameters)
+    {
 
         /**
          * @var \Mailgun\Mailgun
@@ -137,21 +137,12 @@ class Message extends Base
         // send options
         $send_via_job = $this->sendViaJob();
         $in = $this->getSendIn();// seconds
-        switch ($send_via_job) {
-            case 'yes':
-                return $this->queueAndSend($domain, $parameters, $in);
-                break;
-            case 'when-attachments':
-                if (!empty($parameters['attachment'])) {
-                    return $this->queueAndSend($domain, $parameters, $in);
-                    break;
-                }
-                // fallback to direct
-                // no break
-            case 'no':
-            default:
-                return $client->messages()->send($domain, $parameters);
-                break;
+        if ($send_via_job == 'yes') {
+            return $this->queueAndSend($domain, $parameters, $in);
+        } elseif ($send_via_job == 'when-attachments' && !empty($parameters['attachment'])) {
+            return $this->queueAndSend($domain, $parameters, $in);
+        } else {
+            return $client->messages()->send($domain, $parameters);
         }
     }
 
@@ -163,7 +154,7 @@ class Message extends Base
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
             foreach ($parameters['attachment'] as $k=>$attachment) {
-                $parameters['attachment'][$k]['fileContent'] = base64_encode($attachment['fileContent']);
+                $parameters['attachment'][$k]['fileContent'] = base64_encode((string) $attachment['fileContent']);
             }
         }
     }
@@ -176,52 +167,56 @@ class Message extends Base
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
             foreach ($parameters['attachment'] as $k=>$attachment) {
-                $parameters['attachment'][$k]['fileContent'] = base64_decode($attachment['fileContent']);
+                $parameters['attachment'][$k]['fileContent'] = base64_decode((string) $attachment['fileContent']);
             }
         }
     }
 
     /**
      * Returns a DateTime being when the queued job should be started after
-     * @param string $in See:http://php.net/manual/en/datetime.formats.relative.php
+     * @param mixed $in See:http://php.net/manual/en/datetime.formats.relative.php
      */
-    private function getSendDateTime($in) : ?\DateTime
+    private function getSendDateTime(mixed $in): ?\DateTime
     {
         try {
-            $dt = $default = null;
-            if($in > 0) {
+            $dt = null;
+            $default = null;
+            if ((is_int($in) || is_float($in)) && $in > 0) {
                 $dt = new \DateTime("now +{$in} seconds");
             }
-        } catch (\Exception $e) {
+        } catch (\Exception) {
         }
-        return $dt ? $dt : $default;
+
+        return $dt instanceof \DateTime ? $dt : $default;
     }
 
     /**
      * Send via the queued job
      * @param string $domain the Mailgun API domain e.g sandboxXXXXXX.mailgun.org
      * @param array $parameters Mailgun API parameters
-     * @param string $in
+     * @param mixed $in See:http://php.net/manual/en/datetime.formats.relative.php
      * @return QueuedJobDescriptor|false
      */
-    protected function queueAndSend($domain, $parameters, $in)
+    protected function queueAndSend(string $domain, array $parameters, mixed $in)
     {
         $this->encodeAttachments($parameters);
         $startAfter = null;
-        if($start = $this->getSendDateTime($in)) {
+        if (($start = $this->getSendDateTime($in)) instanceof \DateTime) {
             $startAfter = $start->format('Y-m-d H:i:s');
         }
+
         $job  = new SendJob($domain, $parameters);
-        if($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
+        if ($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
             return QueuedJobDescriptor::get()->byId($job_id);
         }
+
         return false;
     }
 
     /**
      * Lookup all events for the submission linked to this event
      */
-    public function isDelivered(MailgunEvent $event, $cleanup = true)
+    public function isDelivered(MailgunEvent $event, $cleanup = true): bool
     {
 
         // Query will be for this MessageId and a delivered status
@@ -234,8 +229,7 @@ class Message extends Base
         $timeframe = 'now -30 days';
         $begin = Base::DateTime($timeframe);
 
-        $event_filter = MailgunEvent::DELIVERED;
-        $resubmit = false;// no we don't want to resubmit
+        $event_filter = MailgunEvent::DELIVERED;// no we don't want to resubmit
         $extra_params = [
             'limit' => 25,
             'message-id' => $event->MessageId,
@@ -243,20 +237,16 @@ class Message extends Base
         ];
 
         $events = $connector->pollEvents($begin, $event_filter, $extra_params);
-
-        $is_delivered = !empty($events);
-        return $is_delivered;
+        return $events !== [];
     }
 
     /**
      * Trim < and > from message id
-     * @return string
      * @param string $message_id
      */
-    public static function cleanMessageId($message_id)
+    public static function cleanMessageId($message_id): string
     {
-        $message_id = trim($message_id, "<>");
-        return $message_id;
+        return trim($message_id, "<>");
     }
 
     /**
@@ -264,12 +254,14 @@ class Message extends Base
      * This is not the "o:deliverytime" option ("Messages can be scheduled for a maximum of 3 days in the future.")
      * To set "deliverytime" set it as an option to setOptions()
      */
-    public function setSendIn(float $seconds) {
+    public function setSendIn(int $seconds): static
+    {
         $this->send_in_seconds = $seconds;
         return $this;
     }
 
-    public function getSendIn() {
+    public function getSendIn()
+    {
         return $this->send_in_seconds;
     }
 
@@ -278,7 +270,8 @@ class Message extends Base
      *              and value is a dictionary with variables
      *              that can be referenced in the message body.
      */
-    public function setRecipientVariables(array $recipient_variables) {
+    public function setRecipientVariables(array $recipient_variables): static
+    {
         $this->recipient_variables = $recipient_variables;
         return $this;
     }
@@ -286,117 +279,137 @@ class Message extends Base
     /**
      * @returns string|null
      */
-    public function getRecipientVariables() {
+    public function getRecipientVariables()
+    {
         return $this->recipient_variables;
     }
 
-    public function setAmpHtml(string $html) {
+    public function setAmpHtml(string $html): static
+    {
         $this->amp_html = $html;
         return $this;
     }
 
-    public function getAmpHtml() {
+    public function getAmpHtml()
+    {
         return $this->amp_html;
     }
 
-    public function setTemplate($template, $version = "", $include_in_text = "") {
-        if($template) {
+    public function setTemplate($template, $version = "", $include_in_text = ""): static
+    {
+        if ($template) {
             $this->template = [
                 'template' => $template,
                 'version' => $version,
                 'text' => $include_in_text == "yes" ? "yes" : "",
             ];
         }
+
         return $this;
     }
 
-    public function getTemplate() {
+    public function getTemplate()
+    {
         return $this->template;
     }
 
     /**
      * Keys are not prefixed with "o:"
      */
-    public function setOptions(array $options) {
+    public function setOptions(array $options): static
+    {
         $this->options = $options;
         return $this;
     }
 
-    public function getOptions() {
+    /**
+     * Set a single option in the options, will overwrite the current option set
+     * or create if not yet set
+     */
+    public function setOption(string $name, mixed $value): static
+    {
+        $this->options[$name] = $value;
+        return $this;
+    }
+
+    public function getOptions()
+    {
         return $this->options;
     }
 
     /**
      * Keys are not prefixed with "h:"
      */
-    public function setCustomHeaders(array $headers) {
+    public function setCustomHeaders(array $headers): static
+    {
         $this->headers = $headers;
         return $this;
     }
 
-    public function getCustomHeaders() {
+    public function getCustomHeaders()
+    {
         return $this->headers;
     }
 
     /**
      * Keys are not prefixed with "v:"
      */
-    public function setVariables(array $variables) {
+    public function setVariables(array $variables): static
+    {
         $this->variables = $variables;
         return $this;
     }
 
-    public function getVariables() {
+    public function getVariables()
+    {
         return $this->variables;
     }
 
     /**
      * Based on options set in {@link NSWDPC\Messaging\Mailgun\MailgunEmail} set Mailgun options, params, headers and variables
-     * @param array $parameters
      */
-    protected function addCustomParameters(&$parameters)
+    protected function addCustomParameters(array &$parameters)
     {
 
         // VARIABLES
         $variables = $this->getVariables();
-        foreach($variables as $k=>$v) {
+        foreach ($variables as $k=>$v) {
             $parameters["v:{$k}"] = $v;
         }
 
         // OPTIONS
         $options = $this->getOptions();
-        foreach($options as $k=>$v) {
+        foreach ($options as $k=>$v) {
             $parameters["o:{$k}"] = $v;
         }
 
         // TEMPLATE
         $template = $this->getTemplate();
-        if(!empty($template['template'])) {
+        if (!empty($template['template'])) {
             $parameters["template"] = $template['template'];
-            if(!empty($template['version'])) {
+            if (!empty($template['version'])) {
                 $parameters["t:version"] = $template['version'];
             }
-            if(isset($template['text']) && $template['text'] == "yes") {
+
+            if (isset($template['text']) && $template['text'] == "yes") {
                 $parameters["t:text"] = $template['text'];
             }
         }
 
         // AMP HTML handling
-        if($amp_html = $this->getAmpHtml()) {
+        if ($amp_html = $this->getAmpHtml()) {
             $parameters["amp-html"] = $amp_html;
         }
 
         // HEADERS
         $headers = $this->getCustomHeaders();
-        foreach($headers as $k=>$v) {
+        foreach ($headers as $k=>$v) {
             $parameters["h:{$k}"] = $v;
         }
 
         // RECIPIENT VARIABLES
-        if($recipient_variables = $this->getRecipientVariables()) {
+        if ($recipient_variables = $this->getRecipientVariables()) {
             $parameters["recipient-variables"] = json_encode($recipient_variables);
         }
-
     }
-
 }

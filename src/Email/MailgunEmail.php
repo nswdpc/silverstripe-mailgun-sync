@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use SilverStripe\Control\Email\Email;
@@ -6,6 +7,9 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
+use NSWDPC\Messaging\Taggable\TaggableEmail;
+use NSWDPC\StructuredEmail\CustomParameters;
+use NSWDPC\StructuredEmail\EmailWithCustomParameters;
 
 /**
  * Email class to handle Mailgun smarts for Email sending
@@ -13,8 +17,8 @@ use NSWDPC\Messaging\Mailgun\Connector\Message;
  * https://documentation.mailgun.com/en/latest/api-sending.html#sending
  * @author James
  */
-class MailgunEmail extends Email {
-
+class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
+{
     /**
      * Allow configuration via API
      */
@@ -26,52 +30,32 @@ class MailgunEmail extends Email {
     use Injectable;
 
     /**
+     * Custom parameters for the mailer, if it is supported
+     */
+    use CustomParameters;
+
+    /**
+     * @var \NSWDPC\Messaging\Mailgun\Connector\Message|null
      * @deprecated
      */
     private $connector;
 
     /**
-     * @var array
-     */
-    private $customParameters = [];
-
-    /**
      * Retrieve the connector instance
-     * @return \NSWDPC\Messaging\Mailgun\Connector\Message
      * @deprecated
      */
-    public function getConnector() : Message {
-        $this->connector = Injector::inst()->get( Message::class );
+    public function getConnector(): Message
+    {
+        $this->connector = Injector::inst()->get(Message::class);
         return $this->connector;
     }
 
     /**
-     * Get the custom parameters for this particular message
-     * Custom parameters are retrievable once to avoid replaying them across
-     * multiple messages
+     * Set tags as options on the Mailgun API
      */
-    public function getCustomParameters() : array {
-        $customParameters = $this->customParameters;
-        $this->clearCustomParameters();
-        return $customParameters;
-    }
-
-    /**
-     * Clear custom parameters
-     * @return self
-     */
-    public function clearCustomParameters() {
-        $this->customParameters = [];
+    public function setNotificationTags(array $tags): static
+    {
+        $this->setTaggableNotificationTags($tags);
         return $this;
     }
-
-    /**
-     * Set custom parameters on the message connector
-     * @return self
-     */
-    public function setCustomParameters(array $args) {
-        $this->customParameters = $args;
-        return $this;
-    }
-
 }

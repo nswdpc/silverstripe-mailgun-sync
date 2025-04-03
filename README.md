@@ -17,7 +17,7 @@ You need:
 * A Mailgun account
 * At least one non-sandbox Mailgun mailing domain ([verified is best](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain)) in your choice of region
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
-* MailgunEmail and MailgunMailer are configured in your project (see below)
+* MailgunEmail and MailgunMailer configured in your project (see below)
 
 ## Installing
 
@@ -31,7 +31,7 @@ composer require nswdpc/silverstripe-mailgun-sync
 
 Configuration of your Mailgun domain and account is beyond the scope of this document but is straightforward.
 
-You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain). 
+You should verify your domain to avoid message delivery issues. The best starting point is [Verifying a Domain](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain).
 
 MXToolBox.com is a useful tool to check your mailing domain has valid DMARC records.
 
@@ -77,11 +77,12 @@ Name: local-mailer
 After:
   # Override core email configuration
   - '#emailconfig'
+  # replace TaggableEmail with MailgunEmail
+  - '#nswdpc-taggable-email'
 ---
-# Send messages via the MailgunMailer
 SilverStripe\Core\Injector\Injector:
   SilverStripe\Control\Email\Email:
-    class: 'NSWDPC\Messaging\Mailgun\MailgunEmail'  
+    class: 'NSWDPC\Messaging\Mailgun\MailgunEmail'
   SilverStripe\Control\Email\Mailer:
     class: 'NSWDPC\Messaging\Mailgun\MailgunMailer'
 ```

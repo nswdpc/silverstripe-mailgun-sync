@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
@@ -14,11 +15,10 @@ use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
  */
 class RequeueJob extends AbstractQueuedJob
 {
-
     public function getTitle()
     {
         return _t(
-            __CLASS__ . ".JOB_TITLE",
+            self::class . ".JOB_TITLE",
             "Re-queue failed attempts to send messages via the Mailgun API"
         );
     }
@@ -28,20 +28,19 @@ class RequeueJob extends AbstractQueuedJob
      */
     public function process()
     {
-
         $descriptors = QueuedJobDescriptor::get()
             ->filter([
                 'JobStatus' => QueuedJob::STATUS_BROKEN,
                 'Implementation' => SendJob::class
             ]);
         $count = $descriptors->count();
-        $kick = $skip = 0;
-        if($count > 0) {
+        $kick = 0;
+        $skip = 0;
+        if ($count > 0) {
             $this->totalSteps = $count;
-            foreach($descriptors as $descriptor) {
-
+            foreach ($descriptors as $descriptor) {
                 $data = @unserialize($descriptor->SavedJobData);
-                if(empty($data->parameters)) {
+                if (empty($data->parameters)) {
                     // parameters cleared so pointless re-queuing
                     $skip++;
                     continue;
@@ -55,7 +54,7 @@ class RequeueJob extends AbstractQueuedJob
                 $descriptor->JobStatus = QueuedJob::STATUS_NEW;
                 $descriptor->StepsProcessed = 0;
                 $descriptor->LastProcessedCount = -1;
-                $descriptor->Worker = null;// clear otherwise job is considered locked
+                $descriptor->Worker = '';// clear otherwise job is considered locked
                 $descriptor->write();
 
                 $kick++;
@@ -64,7 +63,7 @@ class RequeueJob extends AbstractQueuedJob
 
             $this->addMessage(
                 _t(
-                    __CLASS__ . '.JOB_STATUS',
+                    self::class . '.JOB_STATUS',
                     "Marked {kick}, ignored {skip} broken SendJob descriptors as new",
                     [
                         'kick' => $kick,
@@ -73,11 +72,10 @@ class RequeueJob extends AbstractQueuedJob
                 ),
                 "info"
             );
-
         } else {
             $this->addMessage(
                 _t(
-                    __CLASS__ . '.JOB_STATUS_NO_JOBS',
+                    self::class . '.JOB_STATUS_NO_JOBS',
                     "No jobs can be re-queued"
                 ),
                 "info"
@@ -85,6 +83,5 @@ class RequeueJob extends AbstractQueuedJob
         }
 
         $this->isComplete = true;
-
     }
 }

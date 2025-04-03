@@ -61,3 +61,5 @@ If you wish to have all emails sent from a single address by default, regardless
 This is off by default but can come in handy if your application is sending emails from random addresses, which will cause you to fall foul of DMARC rules.
 
 When in use the From header will be set as the Reply-To.
+
+This value will override the core configuration value `Email.send_all_emails_from`.

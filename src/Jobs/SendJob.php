@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun;
 
 use Mailgun\Model\Message\SendResponse;
@@ -14,7 +15,6 @@ use Symbiote\QueuedJobs\Services\QueuedJobService;
  */
 class SendJob extends AbstractQueuedJob
 {
-
     /**
      * Total steps for this job
      * @var int
@@ -42,7 +42,7 @@ class SendJob extends AbstractQueuedJob
         $from = $parameters['from'] ?? 'from not set';
         $testmode = $parameters['o:testmode'] ?? 'no';
         return _t(
-            __CLASS__ . ".JOB_TITLE",
+            self::class . ".JOB_TITLE",
             "Email via Mailgun To: '{to}' From: '{from}' Subject: '{subject}' Test mode: '{testmode}'",
             [
                 'to' => $to,
@@ -61,9 +61,10 @@ class SendJob extends AbstractQueuedJob
         $params = [];
         // these simple message params
         $parts = ['to','from','cc','bcc','subject'];
-        foreach($parts as $part) {
-            $params[ $part ] = isset($this->parameters[ $part ])  ? $this->parameters[ $part ] :  '';
+        foreach ($parts as $part) {
+            $params[ $part ] = $this->parameters[ $part ] ?? '';
         }
+
         // at this time
         $params['sendtime'] = microtime(true);
         return md5($this->domain . ":" . serialize($params));
@@ -73,12 +74,13 @@ class SendJob extends AbstractQueuedJob
      * Create the job
      * @param string $domain DEPRECATED
      * @param array $parameters for Mailgun API
+     * @phpstan-ignore constructor.unusedParameter
      */
     public function __construct($domain = "", $parameters = [])
     {
         $this->connector = MessageConnector::create();
         $this->domain = $this->connector->getApiDomain();
-        if(!empty($parameters)) {
+        if (!empty($parameters)) {
             $this->parameters = $parameters;
         }
     }
@@ -88,9 +90,7 @@ class SendJob extends AbstractQueuedJob
      */
     public function process()
     {
-
         try {
-
             if ($this->isComplete) {
                 // the job has already been marked complete
                 return;
@@ -103,16 +103,16 @@ class SendJob extends AbstractQueuedJob
 
             if (!$domain) {
                 $msg = _t(
-                    __CLASS__ . ".MISSING_API_DOMAIN",
+                    self::class . ".MISSING_API_DOMAIN",
                     "Mailgun configuration is missing the Mailgun API domain value"
                 );
                 throw new JobProcessingException($msg);
             }
 
             $parameters = $this->parameters;
-            if(empty($parameters)) {
+            if (empty($parameters)) {
                 $msg = _t(
-                    __CLASS__ . ".EMPTY_PARAMS",
+                    self::class . ".EMPTY_PARAMS",
                     "Mailgun SendJob was called with empty parameters"
                 );
                 throw new JobProcessingException($msg);
@@ -138,16 +138,15 @@ class SendJob extends AbstractQueuedJob
             throw new JobProcessingException(
                 $this->addMessage(
                     _t(
-                        __CLASS__ . ".SEND_INVALID_RESPONSE_FROM_MAILGUN",
+                        self::class . ".SEND_INVALID_RESPONSE_FROM_MAILGUN",
                         "SendJob invalid response or no message.id returned"
                     )
                 )
             );
-
         } catch (JobProcessingException $e) {
             $this->addMessage(
                 _t(
-                    __CLASS__ . ".SEND_EXCEPTON",
+                    self::class . ".SEND_EXCEPTON",
                     "Mailgun send processing exception: {error}",
                     [
                         "error" => $e->getMessage()
@@ -158,7 +157,7 @@ class SendJob extends AbstractQueuedJob
         } catch (\Exception $e) {
             $this->addMessage(
                 _t(
-                    __CLASS__ . ".GENERAL_EXCEPTON",
+                    self::class . ".GENERAL_EXCEPTON",
                     "Mailgun send general exception: {error}",
                     [
                         "error" => $e->getMessage()
@@ -175,10 +174,9 @@ class SendJob extends AbstractQueuedJob
          */
         throw new \Exception(
             _t(
-                __CLASS__ . ".MAILGUN_SEND_FAILED",
+                self::class . ".MAILGUN_SEND_FAILED",
                 "Mailgun send failed. Check status.mailgun.com or connectivity?"
             )
         );
-
     }
 }

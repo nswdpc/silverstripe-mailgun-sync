@@ -6,9 +6,11 @@
 
 ## MailgunEmail
 
-MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters`
+MailgunEmail extends Email and provides added features for use with Mailgun via `setCustomParameters` and `setNotificationTags`
 
 These extra options, variables, headers and recipient variables are passed to the Mailgun API.
+
+[Mailgun places a limit of 3 tags per message](https://documentation.mailgun.com/en/latest/user_manual.html#tagging)
 
 ```php
 use SilverStripe\Control\Email\Email;
@@ -56,9 +58,20 @@ $email->setTo($person->Email)
 
 ## Tagging
 
-To set tags on a message, include them in the `$parameters['options']['tag']` array.
+`MailgunEmail` uses our [`Taggable` trait](https://github.com/nswdpc/silverstripe-taggable-notifications) to quickly set tags on a message.
 
-[Mailgun places a limit of 3 tags per message](https://documentation.mailgun.com/en/latest/user_manual.html#tagging).
+```php
+$email = Email::create();
+$response = $email->setTo('someone@example.com')
+    ->setSubject('Tagged message')
+    ->setFrom('someone.else@example.com')
+    ->setNotificationTags(['tag1','tag2','tag4']);
+    ->send();
+```
+
+Internally, this adds the tags to the options.tag parameter provided to the Mailgun API.
+
+> Tags set via this method or setCustomParameters will override the other method.
 
 ## Future delivery
 
