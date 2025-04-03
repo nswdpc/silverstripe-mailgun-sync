@@ -10,6 +10,12 @@ See [composer.json](./composer.json)
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
 + Mailgun PHP SDK ^3, kriswallsmith/buzz, nyholm/psr7
 
+## Installing
+
+```shell
+composer require nswdpc/silverstripe-mailgun-sync
+```
+
 ### Mailgun configuration
 
 You need:
@@ -18,12 +24,6 @@ You need:
 * At least one non-sandbox Mailgun mailing domain ([verified is best](https://documentation.mailgun.com/en/latest/user_manual.html#verifying-your-domain)) in your choice of region
 * A Mailgun API key or a [Mailgun Domain Sending Key](https://www.mailgun.com/blog/mailgun-ip-pools-domain-keys) for the relevant mailing domain (the latter is recommended)
 * The correct configuration in your project (see below)
-
-## Installing
-
-```shell
-composer require nswdpc/silverstripe-mailgun-sync
-```
 
 ## Configuration
 
