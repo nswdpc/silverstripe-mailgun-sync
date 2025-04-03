@@ -8,13 +8,15 @@ use SilverStripe\Core\Injector\Factory;
 use Symfony\Component\Mailer\Transport;
 
 /**
- * See mailer.yml for implementation via Injector
+ * See /_config/mailer.yml for implementation via Injector
  */
 class TransportFactory extends SilverStripeEmailTransportFactory
 {
     /**
-     * Ensure the MailgunSyncTransportFactory as added as a TransportFactory
-     * so that when the mailgunsync+api:// DSN is used, it gets picked up
+     * @inheritdoc
+     * Ensure the \NSWDPC\Messaging\Mailgun\Transport\MailgunSyncTransportFactory as added as a TransportFactory
+     * so that when the mailgunsync+api:// DSN is used, it gets picked up as the Transport
+     * See https://github.com/symfony/symfony/issues/35469 for an issue related to this
      */
     public function create($service, array $params = [])
     {
