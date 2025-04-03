@@ -29,6 +29,10 @@ You need:
 
 See [Getting Started](./docs/en/001-index.md)
 
+## Error handling
+
+Email send errors will throw an exception, catch these exceptions to handle transport errors.
+
 ## Breaking changes
 
 ### 2.0+ release
