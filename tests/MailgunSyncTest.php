@@ -12,6 +12,7 @@ use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Control\Email\Email;
 use NSWDPC\Messaging\Mailgun\Email\MailgunMailer;
@@ -60,6 +61,9 @@ class MailgunSyncTest extends SapphireTest
     public function setUp(): void
     {
         parent::setUp();
+
+        // tests pass DSN to the transport factory as a parameter
+        Environment::setEnv('MAILER_DSN', '');
 
         // Avoid using TestMailer for test
         $transportFactory = Injector::inst()->create(SilverStripeEmailTransportFactory::class);
