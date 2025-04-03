@@ -1,4 +1,5 @@
 <?php
+
 namespace NSWDPC\Messaging\Mailgun\ORM\FieldType;
 
 use SilverStripe\ORM\FieldType\DBText;
