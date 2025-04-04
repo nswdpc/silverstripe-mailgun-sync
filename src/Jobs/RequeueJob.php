@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Jobs;
 
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;

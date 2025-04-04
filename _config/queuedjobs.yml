@@ -1,0 +1,6 @@
+---
+Name: 'mailgunsync-queue'
+---
+Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor:
+  db:
+    SavedJobData : 'NSWDPC\Messaging\Mailgun\ORM\FieldType\DBLongText'

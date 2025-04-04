@@ -1,20 +1,17 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Email;
 
-use SilverStripe\Control\Email\Email;
+use NSWDPC\Messaging\Taggable\TaggableEmail;
+use NSWDPC\Messaging\Taggable\CustomParameters;
+use NSWDPC\Messaging\Taggable\EmailWithCustomParameters;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
-use NSWDPC\Messaging\Mailgun\Connector\Message;
-use NSWDPC\Messaging\Taggable\TaggableEmail;
-use NSWDPC\StructuredEmail\CustomParameters;
-use NSWDPC\StructuredEmail\EmailWithCustomParameters;
 
 /**
- * Email class to handle Mailgun smarts for Email sending
- * For a description of the properties represented here see
- * https://documentation.mailgun.com/en/latest/api-sending.html#sending
+ * Email class for Mailgun handling custom parameters and tagging
+ * overrides SilverStripe\Control\Email\Email via Injector definition in your project configuration
  * @author James
  */
 class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
@@ -35,22 +32,6 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
     use CustomParameters;
 
     /**
-     * @var \NSWDPC\Messaging\Mailgun\Connector\Message|null
-     * @deprecated
-     */
-    private $connector;
-
-    /**
-     * Retrieve the connector instance
-     * @deprecated
-     */
-    public function getConnector(): Message
-    {
-        $this->connector = Injector::inst()->get(Message::class);
-        return $this->connector;
-    }
-
-    /**
      * Set tags as options on the Mailgun API
      */
     public function setNotificationTags(array $tags): static
@@ -58,4 +39,5 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
         $this->setTaggableNotificationTags($tags);
         return $this;
     }
+
 }

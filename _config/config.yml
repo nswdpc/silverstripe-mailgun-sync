@@ -1,28 +1,10 @@
 ---
-Name: mailgunsync
+Name: 'mailgunsync'
 ---
-# API config
 NSWDPC\Messaging\Mailgun\Connector\Base:
-  api_domain: ''
-  api_key: ''
+  # API settings
   api_testmode: false
-  api_endpoint_region: ''
-  webhooks_enabled: true
-  webhook_signing_key: ''
-  # the current or new filter variable
-  webhook_filter_variable: ''
-  # the previous one, to allow variable rotation
-  webhook_previous_filter_variable: ''
-  always_set_sender : true
+  # whether to always set the Sender header (true) or not (false)
+  always_set_sender: true
   # yes|no|when-attachments
-  send_via_job : 'when-attachments'
-  default_recipient : ''
-# Mailer config
-NSWDPC\Messaging\Mailgun\MailgunMailer:
-   always_from: ''
----
-Name: mailgunsyncqueue
----
-Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor:
-  db:
-    SavedJobData : 'NSWDPC\Messaging\Mailgun\ORM\FieldType\DBLongText'
+  send_via_job: 'when-attachments'

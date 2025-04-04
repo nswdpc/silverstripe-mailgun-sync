@@ -5,6 +5,7 @@ namespace NSWDPC\Messaging\Mailgun\Tests;
 use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
+use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 
 /**
  * Extends the default message connector between Mailer and  API, captures sending
@@ -40,7 +41,7 @@ class TestMessage extends Message
     /**
      * Sends a message
      */
-    protected function sendMessage(array $parameters)
+    protected function sendMessage(array $parameters): QueuedJobDescriptor|SendResponse
     {
         self::$sendData = [];
 
@@ -53,23 +54,15 @@ class TestMessage extends Message
 
         // send options
         $send_via_job = $this->sendViaJob();
-        switch ($send_via_job) {
-            case 'yes':
-                $this->sentVia = 'job';
-                $response = $this->queueAndSend($domain, $parameters, $in);
-                break;
-            case 'when-attachments':
-                if (!empty($parameters['attachment'])) {
-                    $this->sentVia = 'job-as-attachments';
-                    $response = $this->queueAndSend($domain, $parameters, $in);
-                    break;
-                }
-                // no break
-            case 'no':
-            default:
-                $this->sentVia = 'direct-to-api';
-                $response = SendResponse::create(['id' => self::MSG_ID, 'message' => self::MSG_MESSAGE]);
-                break;
+        if ($send_via_job === 'yes') {
+            $this->sentVia = 'job';
+            $response = $this->queueAndSend($domain, $parameters, $in);
+        } elseif ($send_via_job === 'when-attachments') {
+            $this->sentVia = 'job-as-attachments';
+            $response = $this->queueAndSend($domain, $parameters, $in);
+        } else {
+            $this->sentVia = 'direct-to-api';
+            $response = SendResponse::create(['id' => self::MSG_ID, 'message' => self::MSG_MESSAGE]);
         }
 
         // Store message info
@@ -79,6 +72,8 @@ class TestMessage extends Message
             'sentVia' => $this->sentVia,
             'client' => $this->getClient(),
             'domain' => $this->getApiDomain(),
+            'key' => $this->getApiKey(),
+            'region' => $this->getApiEndpointRegion(),
             'response' => $response
         ]);
 
@@ -99,5 +94,13 @@ class TestMessage extends Message
     public static function getSendData(): array
     {
         return self::$sendData;
+    }
+
+    /**
+     * Get a specific data value that would be used
+     */
+    public static function getSendDataValue(string $key): mixed
+    {
+        return self::$sendData[$key] ?? null;
     }
 }

@@ -15,7 +15,7 @@ class Bounce extends Base
     /**
      * Remove an address from the bounce suppression list
      */
-    public function remove($email_address): ?\Mailgun\Model\Suppression\Bounce\DeleteResponse
+    public function remove(string $email_address): ?\Mailgun\Model\Suppression\Bounce\DeleteResponse
     {
         $valid = Email::is_valid_address($email_address);
         if (!$valid) {
@@ -31,7 +31,7 @@ class Bounce extends Base
     /**
      * See: https://documentation.mailgun.com/en/latest/api-suppressions.html#add-a-single-bounce
      */
-    public function add($email_address, $code = 550, $error = "", $created_at = ""): ?\Mailgun\Model\Suppression\Bounce\CreateResponse
+    public function add(string $email_address, int $code = 550, string $error = "", string $created_at = ""): ?\Mailgun\Model\Suppression\Bounce\CreateResponse
     {
         $valid = Email::is_valid_address($email_address);
         if (!$valid) {
@@ -45,15 +45,15 @@ class Bounce extends Base
 
         $params = [];
 
-        if ($code) {
+        if ($code > 0) {
             $params['code'] = $code;
         }
 
-        if ($error) {
+        if ($error !== '') {
             $params['error'] = $error;
         }
 
-        if ($created_at) {
+        if ($created_at !== '') {
             $params['created_at'] = $created_at;
         }
 

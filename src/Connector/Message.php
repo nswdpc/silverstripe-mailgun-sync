@@ -3,19 +3,16 @@
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\Messaging\Mailgun\Log;
-use NSWDPC\Messaging\Mailgun\Connector\Event as EventConnector;
 use Mailgun\Model\Message\SendResponse;
 use Mailgun\Model\Message\ShowResponse;
-use NSWDPC\Messaging\Mailgun\SendJob;
-use NSWDPC\Messaging\Mailgun\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\MailgunMimeFile;
+use NSWDPC\Messaging\Mailgun\Jobs\SendJob;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Assets\Folder;
 use SilverStripe\Assets\File;
 use SilverStripe\Security\Group;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
-use Exception;
 
 /**
  * Bottles up common message related requeste to Mailgun via the mailgun-php API client
@@ -72,7 +69,7 @@ class Message extends Base
     {
         $client = $this->getClient();
         if (empty($event->StorageURL)) {
-            throw new Exception("No StorageURL found on MailgunEvent #{$event->ID}");
+            throw new \Exception("No StorageURL found on MailgunEvent #{$event->ID}");
         }
 
         // Get the mime encoded message, by passing the Accept header
@@ -83,10 +80,9 @@ class Message extends Base
     /**
      * Send a message with parameters
      * See: https://documentation.mailgun.com/en/latest/api-sending.html#sending
-     * @return SendResponse|QueuedJobDescriptor|null
-     * @param array $parameters an array of parameters for the Mailgun API
+     * @param array $parameters an array of message parameters for the Mailgun API
      */
-    public function send($parameters)
+    public function send($parameters): QueuedJobDescriptor|SendResponse
     {
 
         // If configured and not already specified, set the Sender hader
@@ -108,7 +104,8 @@ class Message extends Base
 
         // if required, apply the default recipient
         // a default recipient can be applied if the message has no "To" parameter
-        $this->applyDefaultRecipient($parameters);
+        // @deprecated
+        // $this->applyDefaultRecipient($parameters);
 
         // apply the webhook_filter_variable, if webhooks are enabled
         if ($this->getWebhooksEnabled() && ($variable = $this->getWebhookFilterVariable())) {
@@ -122,7 +119,7 @@ class Message extends Base
     /**
      * Sends a message
      */
-    protected function sendMessage(array $parameters)
+    protected function sendMessage(array $parameters): QueuedJobDescriptor|SendResponse
     {
 
         /**
@@ -137,9 +134,9 @@ class Message extends Base
         // send options
         $send_via_job = $this->sendViaJob();
         $in = $this->getSendIn();// seconds
-        if ($send_via_job == 'yes') {
+        if ($send_via_job === 'yes') {
             return $this->queueAndSend($domain, $parameters, $in);
-        } elseif ($send_via_job == 'when-attachments' && !empty($parameters['attachment'])) {
+        } elseif ($send_via_job === 'when-attachments' && !empty($parameters['attachment'])) {
             return $this->queueAndSend($domain, $parameters, $in);
         } else {
             return $client->messages()->send($domain, $parameters);
@@ -153,7 +150,7 @@ class Message extends Base
     public function encodeAttachments(&$parameters)
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
-            foreach ($parameters['attachment'] as $k=>$attachment) {
+            foreach ($parameters['attachment'] as $k => $attachment) {
                 $parameters['attachment'][$k]['fileContent'] = base64_encode((string) $attachment['fileContent']);
             }
         }
@@ -166,7 +163,7 @@ class Message extends Base
     public function decodeAttachments(&$parameters)
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
-            foreach ($parameters['attachment'] as $k=>$attachment) {
+            foreach ($parameters['attachment'] as $k => $attachment) {
                 $parameters['attachment'][$k]['fileContent'] = base64_decode((string) $attachment['fileContent']);
             }
         }
@@ -195,9 +192,8 @@ class Message extends Base
      * @param string $domain the Mailgun API domain e.g sandboxXXXXXX.mailgun.org
      * @param array $parameters Mailgun API parameters
      * @param mixed $in See:http://php.net/manual/en/datetime.formats.relative.php
-     * @return QueuedJobDescriptor|false
      */
-    protected function queueAndSend(string $domain, array $parameters, mixed $in)
+    protected function queueAndSend(string $domain, array $parameters, mixed $in): ?QueuedJobDescriptor
     {
         $this->encodeAttachments($parameters);
         $startAfter = null;
@@ -205,39 +201,12 @@ class Message extends Base
             $startAfter = $start->format('Y-m-d H:i:s');
         }
 
-        $job  = new SendJob($domain, $parameters);
+        $job = new SendJob($parameters);
         if ($job_id = QueuedJobService::singleton()->queueJob($job, $startAfter)) {
             return QueuedJobDescriptor::get()->byId($job_id);
+        } else {
+            return null;
         }
-
-        return false;
-    }
-
-    /**
-     * Lookup all events for the submission linked to this event
-     */
-    public function isDelivered(MailgunEvent $event, $cleanup = true): bool
-    {
-
-        // Query will be for this MessageId and a delivered status
-        if (empty($event->MessageId)) {
-            throw new Exception("Tried to query a message based on MailgunEvent #{$event->ID} with no linked MessageId");
-        }
-
-        // poll for delivered events, MG stores them for up to 30 days
-        $connector = new EventConnector();
-        $timeframe = 'now -30 days';
-        $begin = Base::DateTime($timeframe);
-
-        $event_filter = MailgunEvent::DELIVERED;// no we don't want to resubmit
-        $extra_params = [
-            'limit' => 25,
-            'message-id' => $event->MessageId,
-            'recipient' => $event->Recipient,// match against the recipient of the event
-        ];
-
-        $events = $connector->pollEvents($begin, $event_filter, $extra_params);
-        return $events !== [];
     }
 
     /**
@@ -260,7 +229,10 @@ class Message extends Base
         return $this;
     }
 
-    public function getSendIn()
+    /**
+     * Return send-in-seconds value
+     */
+    public function getSendIn(): int
     {
         return $this->send_in_seconds;
     }
@@ -277,24 +249,33 @@ class Message extends Base
     }
 
     /**
-     * @returns string|null
+     * Returns all recipient variables
      */
-    public function getRecipientVariables()
+    public function getRecipientVariables(): array
     {
         return $this->recipient_variables;
     }
 
+    /**
+     * Set AMP HTML (see https://amp.dev/documentation/guides-and-tutorials/learn/spec/amphtml)
+     */
     public function setAmpHtml(string $html): static
     {
         $this->amp_html = $html;
         return $this;
     }
 
-    public function getAmpHtml()
+    /**
+     * Get the AMP html
+     */
+    public function getAmpHtml(): string
     {
         return $this->amp_html;
     }
 
+    /**
+     * Set a Mailgun template to use
+     */
     public function setTemplate($template, $version = "", $include_in_text = ""): static
     {
         if ($template) {
@@ -308,7 +289,10 @@ class Message extends Base
         return $this;
     }
 
-    public function getTemplate()
+    /**
+     * Get the Mailgun template
+     */
+    public function getTemplate(): array
     {
         return $this->template;
     }
@@ -332,7 +316,10 @@ class Message extends Base
         return $this;
     }
 
-    public function getOptions()
+    /**
+     * Get all options
+     */
+    public function getOptions(): array
     {
         return $this->options;
     }
@@ -346,7 +333,10 @@ class Message extends Base
         return $this;
     }
 
-    public function getCustomHeaders()
+    /**
+     * Get all custom headers
+     */
+    public function getCustomHeaders(): array
     {
         return $this->headers;
     }
@@ -360,6 +350,9 @@ class Message extends Base
         return $this;
     }
 
+    /**
+     * Get all variables
+     */
     public function getVariables()
     {
         return $this->variables;
@@ -373,13 +366,13 @@ class Message extends Base
 
         // VARIABLES
         $variables = $this->getVariables();
-        foreach ($variables as $k=>$v) {
+        foreach ($variables as $k => $v) {
             $parameters["v:{$k}"] = $v;
         }
 
         // OPTIONS
         $options = $this->getOptions();
-        foreach ($options as $k=>$v) {
+        foreach ($options as $k => $v) {
             $parameters["o:{$k}"] = $v;
         }
 
@@ -397,18 +390,18 @@ class Message extends Base
         }
 
         // AMP HTML handling
-        if ($amp_html = $this->getAmpHtml()) {
+        if (($amp_html = $this->getAmpHtml()) !== '') {
             $parameters["amp-html"] = $amp_html;
         }
 
         // HEADERS
         $headers = $this->getCustomHeaders();
-        foreach ($headers as $k=>$v) {
+        foreach ($headers as $k => $v) {
             $parameters["h:{$k}"] = $v;
         }
 
         // RECIPIENT VARIABLES
-        if ($recipient_variables = $this->getRecipientVariables()) {
+        if (($recipient_variables = $this->getRecipientVariables()) !== []) {
             $parameters["recipient-variables"] = json_encode($recipient_variables);
         }
     }

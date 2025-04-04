@@ -1,10 +1,12 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Controllers;
 
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
+use SilverStripe\Security\Security;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldAddNewButton;
@@ -19,10 +21,19 @@ use SilverStripe\Forms\GridField\GridFieldDetailForm;
  */
 class MailgunModelAdmin extends ModelAdmin
 {
+    /**
+     * @inheritdoc
+     */
     private static string $url_segment = 'mailgun';
 
+    /**
+     * @inheritdoc
+     */
     private static string $menu_title = 'Mailgun';
 
+    /**
+     * @inheritdoc
+     */
     private static array $managed_models = [
         MailgunEvent::class,
     ];
@@ -41,7 +52,7 @@ class MailgunModelAdmin extends ModelAdmin
             $config->removeComponentsByType(GridFieldAddNewButton::class);
             $config->removeComponentsByType(GridFieldPrintButton::class);
 
-            if (! Permission::check(MailgunEvent::PERMISSIONS_DELETE, 'any', Member::currentUser())) {
+            if (! Permission::check(MailgunEvent::PERMISSIONS_DELETE, 'any', Security::getCurrentUser())) {
                 $config->removeComponentsByType(GridFieldEditButton::class);
                 $config->removeComponentsByType(GridFieldDeleteAction::class);
             }

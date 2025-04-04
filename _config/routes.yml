@@ -1,8 +1,8 @@
 ---
-Name: nswdpc_mailgunsync_routes
+Name: 'mailgunsync-routes'
 After:
   - '#coreroutes'
 ---
 Silverstripe\Control\Director:
   rules:
-    '_wh//$Action/$ID/$OtherID': 'NSWDPC\Messaging\Mailgun\MailgunWebHook'
+    '_wh//$Action/$ID/$OtherID': 'NSWDPC\Messaging\Mailgun\Controllers\MailgunWebHook'

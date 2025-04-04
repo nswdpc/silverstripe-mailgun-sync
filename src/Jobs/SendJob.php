@@ -1,13 +1,18 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Jobs;
 
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Exceptions\JobProcessingException;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
+use NSWDPC\Messaging\Mailgun\Transport\MailgunSyncApiTransport;
+use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Injector\Injector;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
-use SilverStripe\Core\Config\Config;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
+use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
  * @author James
@@ -22,11 +27,6 @@ class SendJob extends AbstractQueuedJob
     protected $totalSteps = 1;
 
     /**
-     * @var \NSWDPC\Messaging\Mailgun\Connector\Message
-     */
-    protected $connector;
-
-    /**
      * Job type
      */
     public function getJobType()
@@ -34,6 +34,9 @@ class SendJob extends AbstractQueuedJob
         return QueuedJob::QUEUED;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function getTitle()
     {
         $parameters = $this->parameters;
@@ -72,15 +75,11 @@ class SendJob extends AbstractQueuedJob
 
     /**
      * Create the job
-     * @param string $domain DEPRECATED
      * @param array $parameters for Mailgun API
-     * @phpstan-ignore constructor.unusedParameter
      */
-    public function __construct($domain = "", $parameters = [])
+    public function __construct($parameters = [])
     {
-        $this->connector = MessageConnector::create();
-        $this->domain = $this->connector->getApiDomain();
-        if (!empty($parameters)) {
+        if ($parameters !== []) {
             $this->parameters = $parameters;
         }
     }
@@ -98,8 +97,18 @@ class SendJob extends AbstractQueuedJob
 
             $this->currentStep++;
 
-            $client = $this->connector->getClient();
-            $domain = $this->connector->getApiDomain();
+            $transport = Injector::inst()->create(TransportInterface::class);
+            if (!($transport instanceof MailgunSyncApiTransport)) {
+                $type = get_debug_type($transport);
+
+                // This job can only be processed with a MailgunSyncApiTransport
+                throw new \RuntimeException("SendJob::process() expected a MailgunSyncApiTransport to send the email, got a {$type}");
+            }
+
+            $connector = MessageConnector::create($transport->getDsn());
+
+            $client = $connector->getClient();
+            $domain = $connector->getApiDomain();
 
             if (!$domain) {
                 $msg = _t(
@@ -119,9 +128,10 @@ class SendJob extends AbstractQueuedJob
             }
 
             // if required, apply the default recipient
-            $this->connector->applyDefaultRecipient($parameters);
+            // @deprecated
+            // $connector->applyDefaultRecipient($parameters);
             // decode all attachments
-            $this->connector->decodeAttachments($parameters);
+            $connector->decodeAttachments($parameters);
             // send directly via the API client
             $response = $client->messages()->send($domain, $parameters);
             $message_id = "";
@@ -170,12 +180,12 @@ class SendJob extends AbstractQueuedJob
         /**
          * Mark the job as broken. This avoids repeated requests to the  API
          * for the same send attempt and possibly cause quota issues.
-         * Semd attempts that arrive here need to be manually re-queued
+         * Send attempts that arrive here need to be manually re-queued
          */
         throw new \Exception(
             _t(
                 self::class . ".MAILGUN_SEND_FAILED",
-                "Mailgun send failed. Check status.mailgun.com or connectivity?"
+                "Mailgun send failed. Check log messages, status.mailgun.com or connectivity?"
             )
         );
     }

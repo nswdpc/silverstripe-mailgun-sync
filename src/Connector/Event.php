@@ -2,10 +2,9 @@
 
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
-use NSWDPC\Messaging\Mailgun\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\Log;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use Mailgun\Mailgun;
-use Exception;
 
 /**
  * Connector to handle Mailgun Event API request/response
@@ -13,14 +12,49 @@ use Exception;
  */
 class Event extends Base
 {
+    /**
+     * Results of polling for events
+     */
     protected $results = [];
+
+    /**
+     * Given a MailgunEvent model, check if the message linked to the event is delivered
+     */
+    public function isDelivered(MailgunEvent $event): bool
+    {
+        return $this->isDeliveredMessage((string)$event->MessageId, (string)$event->Recipient);
+    }
+
+    /**
+     * Given a message id and recipient, check if the message linked to the event is delivered
+     */
+    public function isDeliveredMessage(string $msgId, string $recipient): bool
+    {
+
+        if ($msgId === '') {
+            throw new \UnexpectedValueException("Empty message id when checking isDelivered");
+        }
+
+        // poll for delivered events, MG stores them for up to 30 days
+        $timeframe = 'now -30 days';
+        $begin = Base::DateTime($timeframe);
+        $event_filter = MailgunEvent::DELIVERED;
+        $extra_params = [
+            'limit' => 25,
+            'message-id' => $msgId,
+            'recipient' => $recipient
+        ];
+
+        $events = $this->pollEvents($begin, $event_filter, $extra_params);
+        return $events !== [];
+    }
 
     /**
      * @param string $begin an RFC 2822 formatted UTC datetime OR empty string for no begin datetime
      * @param string $event_filter see https://documentation.mailgun.com/en/latest/api-events.html#event-types can also be a filter expression e.g "failed OR rejected"
      * @param array $extra_params extra parameters for API request
      */
-    public function pollEvents($begin = null, $event_filter = "", $extra_params = []): array
+    public function pollEvents(?string $begin = null, string $event_filter = "", array $extra_params = []): array
     {
         $api_key = $this->getApiKey();
         $client = Mailgun::create($api_key);
@@ -31,16 +65,16 @@ class Event extends Base
             'ascending' => 'yes',
         ];
 
-        if ($begin) {
+        if ($begin !== '') {
             $params['begin'] = $begin;
         }
 
-        if ($event_filter) {
+        if ($event_filter !== '') {
             $params['event'] = $event_filter;
         }
 
         // Push anything extra into the API request
-        if (!empty($extra_params) && is_array($extra_params)) {
+        if ($extra_params !== []) {
             $params = array_merge($params, $extra_params);
         }
 

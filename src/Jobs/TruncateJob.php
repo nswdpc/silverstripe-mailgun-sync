@@ -1,16 +1,15 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Jobs;
 
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
+use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
+use NSWDPC\Messaging\Mailgun\Services\Logger;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 use SilverStripe\Core\Config\Config;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
-use DateTime;
-use DateTimeZone;
-use Exception;
 
 /**
  * @author James
@@ -53,9 +52,9 @@ class TruncateJob extends AbstractQueuedJob
         if ($this->days > 0) {
             // allow for parts of days to the nearest hour
             $hours = round($this->days * 24);
-            $dt = new DateTime("now -{$hours}hour");
+            $dt = new \DateTime("now -{$hours}hour");
         } else {
-            $dt = new DateTime();
+            $dt = new \DateTime();
         }
 
         $dt_formatted = $dt->format('Y-m-d H:i:s');
@@ -78,14 +77,14 @@ class TruncateJob extends AbstractQueuedJob
      */
     public function afterComplete()
     {
-        $next = new DateTime();
+        $next = new \DateTime();
         $next->modify('+' . $this->recreate_in . ' seconds');
 
         $job = new TruncateJob($this->days, $this->recreate_in);
         $service = singleton(QueuedJobService::class);
         $descriptor_id = $service->queueJob($job, $next->format('Y-m-d H:i:s'));
         if (!$descriptor_id) {
-            Log::log("Failed to queue new TruncateJob!", \Psr\Log\LogLevel::WARNING);
+            Logger::log("Failed to queue new TruncateJob!", \Psr\Log\LogLevel::WARNING);
         }
     }
 }

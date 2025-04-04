@@ -1,5 +1,5 @@
 ---
-Name: 'mailgun-taggable-notifications'
+Name: 'mailgunsync-taggable-notifications'
 After:
   - '#nswdpc-taggable-notifications'
 ---

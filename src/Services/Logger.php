@@ -1,6 +1,6 @@
 <?php
 
-namespace NSWDPC\Messaging\Mailgun;
+namespace NSWDPC\Messaging\Mailgun\Services;
 
 use SilverStripe\Core\Injector\Injector;
 use Psr\Log\LoggerInterface;
@@ -9,7 +9,7 @@ use Psr\Log\LogLevel;
 /**
  * Ultra basic logging handler
  */
-class Log
+class Logger
 {
     public static function log($message, $level = LogLevel::DEBUG, array $context = [])
     {
