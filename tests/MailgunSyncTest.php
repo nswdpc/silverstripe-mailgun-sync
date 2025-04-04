@@ -79,7 +79,7 @@ class MailgunSyncTest extends SapphireTest
         Injector::inst()->registerService(MailgunEmail::create(), Email::class);
 
         // use TestMessage
-        Injector::inst()->registerService(new TestMessage($this->getTestDsn()), MessageConnector::class);
+        Injector::inst()->registerService(TestMessage::create($this->getTestDsn()), MessageConnector::class);
 
         // use TransportFactory
         Injector::inst()->registerService(new TransportFactory(), SilverStripeEmailTransportFactory::class);
