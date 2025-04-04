@@ -8,7 +8,7 @@ See [composer.json](./composer.json)
 
 + silverstripe/framework ^5
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
-+ Mailgun PHP SDK ^3, kriswallsmith/buzz, nyholm/psr7
++ Mailgun PHP SDK ^4, kriswallsmith/buzz, nyholm/psr7
 
 ## Installing
 
