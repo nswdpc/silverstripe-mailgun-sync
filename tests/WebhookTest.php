@@ -29,6 +29,7 @@ class WebhookTest extends FunctionalTest
 
     protected $usesDatabase = true;
 
+    #[\Override]
     public function setUp(): void
     {
         parent::setUp();

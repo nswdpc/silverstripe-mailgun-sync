@@ -27,6 +27,7 @@ class DBLongText extends DBText
      * @see DBField::requireField()
      * @note values is passed in as a string to differentiate from mediumtext spec and trigger an alter table
      */
+    #[\Override]
     public function requireField()
     {
         $schema = DB::get_schema();

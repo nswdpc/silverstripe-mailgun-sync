@@ -41,6 +41,7 @@ class MailgunModelAdmin extends ModelAdmin
     /**
      * @inheritdoc
      */
+    #[\Override]
     public function getEditForm($id = null, $fields = null)
     {
         $form = parent::getEditForm($id, $fields);

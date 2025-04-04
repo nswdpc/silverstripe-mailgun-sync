@@ -65,6 +65,7 @@ class MailgunSyncApiTransport extends AbstractApiTransport
     /**
      * Representation of class as string (required by Stringable)
      */
+    #[\Override]
     public function __toString(): string
     {
         return 'mailgunsync+api://';
@@ -129,6 +130,7 @@ class MailgunSyncApiTransport extends AbstractApiTransport
      * 6. NSWDPC\Messaging\Mailgun\Transport\MailgunSyncApiTransport->doSendApi(Object(Symfony\Component\Mailer\SentMessage), Object(NSWDPC\Messaging\Mailgun\Email\MailgunEmail), Object(Symfony\Component\Mailer\DelayedEnvelope))
      * @throws \RuntimeException|HttpTransportException
      */
+    #[\Override]
     protected function doSendApi(SentMessage $sentMessage, SymfonyEmail $email, Envelope $envelope): ResponseInterface
     {
         try {

@@ -58,6 +58,7 @@ class MailgunSyncTest extends SapphireTest
             . ($regionValue !== '' ? "?region={$regionValue}" : "");
     }
 
+    #[\Override]
     public function setUp(): void
     {
         parent::setUp();

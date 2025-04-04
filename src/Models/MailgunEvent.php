@@ -26,6 +26,22 @@ use SilverStripe\ORM\FieldType\DBField;
  * @note each record is an event linked to a submission
  * @note refer to https://documentation.mailgun.com/en/latest/api-events.html#event-structure for information about the uniqueness of Event Ids
  * @see https://mailgun.uservoice.com/forums/156243-general/suggestions/5511691-add-a-unique-id-to-every-event-api-entry
+ * @property ?string $EventId
+ * @property ?string $MessageId
+ * @property ?string $Severity
+ * @property ?string $EventType
+ * @property ?string $UTCEventDate
+ * @property float $Timestamp
+ * @property ?string $Recipient
+ * @property ?string $Reason
+ * @property ?string $DeliveryStatusMessage
+ * @property ?string $DeliveryStatusDescription
+ * @property int $DeliveryStatusCode
+ * @property int $DeliveryStatusAttempts
+ * @property float $DeliveryStatusSession
+ * @property ?string $DeliveryStatusMxHost
+ * @property ?string $StorageURL
+ * @property ?string $DecodedStorageKey
  */
 class MailgunEvent extends DataObject implements PermissionProvider
 {
@@ -150,6 +166,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * @return array
      */
+    #[\Override]
     public function providePermissions()
     {
         return [
@@ -167,6 +184,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Set up permissions, assign to group
      */
+    #[\Override]
     public function requireDefaultRecords()
     {
         parent::requireDefaultRecords();
@@ -203,6 +221,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Allow for easy visual matching between this and the Mailgun App Logs screen
      */
+    #[\Override]
     public function getTitle()
     {
         return DBField::create_field('Varchar', "#{$this->ID} - {$this->LocalDateTime()} - {$this->EventType} - {$this->Recipient}");
@@ -223,6 +242,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Events can't be edited
      */
+    #[\Override]
     public function canEdit($member = null)
     {
         return false;
@@ -231,6 +251,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Apply permission check on deleting events
      */
+    #[\Override]
     public function canDelete($member = null)
     {
         if (!$member) {
@@ -243,6 +264,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Allow viewing by members with this permission
      */
+    #[\Override]
     public function canView($member = null)
     {
         if (!$member) {
@@ -255,6 +277,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Most of the fields here are readonly
      */
+    #[\Override]
     public function getCmsFields()
     {
         $fields = parent::getCmsFields();

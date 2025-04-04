@@ -21,6 +21,7 @@ class SendTestEmailTask extends BuildTask
 
     private static string $segment = "SendMailgunTestEmailTask";
 
+    #[\Override]
     public function run($request)
     {
         try {

@@ -41,6 +41,7 @@ class TestMessage extends Message
     /**
      * Sends a message
      */
+    #[\Override]
     protected function sendMessage(array $parameters): QueuedJobDescriptor|SendResponse
     {
         self::$sendData = [];
