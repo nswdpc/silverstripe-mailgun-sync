@@ -343,6 +343,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Return RFC2822 formatted string of event timestamp
+     * Ref: https://bugs.php.net/bug.php?id=79692
      */
     private function RecordDateTime(string $timezone = "UTC"): string
     {
@@ -351,7 +352,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
         }
 
         $dt = new \DateTime();
-        $dt->setTimestamp($this->Timestamp);
+        /* @phpstan-ignore argument.type */
+        $dt->setTimestamp("@{$this->Timestamp}");
         $dt->setTimezone(new \DateTimeZone($timezone));
         return $dt->format(\DateTime::RFC2822);
     }
