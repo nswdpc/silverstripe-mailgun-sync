@@ -101,8 +101,8 @@ abstract class Base
         }
 
         return match ($this->getApiEndpointRegion()) {
-            'API_ENDPOINT_EU' => Mailgun::create($apiKey, self::API_ENDPOINT_EU),
-            default => Mailgun::create($apiKey),
+            'API_ENDPOINT_EU' => Mailgun::create($apiKey, self::API_ENDPOINT_EU, $this->getApiSubAccountId()),
+            default => Mailgun::create($apiKey, self::API_ENDPOINT_DEFAULT, $this->getApiSubAccountId()),
         };
     }
 
@@ -125,6 +125,19 @@ abstract class Base
         }
 
         return $region;
+    }
+
+    /**
+     * Get the configured sub account id
+     */
+    public function getApiSubAccountId(): ?string
+    {
+        $subAccountId = $this->dsn->getOption('subaccountid');
+        if (!$subAccountId || !is_string($subAccountId)) {
+            $subAccountId = null;
+        }
+
+        return $subAccountId;
     }
 
     /**

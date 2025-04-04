@@ -149,6 +149,23 @@ class MailgunSyncTest extends SapphireTest
         $this->assertEquals('', $connector->getApiEndpointRegion());
     }
 
+    public function testApiSubaccountId(): void
+    {
+        $subAccountId = "1234-6789";
+        $dsn = "mailgunsync+api://mail.example.com:test_api_key@default?region=&subaccountid={$subAccountId}";
+        $connector = MessageConnector::create($dsn);
+        $connector->getClient();
+        $this->assertEquals($subAccountId, $connector->getApiSubAccountId());
+    }
+
+    public function testApiNoSubaccountId(): void
+    {
+        $dsn = "mailgunsync+api://mail.example.com:test_api_key@default";
+        $connector = MessageConnector::create($dsn);
+        $connector->getClient();
+        $this->assertNull($connector->getApiSubAccountId());
+    }
+
 
     protected function getCustomParameters($to_address, $send_in): array
     {
