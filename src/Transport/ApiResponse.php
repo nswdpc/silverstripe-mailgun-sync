@@ -99,6 +99,7 @@ class ApiResponse implements ResponseInterface
     /**
      * Gets the HTTP status code of the response.
      */
+    #[\Override]
     public function getStatusCode(): int
     {
         if ($this->msgId !== '') {
@@ -122,6 +123,7 @@ class ApiResponse implements ResponseInterface
      * @throws ClientExceptionInterface      On a 4xx when $throw is true
      * @throws ServerExceptionInterface      On a 5xx when $throw is true
      */
+    #[\Override]
     public function getHeaders(bool $throw = true): array
     {
         return [];
@@ -137,6 +139,7 @@ class ApiResponse implements ResponseInterface
      * @throws ClientExceptionInterface      On a 4xx when $throw is true
      * @throws ServerExceptionInterface      On a 5xx when $throw is true
      */
+    #[\Override]
     public function getContent(bool $throw = true): string
     {
         return "";
@@ -153,6 +156,7 @@ class ApiResponse implements ResponseInterface
      * @throws ClientExceptionInterface      On a 4xx when $throw is true
      * @throws ServerExceptionInterface      On a 5xx when $throw is true
      */
+    #[\Override]
     public function toArray(bool $throw = true): array
     {
         return [];
@@ -163,6 +167,7 @@ class ApiResponse implements ResponseInterface
      *
      * No further chunk will be yielded after this method has been called.
      */
+    #[\Override]
     public function cancel(): void
     {
 
@@ -195,6 +200,7 @@ class ApiResponse implements ResponseInterface
      * @return mixed An array of all available info, or one of them when $type is
      *               provided, or null when an unsupported type is requested
      */
+    #[\Override]
     public function getInfo(?string $type = null): mixed
     {
         if ($this->msgId !== '' || !is_null($this->queuedJobDescriptor)) {

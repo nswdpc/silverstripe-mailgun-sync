@@ -18,6 +18,7 @@ class TransportFactory extends SilverStripeEmailTransportFactory
      * so that when the mailgunsync+api:// DSN is used, it gets picked up as the Transport
      * See https://github.com/symfony/symfony/issues/35469 for an issue related to this
      */
+    #[\Override]
     public function create($service, array $params = [])
     {
         $dsn = Environment::getEnv('MAILER_DSN') ?: $params['dsn'];

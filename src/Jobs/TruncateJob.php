@@ -19,12 +19,14 @@ class TruncateJob extends AbstractQueuedJob
 {
     protected $totalSteps = 1;
 
+    #[\Override]
     public function getJobType()
     {
         $this->totalSteps = 1;
         return QueuedJob::QUEUED;
     }
 
+    #[\Override]
     public function getTitle()
     {
         return "Remove Mailgun event data > {$this->days}d old, repeat in {$this->recreate_in}s";
@@ -46,6 +48,7 @@ class TruncateJob extends AbstractQueuedJob
     /**
      * Truncate events and submissions
      */
+    #[\Override]
     public function process()
     {
         // Base date to check back for records in the past
@@ -75,6 +78,7 @@ class TruncateJob extends AbstractQueuedJob
     /**
      * Create another job in 24hrs
      */
+    #[\Override]
     public function afterComplete()
     {
         $next = new \DateTime();

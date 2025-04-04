@@ -46,10 +46,10 @@
         "symfony/http-client": "^6.4|^7.0"
     },
     "require-dev": {
-        "cambis/silverstripe-rector": "^0.5.1",
+        "cambis/silverstripe-rector": "^1",
         "phpunit/phpunit": "^9.5",
-        "syntro/silverstripe-phpstan": "^5",
-        "nswdpc/ci-files": "dev-v-1"
+        "cambis/silverstan": "^1",
+        "nswdpc/ci-files": "dev-v-3"
     },
     "config": {
         "allow-plugins": {

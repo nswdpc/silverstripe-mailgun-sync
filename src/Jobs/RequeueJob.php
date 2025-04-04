@@ -15,6 +15,7 @@ use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
  */
 class RequeueJob extends AbstractQueuedJob
 {
+    #[\Override]
     public function getTitle()
     {
         return _t(
@@ -26,6 +27,7 @@ class RequeueJob extends AbstractQueuedJob
     /**
      * Attempt to send the message via the Mailgun API
      */
+    #[\Override]
     public function process()
     {
         $descriptors = QueuedJobDescriptor::get()

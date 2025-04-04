@@ -20,6 +20,7 @@ final class MailgunSyncTransportFactory extends AbstractTransportFactory
      * Return a transport based on the DSN
      * @throws UnsupportedSchemeException
      */
+    #[\Override]
     public function create(#[\SensitiveParameter] Dsn $dsn): TransportInterface
     {
         $scheme = $dsn->getScheme();
@@ -41,6 +42,7 @@ final class MailgunSyncTransportFactory extends AbstractTransportFactory
         throw new UnsupportedSchemeException($dsn, 'mailgunsync', $this->getSupportedSchemes());
     }
 
+    #[\Override]
     protected function getSupportedSchemes(): array
     {
         return ['mailgunsync','mailgunsync+api'];

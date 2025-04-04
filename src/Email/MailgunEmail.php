@@ -34,6 +34,7 @@ class MailgunEmail extends TaggableEmail implements EmailWithCustomParameters
     /**
      * Set tags as options on the Mailgun API
      */
+    #[\Override]
     public function setNotificationTags(array $tags): static
     {
         $this->setTaggableNotificationTags($tags);

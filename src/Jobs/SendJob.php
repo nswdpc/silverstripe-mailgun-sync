@@ -29,6 +29,7 @@ class SendJob extends AbstractQueuedJob
     /**
      * Job type
      */
+    #[\Override]
     public function getJobType()
     {
         return QueuedJob::QUEUED;
@@ -37,6 +38,7 @@ class SendJob extends AbstractQueuedJob
     /**
      * @inheritdoc
      */
+    #[\Override]
     public function getTitle()
     {
         $parameters = $this->parameters;
@@ -59,6 +61,7 @@ class SendJob extends AbstractQueuedJob
     /**
      * The job signature is a combination of the API domain and the job parameters
      */
+    #[\Override]
     public function getSignature()
     {
         $params = [];
@@ -87,6 +90,7 @@ class SendJob extends AbstractQueuedJob
     /**
      * Attempt to send the message via the Mailgun API
      */
+    #[\Override]
     public function process()
     {
         try {

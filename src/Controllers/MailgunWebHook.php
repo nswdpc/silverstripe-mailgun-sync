@@ -68,7 +68,7 @@ class MailgunWebHook extends Controller
     /**
      * We have done something wrong
      */
-    protected function serverError($status_code = 503, $message = ""): HTTPResponse
+    protected function serverError($status_code = 503, string|\Stringable $message = ""): HTTPResponse
     {
         Logger::log($message, \Psr\Log\LogLevel::NOTICE);
         $response = HTTPResponse::create($this->getResponseBody(false), $status_code);
@@ -79,7 +79,7 @@ class MailgunWebHook extends Controller
     /**
      * Client (being Mailgun user agent) has done something wrong
      */
-    protected function clientError($status_code  = 400, $message = ""): HTTPResponse
+    protected function clientError($status_code  = 400, string|\Stringable $message = ""): HTTPResponse
     {
         Logger::log($message, \Psr\Log\LogLevel::NOTICE);
         $response = HTTPResponse::create($this->getResponseBody(false), $status_code);
