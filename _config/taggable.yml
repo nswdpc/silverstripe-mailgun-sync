@@ -5,7 +5,7 @@ After:
 ---
 NSWDPC\Messaging\Taggable\ProjectTags:
   tag: ''
-  tag_limit: 3
+  tag_limit: 10
   tag_email_header_name: 'X-Mailgun-Tag'
   tag_email_header_serialisation: 'multi'
   tag_email_header_value_delimiter: ''
