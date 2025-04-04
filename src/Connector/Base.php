@@ -136,6 +136,7 @@ abstract class Base
         if (!$subAccountId || !is_string($subAccountId)) {
             $subAccountId = null;
         }
+
         return $subAccountId;
     }
 
