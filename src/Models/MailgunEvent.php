@@ -478,9 +478,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Given a Mailgun\Model\Event\Event, store if possible
-     * @return MailgunEvent|boolean
      */
-    public function storeEvent(MailgunEventModel $event): false|\Mailgun\Model\Event\Event|\NSWDPC\Messaging\Mailgun\Models\MailgunEvent
+    public function storeEvent(MailgunEventModel $event): ?\NSWDPC\Messaging\Mailgun\Models\MailgunEvent
     {
         $this->extend('onBeforeStoreMailgunEvent', $event);
 
@@ -514,7 +513,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $mailgun_event_id = $mailgun_event->write();
         if (!$mailgun_event_id) {
             // could not create record
-            return false;
+            return null;
         }
 
         $this->extend('onAfterStoreMailgunEvent', $event, $mailgun_event);
