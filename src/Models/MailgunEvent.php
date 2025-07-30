@@ -310,7 +310,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
             $config->removeComponentsByType('GridFieldEditButton');
             $gridfield = GridField::create('SiblingEventsGridField', 'Siblings', $siblings, $config);
             $literal_field = LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id '
-                                                                                                                                        . '<code>'. htmlspecialchars($this->MessageId) . '</code></p>');
+                                                                                                                                        . '<code>'. htmlspecialchars((string) $this->MessageId) . '</code></p>');
             $fields->addFieldsToTab('Root.RelatedEvents', [$literal_field, $gridfield ]);
         }
 
@@ -420,7 +420,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Helper method to create a UTC Date from a timestamp
      */
-    private function CreateUTCDate($timestamp): string
+    private function CreateUTCDate(int $timestamp): string
     {
         return $this->CreateUTCDateTime($timestamp, "Y-m-d");
     }
@@ -486,7 +486,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
      * Given a Mailgun\Model\Event\Event, store if possible
      * @return MailgunEvent|boolean
      */
-    public function storeEvent(MailgunEventModel $event)
+    public function storeEvent(MailgunEventModel $event): false|\Mailgun\Model\Event\Event|\NSWDPC\Messaging\Mailgun\Models\MailgunEvent
     {
         $this->extend('onBeforeStoreMailgunEvent', $event);
 
@@ -515,7 +515,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
         $mailgun_event->saveDeliveryStatus($status);
         $mailgun_event->StorageURL = $storage['url'] ?? '';
-        $mailgun_event->DecodedStorageKey = "";// no need to store this
+        $mailgun_event->DecodedStorageKey = "";
+        // no need to store this
         $mailgun_event_id = $mailgun_event->write();
         if (!$mailgun_event_id) {
             // could not create record
