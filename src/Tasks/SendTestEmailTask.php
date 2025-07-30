@@ -4,11 +4,9 @@ namespace NSWDPC\Messaging\Mailgun\Transport\Tasks;
 
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Dev\BuildTask;
-use SilverStripe\ORM\DB;
 use SilverStripe\PolyExecution\PolyOutput;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 
 /**
  * Given a set of URLs, attempt to purge them
