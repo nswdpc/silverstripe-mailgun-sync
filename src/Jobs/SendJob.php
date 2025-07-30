@@ -5,13 +5,10 @@ namespace NSWDPC\Messaging\Mailgun\Jobs;
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use NSWDPC\Messaging\Mailgun\Exceptions\JobProcessingException;
-use NSWDPC\Messaging\Mailgun\Services\Logger;
 use NSWDPC\Messaging\Mailgun\Transport\MailgunSyncApiTransport;
-use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
-use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**

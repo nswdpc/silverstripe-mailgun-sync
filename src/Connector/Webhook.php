@@ -2,11 +2,7 @@
 
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
-use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebHook;
-use NSWDPC\Messaging\Mailgun\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\Log;
 use Mailgun\Mailgun;
-use Exception;
 
 /**
  * Webhook integration with Mailgun PHP SDK

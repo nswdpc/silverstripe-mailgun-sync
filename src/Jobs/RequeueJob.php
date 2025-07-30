@@ -4,8 +4,6 @@ namespace NSWDPC\Messaging\Mailgun\Jobs;
 
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
-use SilverStripe\Core\Config\Config;
-use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 
 /**

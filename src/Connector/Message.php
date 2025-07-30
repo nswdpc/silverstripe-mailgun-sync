@@ -4,13 +4,8 @@ namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
-use Mailgun\Model\Message\ShowResponse;
 use NSWDPC\Messaging\Mailgun\Jobs\SendJob;
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\Services\Logger;
-use SilverStripe\Assets\Folder;
-use SilverStripe\Assets\File;
-use SilverStripe\Security\Group;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 

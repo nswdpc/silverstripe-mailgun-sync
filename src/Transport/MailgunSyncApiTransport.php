@@ -3,18 +3,12 @@
 namespace NSWDPC\Messaging\Mailgun\Transport;
 
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
-use NSWDPC\Messaging\Mailgun\Exceptions\InvalidRequestException;
-use NSWDPC\Messaging\Mailgun\Exceptions\SendException;
-use NSWDPC\Messaging\Mailgun\Services\Logger;
-use NSWDPC\Messaging\Mailgun\Transport\ApiResponse;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
 use NSWDPC\Messaging\Taggable\EmailWithCustomParameters;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Control\Email\Email as SilverStripeEmail;
 use SilverStripe\Core\Config\Configurable;
-use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
-use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\HttpTransportException;
 use Symfony\Component\Mailer\SentMessage;

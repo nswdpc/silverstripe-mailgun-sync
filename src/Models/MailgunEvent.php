@@ -4,21 +4,15 @@ namespace NSWDPC\Messaging\Mailgun\Models;
 
 use Mailgun\Mailgun;
 use Mailgun\Model\Event\Event as MailgunEventModel;
-use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Group;
-use SilverStripe\Security\Member;
 use SilverStripe\Security\Security;
 use SilverStripe\Security\Permission;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\GridField\GridField;
-use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\FormAction;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\ValidationException;
-use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\FieldType\DBField;
 
 /**

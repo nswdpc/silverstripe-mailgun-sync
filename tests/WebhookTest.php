@@ -2,7 +2,6 @@
 
 namespace NSWDPC\Messaging\Mailgun\Tests;
 
-use NSWDPC\Messaging\Mailgun\Connector\Base;
 use NSWDPC\Messaging\Mailgun\Connector\Webhook;
 use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebHook;
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;

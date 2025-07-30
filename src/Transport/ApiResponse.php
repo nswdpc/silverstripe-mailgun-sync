@@ -3,14 +3,7 @@
 namespace NSWDPC\Messaging\Mailgun\Transport;
 
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
-use NSWDPC\Messaging\Mailgun\Services\Logger;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
-use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
 /**

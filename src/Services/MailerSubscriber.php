@@ -2,11 +2,8 @@
 
 namespace NSWDPC\Messaging\Mailgun\Services;
 
-use NSWDPC\Messaging\Mailgun\Email\MailgunEmail;
 use NSWDPC\Messaging\Mailgun\Exceptions\SendException;
-use SilverStripe\Control\Email\MailerSubscriber as SilverStripeMailerSubscriber;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\Mailer\Event\MessageEvent;
 use Symfony\Component\Mailer\Event\SentMessageEvent;
 use Symfony\Component\Mailer\Event\FailedMessageEvent;
 use Symfony\Component\Mailer\SentMessage;
