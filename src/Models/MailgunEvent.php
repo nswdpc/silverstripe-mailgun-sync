@@ -422,7 +422,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Helper method to create a UTC DateTime from a timestamp
      */
-    private function CreateUTCDateTime($timestamp, string $format = "Y-m-d H:i:s"): string
+    private function CreateUTCDateTime(int $timestamp, string $format = "Y-m-d H:i:s"): string
     {
         $dt = new \DateTime();
         $dt->setTimestamp($timestamp);
