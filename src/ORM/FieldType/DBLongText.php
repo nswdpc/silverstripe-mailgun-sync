@@ -17,7 +17,7 @@ use SilverStripe\ORM\Connect\MySQLDatabase;
  * <code>
  * QueuedJobDescriptor:
  *   db:
- *     SavedJobData : 'NSWDPC\Messaging\Mailgun\LongText'
+ *     SavedJobData : 'NSWDPC\Messaging\Mailgun\ORM\FieldType'
  * </code>
  */
 class DBLongText extends DBText
@@ -28,7 +28,7 @@ class DBLongText extends DBText
      * @note values is passed in as a string to differentiate from mediumtext spec and trigger an alter table
      */
     #[\Override]
-    public function requireField()
+    public function requireField(): void
     {
         $schema = DB::get_schema();
         if ($schema && $schema instanceof MySQLSchemaManager) {

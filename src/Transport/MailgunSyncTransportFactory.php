@@ -9,6 +9,7 @@ use Symfony\Component\Mailer\Exception\UnsupportedSchemeException;
 use Symfony\Component\Mailer\Transport\AbstractTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Transport factory for Mailgun
@@ -24,7 +25,7 @@ final class MailgunSyncTransportFactory extends AbstractTransportFactory
     {
         $scheme = $dsn->getScheme();
         if ('mailgunsync+api' === $scheme) {
-            if ($this->dispatcher) {
+            if ($this->dispatcher instanceof EventDispatcherInterface) {
                 $subscriber = new MailerSubscriber();
                 $this->dispatcher->addSubscriber($subscriber);
             }
