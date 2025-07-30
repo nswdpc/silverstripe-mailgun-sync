@@ -469,9 +469,9 @@ class MailgunEvent extends DataObject implements PermissionProvider
     {
         $this->DeliveryStatusMessage = $delivery_status['message'] ?? '';
         $this->DeliveryStatusDescription = $delivery_status['description'] ?? '';
-        $this->DeliveryStatusCode = $delivery_status['code'] ?? '';
-        $this->DeliveryStatusAttempts = $delivery_status['attempt-no'] ?? '';
-        $this->DeliveryStatusSession = $delivery_status['session-seconds'] ?? '';
+        $this->DeliveryStatusCode = intval($delivery_status['code'] ?? 0);
+        $this->DeliveryStatusAttempts = intval($delivery_status['attempt-no'] ?? 0);
+        $this->DeliveryStatusSession = floatval($delivery_status['session-seconds'] ?? 0);
         $this->DeliveryStatusMxHost = $delivery_status['mx-host'] ?? '';
         return true;
     }
