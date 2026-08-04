@@ -89,7 +89,7 @@ abstract class Base
      * Get the Mailgun SDK client
      * @param string $apiKey an optional alternate API key for use this this client instance
      */
-    public function getClient(string $apiKey = null)
+    public function getClient(?string $apiKey = null)
     {
         if ($apiKey === '' || is_null($apiKey)) {
             $apiKey = $this->getApiKey();
