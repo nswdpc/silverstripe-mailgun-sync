@@ -6,7 +6,6 @@ This module provides functionality to send emails via the Mailgun API and store 
 
 See [composer.json](./composer.json)
 
-+ silverstripe/framework ^5
 + Symbiote's [Queued Jobs](https://github.com/symbiote/silverstripe-queuedjobs) module
 + Mailgun PHP SDK ^4, kriswallsmith/buzz, nyholm/psr7
 

@@ -100,7 +100,7 @@ php -r "echo hash_hmac( 'sha256', '1597313511' . 'a78fb97c20322f7ee7c2f2da9d606d
 6831675fc6ad003ec9b2262f046c3ac350ffdd662a85261b14252a8180fdedfb
 ```
 
-Add `webhook_signing_key: 'MY_SIGNING_KEY'` to your project configuration and then execute a curl as follows (-k to ignore a self signed certificate on local dev, if appropriate):
+Add `MAILGUN_WEBHOOK_SIGNING_KEY="MY_SIGNING_KEY"` to your project environment configuration and then execute a curl as follows (-k to ignore a self signed certificate on local dev, if appropriate):
 
 ```shell
 curl -H "Content-Type: application/json" \
