@@ -6,7 +6,6 @@ use NSWDPC\Messaging\Mailgun\Exceptions\SendException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Mailer\Event\SentMessageEvent;
 use Symfony\Component\Mailer\Event\FailedMessageEvent;
-use Symfony\Component\Mailer\SentMessage;
 
 /**
  * Subscribe to SentMessageEvent and FailedMessageEvent events
