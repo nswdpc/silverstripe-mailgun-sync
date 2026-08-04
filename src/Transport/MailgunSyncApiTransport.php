@@ -49,14 +49,6 @@ class MailgunSyncApiTransport extends AbstractApiTransport
     ];
 
     /**
-     * Constructor for the transport
-     */
-    public function __construct(?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
-    {
-        parent::__construct($client, $dispatcher, $logger);
-    }
-
-    /**
      * Representation of class as string (required by Stringable)
      */
     #[\Override]

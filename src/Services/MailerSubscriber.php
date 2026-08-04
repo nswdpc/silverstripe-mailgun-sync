@@ -32,7 +32,6 @@ class MailerSubscriber implements EventSubscriberInterface
     public function onMailgunSendMessage(SentMessageEvent $event): void
     {
         try {
-            /** @var SentMessage $message */
             $message = $event->getMessage();
             $decoded = json_decode($message->getMessageId(), true, 512, JSON_THROW_ON_ERROR);
             $msgId = $decoded['msgId'] ?? '';
@@ -55,7 +54,6 @@ class MailerSubscriber implements EventSubscriberInterface
      */
     public function onMailgunFailedMessage(FailedMessageEvent $event): void
     {
-        /** @var \Throwable $error */
         $error = $event->getError();
         $errorMessage = $error->getMessage();
         Logger::log("Failed mailgun message: " . $errorMessage, "NOTICE");

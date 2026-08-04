@@ -77,7 +77,7 @@ class Message extends Base
      * See: https://documentation.mailgun.com/en/latest/api-sending.html#sending
      * @param array $parameters an array of message parameters for the Mailgun API
      */
-    public function send($parameters): QueuedJobDescriptor|SendResponse
+    public function send(array $parameters): QueuedJobDescriptor|SendResponse
     {
 
         // If configured and not already specified, set the Sender hader
@@ -140,9 +140,8 @@ class Message extends Base
 
     /**
      * Base64 encode attachments, primarily used to avoid attachment corruption issues when storing binary data in a queued job
-     * @param array $parameters
      */
-    public function encodeAttachments(&$parameters)
+    public function encodeAttachments(array &$parameters)
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
             foreach ($parameters['attachment'] as $k => $attachment) {
@@ -153,9 +152,8 @@ class Message extends Base
 
     /**
      * Base64 decode attachments, for decoding attachments encoded with {@link self::encodeAttachments()}
-     * @param array $parameters
      */
-    public function decodeAttachments(&$parameters)
+    public function decodeAttachments(array &$parameters)
     {
         if (!empty($parameters['attachment']) && is_array($parameters['attachment'])) {
             foreach ($parameters['attachment'] as $k => $attachment) {

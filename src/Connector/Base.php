@@ -219,7 +219,7 @@ abstract class Base
      * When Bcc/Cc is provided with no 'To', mailgun rejects the request (400 Bad Request), this method applies the configured default_recipient
      * @deprecated
      */
-    final public function applyDefaultRecipient(&$parameters): void
+    final public function applyDefaultRecipient(array &$parameters): void
     {
         if (empty($parameters['to'])
                 && (!empty($parameters['cc']) || !empty($parameters['bcc']))
