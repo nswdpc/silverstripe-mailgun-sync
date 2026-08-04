@@ -36,8 +36,8 @@
         "kriswallsmith/buzz" : "^1.3",
         "nyholm/psr7" : "^1.8",
         "silverstripe/framework" : "^6",
-        "nswdpc/silverstripe-taggable-notifications": "dev-ss6",
-        "symfony/http-client": "^6.4|^7.0"
+        "nswdpc/silverstripe-taggable-notifications": "^2",
+        "symfony/http-client": "^7.0"
     },
     "require-dev": {
         "cambis/silverstripe-rector": "^2",
