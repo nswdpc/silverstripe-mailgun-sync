@@ -13,12 +13,7 @@ use SilverStripe\ORM\Connect\MySQLDatabase;
  * See: https://mariadb.com/kb/en/library/longtext/
  * If the current schema is not mysql based, use the Text requirement e.g SQLite3 TEXT (2GB)
  *
- * Example definition in YAML for increasing SavedJobData field length
- * <code>
- * QueuedJobDescriptor:
- *   db:
- *     SavedJobData : 'NSWDPC\Messaging\Mailgun\ORM\FieldType'
- * </code>
+ * See queuedjobs.yml for setup of this field for QueuedJobDescriptor.SavedJobData field
  */
 class DBLongText extends DBText
 {
