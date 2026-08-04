@@ -19,7 +19,7 @@ class TransportFactory extends SilverStripeEmailTransportFactory
      * See https://github.com/symfony/symfony/issues/35469 for an issue related to this
      */
     #[\Override]
-    public function create($service, array $params = [])
+    public function create(string $service, array $params = []): object
     {
         $dsn = Environment::getEnv('MAILER_DSN') ?: $params['dsn'];
         $dispatcher = $params['dispatcher'] ?? null;
