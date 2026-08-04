@@ -109,7 +109,7 @@ class MailgunWebHook extends Controller
      * @throws \Exception|WebhookServerException|WebhookClientException|WebhookNotAcceptableException
      * The exception thrown depends on the error found. A 406 error will stop Mailgun from retrying a particular request
      */
-    public function submit(HTTPRequest $request = null): HTTPResponse
+    public function submit(?HTTPRequest $request = null): HTTPResponse
     {
         try {
             $connector = $this->getConnector();

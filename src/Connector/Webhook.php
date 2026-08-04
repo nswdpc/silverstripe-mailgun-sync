@@ -43,11 +43,11 @@ class Webhook extends Base
      * Based on Mailgun docs, determine if the signature is correctly formatted
      * @param array $signature the signature part of the payload
      */
-    public function is_valid_signature($signature): bool
+    public function is_valid_signature(array $signature): bool
     {
         return isset($signature['timestamp'])
                 && isset($signature['token'])
-                && strlen((string) $signature['token']) == 50
+                && strlen((string) $signature['token']) === 50
                 && isset($signature['signature']);
     }
 }

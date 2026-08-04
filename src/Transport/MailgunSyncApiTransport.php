@@ -5,8 +5,6 @@ namespace NSWDPC\Messaging\Mailgun\Transport;
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use NSWDPC\Messaging\Taggable\TaggableEmail;
 use NSWDPC\Messaging\Taggable\EmailWithCustomParameters;
-use Psr\EventDispatcher\EventDispatcherInterface;
-use Psr\Log\LoggerInterface;
 use SilverStripe\Control\Email\Email as SilverStripeEmail;
 use SilverStripe\Core\Config\Configurable;
 use Symfony\Component\Mailer\Envelope;
@@ -18,7 +16,6 @@ use Symfony\Component\Mime\Email as SymfonyEmail;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Component\Mime\Header\Headers;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
 /**
@@ -47,14 +44,6 @@ class MailgunSyncApiTransport extends AbstractApiTransport
         'Date',
         'Message-ID',
     ];
-
-    /**
-     * Constructor for the transport
-     */
-    public function __construct(?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
-    {
-        parent::__construct($client, $dispatcher, $logger);
-    }
 
     /**
      * Representation of class as string (required by Stringable)

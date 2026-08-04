@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NSWDPC\Messaging\Mailgun\Services;
 
 use SilverStripe\Core\Injector\Injector;

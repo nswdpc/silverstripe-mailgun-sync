@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NSWDPC\Messaging\Mailgun\Transport;
 
 use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
