@@ -4,21 +4,15 @@ namespace NSWDPC\Messaging\Mailgun\Models;
 
 use Mailgun\Mailgun;
 use Mailgun\Model\Event\Event as MailgunEventModel;
-use NSWDPC\Messaging\Mailgun\Connector\Message as MessageConnector;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Group;
-use SilverStripe\Security\Member;
 use SilverStripe\Security\Security;
 use SilverStripe\Security\Permission;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\GridField\GridField;
-use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\FormAction;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\ValidationException;
-use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\FieldType\DBField;
 
 /**
@@ -310,7 +304,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
             $config->removeComponentsByType('GridFieldEditButton');
             $gridfield = GridField::create('SiblingEventsGridField', 'Siblings', $siblings, $config);
             $literal_field = LiteralField::create('SiblingEventNote', '<p class="message">This tab shows events sharing the same Mailgun message-id '
-                                                                                                                                        . '<code>'. htmlspecialchars($this->MessageId) . '</code></p>');
+                                                                                                                                        . '<code>'. htmlspecialchars((string) $this->MessageId) . '</code></p>');
             $fields->addFieldsToTab('Root.RelatedEvents', [$literal_field, $gridfield ]);
         }
 
@@ -420,7 +414,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Helper method to create a UTC Date from a timestamp
      */
-    private function CreateUTCDate($timestamp): string
+    private function CreateUTCDate(int $timestamp): string
     {
         return $this->CreateUTCDateTime($timestamp, "Y-m-d");
     }
@@ -428,7 +422,7 @@ class MailgunEvent extends DataObject implements PermissionProvider
     /**
      * Helper method to create a UTC DateTime from a timestamp
      */
-    private function CreateUTCDateTime($timestamp, string $format = "Y-m-d H:i:s"): string
+    private function CreateUTCDateTime(int $timestamp, string $format = "Y-m-d H:i:s"): string
     {
         $dt = new \DateTime();
         $dt->setTimestamp($timestamp);
@@ -484,9 +478,8 @@ class MailgunEvent extends DataObject implements PermissionProvider
 
     /**
      * Given a Mailgun\Model\Event\Event, store if possible
-     * @return MailgunEvent|boolean
      */
-    public function storeEvent(MailgunEventModel $event)
+    public function storeEvent(MailgunEventModel $event): ?\NSWDPC\Messaging\Mailgun\Models\MailgunEvent
     {
         $this->extend('onBeforeStoreMailgunEvent', $event);
 
@@ -515,11 +508,12 @@ class MailgunEvent extends DataObject implements PermissionProvider
         $mailgun_event->Reason = $event->getReason();// doesn't appear to be set for 'rejected' events
         $mailgun_event->saveDeliveryStatus($status);
         $mailgun_event->StorageURL = $storage['url'] ?? '';
-        $mailgun_event->DecodedStorageKey = "";// no need to store this
+        $mailgun_event->DecodedStorageKey = "";
+        // no need to store this
         $mailgun_event_id = $mailgun_event->write();
         if (!$mailgun_event_id) {
             // could not create record
-            return false;
+            return null;
         }
 
         $this->extend('onAfterStoreMailgunEvent', $event, $mailgun_event);

@@ -3,7 +3,6 @@
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
-use NSWDPC\Messaging\Mailgun\Log;
 use Exception;
 use SilverStripe\Control\Email\Email;
 

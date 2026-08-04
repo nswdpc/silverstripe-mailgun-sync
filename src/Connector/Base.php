@@ -4,7 +4,6 @@ namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use Mailgun\Mailgun;
 use NSWDPC\Messaging\Mailgun\Controllers\MailgunWebHook;
-use NSWDPC\Messaging\Mailgun\Services\Logger;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
@@ -90,7 +89,7 @@ abstract class Base
      * Get the Mailgun SDK client
      * @param string $apiKey an optional alternate API key for use this this client instance
      */
-    public function getClient(string $apiKey = null)
+    public function getClient(?string $apiKey = null)
     {
         if ($apiKey === '' || is_null($apiKey)) {
             $apiKey = $this->getApiKey();
@@ -220,7 +219,7 @@ abstract class Base
      * When Bcc/Cc is provided with no 'To', mailgun rejects the request (400 Bad Request), this method applies the configured default_recipient
      * @deprecated
      */
-    final public function applyDefaultRecipient(&$parameters): void
+    final public function applyDefaultRecipient(array &$parameters): void
     {
         if (empty($parameters['to'])
                 && (!empty($parameters['cc']) || !empty($parameters['bcc']))

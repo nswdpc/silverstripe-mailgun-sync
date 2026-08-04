@@ -2,7 +2,6 @@
 
 namespace NSWDPC\Messaging\Mailgun\Transport;
 
-use NSWDPC\Messaging\Mailgun\Services\Logger;
 use NSWDPC\Messaging\Mailgun\Services\MailerSubscriber;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Core\Injector\Injector;

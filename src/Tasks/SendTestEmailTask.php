@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NSWDPC\Messaging\Mailgun\Transport\Tasks;
 
 use SilverStripe\Control\Email\Email;
-use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 

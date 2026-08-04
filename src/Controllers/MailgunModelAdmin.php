@@ -4,17 +4,13 @@ namespace NSWDPC\Messaging\Mailgun\Controllers;
 
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
 use SilverStripe\Admin\ModelAdmin;
-use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
-use SilverStripe\Control\Controller;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldAddNewButton;
-use SilverStripe\Forms\GridField\GridFieldDataColumns;
 use SilverStripe\Forms\GridField\GridFieldPrintButton;
 use SilverStripe\Forms\GridField\GridFieldDeleteAction;
 use SilverStripe\Forms\GridField\GridFieldEditButton;
-use SilverStripe\Forms\GridField\GridFieldDetailForm;
 
 /**
  * Admin for Mailgun

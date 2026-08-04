@@ -2,7 +2,6 @@
 
 namespace NSWDPC\Messaging\Mailgun\Tests;
 
-use Mailgun\Mailgun;
 use Mailgun\Model\Message\SendResponse;
 use NSWDPC\Messaging\Mailgun\Connector\Message;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;

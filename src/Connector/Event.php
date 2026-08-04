@@ -3,7 +3,6 @@
 namespace NSWDPC\Messaging\Mailgun\Connector;
 
 use NSWDPC\Messaging\Mailgun\Models\MailgunEvent;
-use NSWDPC\Messaging\Mailgun\Services\Logger;
 use Mailgun\Mailgun;
 
 /**
